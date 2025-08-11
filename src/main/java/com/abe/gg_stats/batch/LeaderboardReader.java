@@ -1,6 +1,6 @@
 package com.abe.gg_stats.batch;
 
-import com.abe.ggstats.service.OpenDotaApiService;
+import com.abe.gg_stats.service.OpenDotaApiService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,40 +15,43 @@ import java.util.Optional;
 @Slf4j
 public class LeaderboardReader implements ItemReader<JsonNode> {
 
-  private final OpenDotaApiService openDotaApiService;
-  private Iterator<JsonNode> leaderboardIterator;
-  private boolean initialized = false;
+	private final OpenDotaApiService openDotaApiService;
 
-  @Override
-  public JsonNode read() throws Exception {
-    if (!initialized) {
-      initialize();
-    }
+	private Iterator<JsonNode> leaderboardIterator;
 
-    if (leaderboardIterator != null && leaderboardIterator.hasNext()) {
-      return leaderboardIterator.next();
-    }
+	private boolean initialized = false;
 
-    return null;
-  }
+	@Override
+	public JsonNode read() throws Exception {
+		if (!initialized) {
+			initialize();
+		}
 
-  private void initialize() {
-    // Fetch leaderboard for different regions
-    String[] regions = {"americas", "europe", "se_asia", "china"};
+		if (leaderboardIterator != null && leaderboardIterator.hasNext()) {
+			return leaderboardIterator.next();
+		}
 
-    for (String region : regions) {
-      Optional<JsonNode> leaderboardData = openDotaApiService.getLeaderboard(region);
-      if (leaderboardData.isPresent() && leaderboardData.get().isArray()) {
-        leaderboardIterator = leaderboardData.get().elements();
-        log.info("Initialized leaderboard reader with {} entries from {}",
-            leaderboardData.get().size(), region);
-        break; // Use first successful region for now
-      }
-    }
+		return null;
+	}
 
-    if (leaderboardIterator == null) {
-      log.warn("Failed to fetch leaderboard data from OpenDota API");
-    }
-    initialized = true;
-  }
+	private void initialize() {
+		// Fetch leaderboard for different regions
+		String[] regions = { "americas", "europe", "se_asia", "china" };
+
+		for (String region : regions) {
+			Optional<JsonNode> leaderboardData = openDotaApiService.getLeaderboard(region);
+			if (leaderboardData.isPresent() && leaderboardData.get().isArray()) {
+				leaderboardIterator = leaderboardData.get().elements();
+				log.info("Initialized leaderboard reader with {} entries from {}", leaderboardData.get().size(),
+						region);
+				break; // Use first successful region for now
+			}
+		}
+
+		if (leaderboardIterator == null) {
+			log.warn("Failed to fetch leaderboard data from OpenDota API");
+		}
+		initialized = true;
+	}
+
 }

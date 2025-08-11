@@ -1,5 +1,6 @@
 package com.abe.gg_stats.batch;
-import com.abe.ggstats.service.OpenDotaApiService;
+
+import com.abe.gg_stats.service.OpenDotaApiService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,31 +15,35 @@ import java.util.Optional;
 @Slf4j
 public class ProPlayersReader implements ItemReader<JsonNode> {
 
-  private final OpenDotaApiService openDotaApiService;
-  private Iterator<JsonNode> proPlayerIterator;
-  private boolean initialized = false;
+	private final OpenDotaApiService openDotaApiService;
 
-  @Override
-  public JsonNode read() throws Exception {
-    if (!initialized) {
-      initialize();
-    }
+	private Iterator<JsonNode> proPlayerIterator;
 
-    if (proPlayerIterator != null && proPlayerIterator.hasNext()) {
-      return proPlayerIterator.next();
-    }
+	private boolean initialized = false;
 
-    return null;
-  }
+	@Override
+	public JsonNode read() throws Exception {
+		if (!initialized) {
+			initialize();
+		}
 
-  private void initialize() {
-    Optional<JsonNode> proPlayersData = openDotaApiService.getProPlayers();
-    if (proPlayersData.isPresent() && proPlayersData.get().isArray()) {
-      proPlayerIterator = proPlayersData.get().elements();
-      log.info("Initialized pro players reader with {} players", proPlayersData.get().size());
-    } else {
-      log.warn("Failed to fetch pro players data from OpenDota API");
-    }
-    initialized = true;
-  }
+		if (proPlayerIterator != null && proPlayerIterator.hasNext()) {
+			return proPlayerIterator.next();
+		}
+
+		return null;
+	}
+
+	private void initialize() {
+		Optional<JsonNode> proPlayersData = openDotaApiService.getProPlayers();
+		if (proPlayersData.isPresent() && proPlayersData.get().isArray()) {
+			proPlayerIterator = proPlayersData.get().elements();
+			log.info("Initialized pro players reader with {} players", proPlayersData.get().size());
+		}
+		else {
+			log.warn("Failed to fetch pro players data from OpenDota API");
+		}
+		initialized = true;
+	}
+
 }
