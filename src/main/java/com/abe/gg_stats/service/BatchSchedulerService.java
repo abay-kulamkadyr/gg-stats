@@ -25,19 +25,16 @@ public class BatchSchedulerService {
 
 	private final Job teamsUpdateJob;
 
-	private final Job leaderboardUpdateJob;
-
 	// Constructor injection with qualifiers
 	public BatchSchedulerService(JobLauncher jobLauncher, OpenDotaApiService openDotaApiService,
 			@Qualifier("heroesUpdateJob") Job heroesUpdateJob,
-			@Qualifier("proPlayersUpdateJob") Job proPlayersUpdateJob, @Qualifier("teamsUpdateJob") Job teamsUpdateJob,
-			@Qualifier("leaderboardUpdateJob") Job leaderboardUpdateJob) {
+			@Qualifier("proPlayersUpdateJob") Job proPlayersUpdateJob,
+			@Qualifier("teamsUpdateJob") Job teamsUpdateJob) {
 		this.jobLauncher = jobLauncher;
 		this.openDotaApiService = openDotaApiService;
 		this.heroesUpdateJob = heroesUpdateJob;
 		this.proPlayersUpdateJob = proPlayersUpdateJob;
 		this.teamsUpdateJob = teamsUpdateJob;
-		this.leaderboardUpdateJob = leaderboardUpdateJob;
 	}
 
 	/**
@@ -73,17 +70,6 @@ public class BatchSchedulerService {
 	}
 
 	/**
-	 * Run leaderboard update job every 2 hours Leaderboard changes frequently as players
-	 * gain/lose MMR
-	 */
-	@Scheduled(cron = "0 0 */2 * * *")
-	public void runLeaderboardUpdateJob() {
-		if (canRunJob()) {
-			runJob(leaderboardUpdateJob, "Leaderboard Update");
-		}
-	}
-
-	/**
 	 * Manual trigger for heroes job (can be called via REST endpoint)
 	 */
 	public boolean triggerHeroesUpdate() {
@@ -109,16 +95,6 @@ public class BatchSchedulerService {
 	public boolean triggerTeamsUpdate() {
 		if (canRunJob()) {
 			return runJob(teamsUpdateJob, "Manual Teams Update");
-		}
-		return false;
-	}
-
-	/**
-	 * Manual trigger for leaderboard job
-	 */
-	public boolean triggerLeaderboardUpdate() {
-		if (canRunJob()) {
-			return runJob(leaderboardUpdateJob, "Manual Leaderboard Update");
 		}
 		return false;
 	}

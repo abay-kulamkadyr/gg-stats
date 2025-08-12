@@ -3,9 +3,6 @@ package com.abe.gg_stats.config;
 import com.abe.gg_stats.batch.HeroProcessor;
 import com.abe.gg_stats.batch.HeroWriter;
 import com.abe.gg_stats.batch.HeroesReader;
-import com.abe.gg_stats.batch.LeaderboardProcessor;
-import com.abe.gg_stats.batch.LeaderboardReader;
-import com.abe.gg_stats.batch.LeaderboardWriter;
 import com.abe.gg_stats.batch.NotablePlayerProcessor;
 import com.abe.gg_stats.batch.NotablePlayerWriter;
 import com.abe.gg_stats.batch.NotablePlayersReader;
@@ -13,7 +10,6 @@ import com.abe.gg_stats.batch.TeamProcessor;
 import com.abe.gg_stats.batch.TeamWriter;
 import com.abe.gg_stats.batch.TeamsReader;
 import com.abe.gg_stats.entity.Hero;
-import com.abe.gg_stats.entity.LeaderboardRank;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.service.OpenDotaApiService;
@@ -81,23 +77,6 @@ public class BatchConfiguration {
 			.reader(teamsReader)
 			.processor(teamProcessor)
 			.writer(teamWriter)
-			.build();
-	}
-
-	// === Leaderboard Job ===
-	@Bean
-	public Job leaderboardUpdateJob(Step leaderboardStep) {
-		return new JobBuilder("leaderboardUpdateJob", jobRepository).start(leaderboardStep).build();
-	}
-
-	@Bean
-	public Step leaderboardStep(LeaderboardReader leaderboardReader, LeaderboardProcessor leaderboardProcessor,
-			LeaderboardWriter leaderboardWriter) {
-		return new StepBuilder("leaderboardStep", jobRepository)
-			.<JsonNode, LeaderboardRank>chunk(50, transactionManager)
-			.reader(leaderboardReader)
-			.processor(leaderboardProcessor)
-			.writer(leaderboardWriter)
 			.build();
 	}
 
