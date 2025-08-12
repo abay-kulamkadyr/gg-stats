@@ -13,7 +13,7 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ProPlayersReader implements ItemReader<JsonNode> {
+public class NotablePlayersReader implements ItemReader<JsonNode> {
 
 	private final OpenDotaApiService openDotaApiService;
 

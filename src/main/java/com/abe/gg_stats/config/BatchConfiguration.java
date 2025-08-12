@@ -6,15 +6,15 @@ import com.abe.gg_stats.batch.HeroesReader;
 import com.abe.gg_stats.batch.LeaderboardProcessor;
 import com.abe.gg_stats.batch.LeaderboardReader;
 import com.abe.gg_stats.batch.LeaderboardWriter;
-import com.abe.gg_stats.batch.ProPlayerProcessor;
-import com.abe.gg_stats.batch.ProPlayerWriter;
-import com.abe.gg_stats.batch.ProPlayersReader;
+import com.abe.gg_stats.batch.NotablePlayerProcessor;
+import com.abe.gg_stats.batch.NotablePlayerWriter;
+import com.abe.gg_stats.batch.NotablePlayersReader;
 import com.abe.gg_stats.batch.TeamProcessor;
 import com.abe.gg_stats.batch.TeamWriter;
 import com.abe.gg_stats.batch.TeamsReader;
 import com.abe.gg_stats.entity.Hero;
 import com.abe.gg_stats.entity.LeaderboardRank;
-import com.abe.gg_stats.entity.ProPlayer;
+import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.service.OpenDotaApiService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -24,7 +24,6 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.ItemReader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -54,11 +53,6 @@ public class BatchConfiguration {
 			.build();
 	}
 
-	// @Bean
-	// public ItemReader<JsonNode> heroesReader() {
-	// return new HeroesReader(openDotaApiService);
-	// }
-
 	// === Pro Players Job ===
 	@Bean
 	public Job proPlayersUpdateJob(Step proPlayersStep) {
@@ -66,19 +60,14 @@ public class BatchConfiguration {
 	}
 
 	@Bean
-	public Step proPlayersStep(ProPlayersReader proPlayersReader, ProPlayerProcessor proPlayerProcessor,
-			ProPlayerWriter proPlayerWriter) {
-		return new StepBuilder("proPlayersStep", jobRepository).<JsonNode, ProPlayer>chunk(10, transactionManager)
+	public Step proPlayersStep(NotablePlayersReader proPlayersReader, NotablePlayerProcessor notablePlayerProcessor,
+			NotablePlayerWriter notablePlayerWriter) {
+		return new StepBuilder("proPlayersStep", jobRepository).<JsonNode, NotablePlayer>chunk(10, transactionManager)
 			.reader(proPlayersReader)
-			.processor(proPlayerProcessor)
-			.writer(proPlayerWriter)
+			.processor(notablePlayerProcessor)
+			.writer(notablePlayerWriter)
 			.build();
 	}
-
-	// @Bean
-	// public ItemReader<JsonNode> proPlayersReader() {
-	// return new ProPlayersReader(openDotaApiService);
-	// }
 
 	// === Teams Job ===
 	@Bean
@@ -94,11 +83,6 @@ public class BatchConfiguration {
 			.writer(teamWriter)
 			.build();
 	}
-
-	// @Bean
-	// public ItemReader<JsonNode> teamsReader() {
-	// return new TeamsReader(openDotaApiService);
-	// }
 
 	// === Leaderboard Job ===
 	@Bean
@@ -116,19 +100,5 @@ public class BatchConfiguration {
 			.writer(leaderboardWriter)
 			.build();
 	}
-
-	@Bean
-	public Job allJobs(JobRepository jobRepository, Step heroesStep, Step proPlayersStep, Step teamsStep,
-			Step leaderboardStep) {
-		return new JobBuilder("allJobs", jobRepository).start(heroesStep)
-			.next(proPlayersStep)
-			.next(teamsStep)
-			.next(leaderboardStep)
-			.build();
-	}
-	// @Bean
-	// public ItemReader<JsonNode> leaderboardReader() {
-	// return new LeaderboardReader(openDotaApiService);
-	// }
 
 }

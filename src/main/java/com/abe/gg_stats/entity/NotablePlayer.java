@@ -5,25 +5,20 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "pro_player")
+@Table(name = "notable_player")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProPlayer {
+public class NotablePlayer {
 
 	@Id
 	@Column(name = "account_id")
 	private Long accountId;
-
-	@OneToOne
-	@MapsId
-	@JoinColumn(name = "account_id")
-	private Player player;
 
 	@Column(name = "country_code")
 	private String countryCode;
@@ -47,8 +42,8 @@ public class ProPlayer {
 	@Column(name = "created_at")
 	private LocalDateTime createdAt;
 
-	@UpdateTimestamp
-	@Column(name = "updated_at")
+	// @UpdateTimestamp
+	@Column(name = "updated_at", insertable = false, updatable = false)
 	private LocalDateTime updatedAt;
 
 }

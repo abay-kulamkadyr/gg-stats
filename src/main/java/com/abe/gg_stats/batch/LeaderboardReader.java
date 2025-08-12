@@ -46,6 +46,10 @@ public class LeaderboardReader implements ItemReader<JsonNode> {
 						region);
 				break; // Use first successful region for now
 			}
+			else {
+				log.info("Couldn't read data for leaderboard in region");
+			}
+
 		}
 
 		if (leaderboardIterator == null) {

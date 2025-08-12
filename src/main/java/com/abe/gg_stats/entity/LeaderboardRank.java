@@ -20,11 +20,6 @@ public class LeaderboardRank {
 	@Column(name = "account_id")
 	private Long accountId;
 
-	@OneToOne
-	@MapsId
-	@JoinColumn(name = "account_id")
-	private Player player;
-
 	@Column(name = "rank_position")
 	private Integer rankPosition;
 
