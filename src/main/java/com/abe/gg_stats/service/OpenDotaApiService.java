@@ -187,10 +187,6 @@ public class OpenDotaApiService {
 		return makeApiCall("/players/" + accountId);
 	}
 
-	public Optional<JsonNode> getLeaderboard(String region) {
-		return makeApiCall("/leaderboards?leaderboard=" + region);
-	}
-
 	public Optional<JsonNode> getPlayerRanking(Long accountId) {
 		return makeApiCall("/players/" + accountId + "/rankings");
 	}
@@ -201,6 +197,10 @@ public class OpenDotaApiService {
 
 	public Optional<JsonNode> getPlayerRecentMatches(Long accountId) {
 		return makeApiCall("/players/" + accountId + "/recentMatches");
+	}
+
+	public Optional<JsonNode> getHeroRanking(Integer heroId) {
+		return makeApiCall("/rankings?hero_id=" + heroId);
 	}
 
 }

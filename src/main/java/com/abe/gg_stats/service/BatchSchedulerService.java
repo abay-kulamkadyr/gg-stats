@@ -9,8 +9,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-
 @Service
 @Slf4j
 public class BatchSchedulerService {
@@ -21,20 +19,24 @@ public class BatchSchedulerService {
 
 	private final Job heroesUpdateJob;
 
-	private final Job proPlayersUpdateJob;
+	private final Job notablePlayersUpdateJob;
 
 	private final Job teamsUpdateJob;
+
+	private final Job heroRankingUpdateJob;
 
 	// Constructor injection with qualifiers
 	public BatchSchedulerService(JobLauncher jobLauncher, OpenDotaApiService openDotaApiService,
 			@Qualifier("heroesUpdateJob") Job heroesUpdateJob,
-			@Qualifier("proPlayersUpdateJob") Job proPlayersUpdateJob,
-			@Qualifier("teamsUpdateJob") Job teamsUpdateJob) {
+			@Qualifier("proPlayersUpdateJob") Job notablePlayersUpdateJob,
+			@Qualifier("teamsUpdateJob") Job teamsUpdateJob,
+			@Qualifier("heroRankingUpdateJob") Job heroRankingUpdateJob) {
 		this.jobLauncher = jobLauncher;
 		this.openDotaApiService = openDotaApiService;
 		this.heroesUpdateJob = heroesUpdateJob;
-		this.proPlayersUpdateJob = proPlayersUpdateJob;
+		this.notablePlayersUpdateJob = notablePlayersUpdateJob;
 		this.teamsUpdateJob = teamsUpdateJob;
+		this.heroRankingUpdateJob = heroRankingUpdateJob;
 	}
 
 	/**
@@ -55,7 +57,7 @@ public class BatchSchedulerService {
 	@Scheduled(cron = "0 0 */6 * * *")
 	public void runProPlayersUpdateJob() {
 		if (canRunJob()) {
-			runJob(proPlayersUpdateJob, "Pro Players Update");
+			runJob(notablePlayersUpdateJob, "Pro Players Update");
 		}
 	}
 
@@ -66,6 +68,13 @@ public class BatchSchedulerService {
 	public void runTeamsUpdateJob() {
 		if (canRunJob()) {
 			runJob(teamsUpdateJob, "Teams Update");
+		}
+	}
+
+	@Scheduled(cron = "0 0 */2 * * *") // every 2 hours
+	public void runHeroRankingJob() {
+		if (canRunJob()) {
+			runJob(heroRankingUpdateJob, "Hero Ranking Update");
 		}
 	}
 
@@ -82,9 +91,9 @@ public class BatchSchedulerService {
 	/**
 	 * Manual trigger for pro players job
 	 */
-	public boolean triggerProPlayersUpdate() {
+	public boolean triggerNotablePlayerUpdate() {
 		if (canRunJob()) {
-			return runJob(proPlayersUpdateJob, "Manual Pro Players Update");
+			return runJob(notablePlayersUpdateJob, "Manual Pro Players Update");
 		}
 		return false;
 	}
@@ -95,6 +104,16 @@ public class BatchSchedulerService {
 	public boolean triggerTeamsUpdate() {
 		if (canRunJob()) {
 			return runJob(teamsUpdateJob, "Manual Teams Update");
+		}
+		return false;
+	}
+
+	/**
+	 * Manual trigger for hero ranking job
+	 */
+	public boolean triggerHeroRankingUpdate() {
+		if (canRunJob()) {
+			return runJob(heroRankingUpdateJob, "Manual Hero Ranking Update");
 		}
 		return false;
 	}
@@ -122,13 +141,13 @@ public class BatchSchedulerService {
 		try {
 			log.info("Starting {}", jobDescription);
 
-			JobParameters jobParameters = new JobParametersBuilder().addLocalDateTime("startTime", LocalDateTime.now())
+			// Create unique parameters for each run
+			JobParameters jobParameters = new JobParametersBuilder().addLong("timestamp", System.currentTimeMillis())
 				.toJobParameters();
 
 			jobLauncher.run(job, jobParameters);
 			log.info("Successfully completed {}", jobDescription);
 			return true;
-
 		}
 		catch (Exception e) {
 			log.error("Error running {}: {}", jobDescription, e.getMessage(), e);
