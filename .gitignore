@@ -35,3 +35,4 @@ build/
 ### Local development ###
 *.log
 *.env
+*.gz
