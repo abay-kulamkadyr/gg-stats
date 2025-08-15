@@ -59,6 +59,12 @@ public class Player {
 	@Column(name = "plus")
 	private Boolean plus;
 
+	@Column(name = "rank_tier")
+	private Integer rankTier;
+
+	@Column(name = "leaderboard_rank")
+	private Integer leaderboardRank;
+
 	@CreationTimestamp
 	@Column(name = "created_at")
 	private LocalDateTime createdAt;

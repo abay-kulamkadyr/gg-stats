@@ -25,18 +25,22 @@ public class BatchSchedulerService {
 
 	private final Job heroRankingUpdateJob;
 
+	private final Job playerUpdateJob;
+
 	// Constructor injection with qualifiers
 	public BatchSchedulerService(JobLauncher jobLauncher, OpenDotaApiService openDotaApiService,
 			@Qualifier("heroesUpdateJob") Job heroesUpdateJob,
 			@Qualifier("proPlayersUpdateJob") Job notablePlayersUpdateJob,
 			@Qualifier("teamsUpdateJob") Job teamsUpdateJob,
-			@Qualifier("heroRankingUpdateJob") Job heroRankingUpdateJob) {
+			@Qualifier("heroRankingUpdateJob") Job heroRankingUpdateJob,
+			@Qualifier("playerUpdateJob") Job playerUpdateJob) {
 		this.jobLauncher = jobLauncher;
 		this.openDotaApiService = openDotaApiService;
 		this.heroesUpdateJob = heroesUpdateJob;
 		this.notablePlayersUpdateJob = notablePlayersUpdateJob;
 		this.teamsUpdateJob = teamsUpdateJob;
 		this.heroRankingUpdateJob = heroRankingUpdateJob;
+		this.playerUpdateJob = playerUpdateJob;
 	}
 
 	/**
@@ -58,6 +62,17 @@ public class BatchSchedulerService {
 	public void runProPlayersUpdateJob() {
 		if (canRunJob()) {
 			runJob(notablePlayersUpdateJob, "Pro Players Update");
+		}
+	}
+
+	/**
+	 * Run players update job every 6 hours Pro player data changes more frequently
+	 *
+	 */
+	@Scheduled(cron = "0 0 */6 * * *")
+	public void runPlayerUpdateJob() {
+		if (canRunJob()) {
+			runJob(playerUpdateJob, "Player Update");
 		}
 	}
 
@@ -84,6 +99,16 @@ public class BatchSchedulerService {
 	public boolean triggerHeroesUpdate() {
 		if (canRunJob()) {
 			return runJob(heroesUpdateJob, "Manual Heroes Update");
+		}
+		return false;
+	}
+
+	/**
+	 * Manual trigger for heroes job (can be called via REST endpoint)
+	 */
+	public boolean triggerPlayerUpdate() {
+		if (canRunJob()) {
+			return runJob(playerUpdateJob, "Manual Player Update");
 		}
 		return false;
 	}

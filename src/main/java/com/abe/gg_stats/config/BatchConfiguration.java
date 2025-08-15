@@ -1,106 +1,22 @@
 package com.abe.gg_stats.config;
 
-import com.abe.gg_stats.batch.HeroProcessor;
-import com.abe.gg_stats.batch.HeroRankingProcessor;
-import com.abe.gg_stats.batch.HeroRankingReader;
-import com.abe.gg_stats.batch.HeroRankingWriter;
-import com.abe.gg_stats.batch.HeroWriter;
-import com.abe.gg_stats.batch.HeroesReader;
-import com.abe.gg_stats.batch.NotablePlayerProcessor;
-import com.abe.gg_stats.batch.NotablePlayerWriter;
-import com.abe.gg_stats.batch.NotablePlayersReader;
-import com.abe.gg_stats.batch.TeamProcessor;
-import com.abe.gg_stats.batch.TeamWriter;
-import com.abe.gg_stats.batch.TeamsReader;
-import com.abe.gg_stats.entity.Hero;
-import com.abe.gg_stats.entity.HeroRanking;
-import com.abe.gg_stats.entity.NotablePlayer;
-import com.abe.gg_stats.entity.Team;
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.job.builder.JobBuilder;
-import org.springframework.batch.core.launch.support.RunIdIncrementer;
-import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.transaction.PlatformTransactionManager;
 
+/**
+ * Main batch configuration class. Individual batch job configurations are now separated
+ * into dedicated classes: - HeroesBatchConfig - PlayersBatchConfig - TeamsBatchConfig -
+ * NotablePlayersBatchConfig - HeroRankingsBatchConfig
+ *
+ * This separation improves maintainability and follows single responsibility principle.
+ */
 @Configuration
 @RequiredArgsConstructor
 @Slf4j
 public class BatchConfiguration {
 
-	private final JobRepository jobRepository;
-
-	private final PlatformTransactionManager transactionManager;
-
-	// === Heroes Job ===
-	@Bean
-	public Job heroesUpdateJob(Step heroesStep) {
-		return new JobBuilder("heroesUpdateJob", jobRepository).start(heroesStep).build();
-	}
-
-	@Bean
-	public Step heroesStep(HeroesReader heroesReader, HeroProcessor heroProcessor, HeroWriter heroWriter) {
-		return new StepBuilder("heroesStep", jobRepository).<JsonNode, Hero>chunk(10, transactionManager)
-			.reader(heroesReader)
-			.processor(heroProcessor)
-			.writer(heroWriter)
-			.build();
-	}
-
-	// === Pro Players Job ===
-	@Bean
-	public Job proPlayersUpdateJob(Step proPlayersStep) {
-		return new JobBuilder("proPlayersUpdateJob", jobRepository).start(proPlayersStep).build();
-	}
-
-	@Bean
-	public Step proPlayersStep(NotablePlayersReader proPlayersReader, NotablePlayerProcessor notablePlayerProcessor,
-			NotablePlayerWriter notablePlayerWriter) {
-		return new StepBuilder("proPlayersStep", jobRepository).<JsonNode, NotablePlayer>chunk(10, transactionManager)
-			.reader(proPlayersReader)
-			.processor(notablePlayerProcessor)
-			.writer(notablePlayerWriter)
-			.build();
-	}
-
-	// === Teams Job ===
-	@Bean
-	public Job teamsUpdateJob(Step teamsStep) {
-		return new JobBuilder("teamsUpdateJob", jobRepository).start(teamsStep).build();
-	}
-
-	@Bean
-	public Step teamsStep(TeamsReader teamsReader, TeamProcessor teamProcessor, TeamWriter teamWriter) {
-		return new StepBuilder("teamsStep", jobRepository).<JsonNode, Team>chunk(10, transactionManager)
-			.reader(teamsReader)
-			.processor(teamProcessor)
-			.writer(teamWriter)
-			.build();
-	}
-
-	// === Hero Ranking Job ===
-	@Bean
-	public Job heroRankingUpdateJob(Step heroRankingStep) {
-		return new JobBuilder("heroRankingUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
-			.start(heroRankingStep)
-			.build();
-	}
-
-	@Bean
-	public Step heroRankingStep(HeroRankingReader heroRankingReader, HeroRankingProcessor heroRankingProcessor,
-			HeroRankingWriter heroRankingWriter) {
-		return new StepBuilder("heroRankingStep", jobRepository).<JsonNode, HeroRanking>chunk(10, transactionManager)
-			.reader(heroRankingReader)
-			.processor(heroRankingProcessor)
-			.writer(heroRankingWriter)
-			.build();
-
-	}
+	// Common batch configuration can be added here if needed
+	// Individual job configurations are now in separate classes
 
 }
