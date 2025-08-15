@@ -10,13 +10,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @RequiredArgsConstructor
@@ -38,12 +45,42 @@ public class OpenDotaApiService {
 	@Value("${opendota.api.rate-limit.per-day:1800}")
 	private int requestsPerDay;
 
+	@Value("${opendota.api.rate-limit.window-size-minutes:1}")
+	private int windowSizeMinutes;
+
+	@Value("${opendota.api.timeout.connection:5000}")
+	private int connectionTimeout;
+
+	@Value("${opendota.api.timeout.read:10000}")
+	private int readTimeout;
+
+	@Value("${opendota.api.circuit-breaker.threshold:5}")
+	private int circuitBreakerThreshold;
+
+	@Value("${opendota.api.circuit-breaker.timeout:30000}")
+	private long circuitBreakerTimeout;
+
+	// In-memory locks per endpoint to prevent race conditions
+	private final Map<String, ReentrantLock> endpointLocks = new ConcurrentHashMap<>();
+
+	// Circuit breaker state
+	private final AtomicInteger failureCount = new AtomicInteger(0);
+
+	private final AtomicLong lastFailureTime = new AtomicLong(0);
+
+	private volatile boolean circuitOpen = false;
+
 	/**
-	 * Makes a rate-limited API call to OpenDota
+	 * Makes a rate-limited API call to OpenDota with circuit breaker protection
 	 */
 	public Optional<JsonNode> makeApiCall(String endpoint) {
 		if (!canMakeRequest(endpoint)) {
 			log.warn("Rate limit exceeded for endpoint: {}", endpoint);
+			return Optional.empty();
+		}
+
+		if (isCircuitOpen()) {
+			log.warn("Circuit breaker is open for endpoint: {}, skipping request", endpoint);
 			return Optional.empty();
 		}
 
@@ -55,6 +92,7 @@ public class OpenDotaApiService {
 
 			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
 				updateRateLimit(endpoint);
+				resetCircuitBreaker();
 				return Optional.of(objectMapper.readTree(response.getBody()));
 			}
 
@@ -62,101 +100,161 @@ public class OpenDotaApiService {
 		catch (HttpClientErrorException e) {
 			if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
 				log.warn("Rate limited by OpenDota API for endpoint: {}", endpoint);
-				// Update our rate limit to prevent further requests
 				forceUpdateRateLimit(endpoint);
 			}
 			else {
 				log.error("HTTP error calling OpenDota API: {} - {}", e.getStatusCode(), e.getMessage());
+				recordFailure();
 			}
+		}
+		catch (ResourceAccessException e) {
+			log.error("Connection error calling OpenDota API: {}", e.getMessage());
+			recordFailure();
 		}
 		catch (Exception e) {
 			log.error("Error calling OpenDota API: {}", e.getMessage(), e);
+			recordFailure();
 		}
 
 		return Optional.empty();
 	}
 
 	/**
-	 * Checks if we can make a request based on rate limits
+	 * Circuit breaker implementation
+	 */
+	private boolean isCircuitOpen() {
+		if (circuitOpen) {
+			long timeSinceLastFailure = System.currentTimeMillis() - lastFailureTime.get();
+			if (timeSinceLastFailure > circuitBreakerTimeout) {
+				log.info("Circuit breaker timeout reached, attempting to close circuit");
+				circuitOpen = false;
+				failureCount.set(0);
+				return false;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	private void recordFailure() {
+		int failures = failureCount.incrementAndGet();
+		lastFailureTime.set(System.currentTimeMillis());
+
+		if (failures >= circuitBreakerThreshold) {
+			circuitOpen = true;
+			log.warn("Circuit breaker opened after {} failures", failures);
+		}
+	}
+
+	private void resetCircuitBreaker() {
+		failureCount.set(0);
+		if (circuitOpen) {
+			circuitOpen = false;
+			log.info("Circuit breaker closed after successful request");
+		}
+	}
+
+	/**
+	 * Gets circuit breaker status
+	 */
+	public String getCircuitBreakerStatus() {
+		return String.format("Circuit Breaker Status - Open: %s, Failures: %d, Last Failure: %dms ago", circuitOpen,
+				failureCount.get(), System.currentTimeMillis() - lastFailureTime.get());
+	}
+
+	/**
+	 * Checks if we can make a request based on rate limits Uses proper locking to prevent
+	 * race conditions
 	 */
 	private boolean canMakeRequest(String endpoint) {
-		LocalDateTime now = LocalDateTime.now();
-		LocalDate today = LocalDate.now();
+		ReentrantLock lock = endpointLocks.computeIfAbsent(endpoint, k -> new ReentrantLock());
 
-		// Check daily limit first
-		Integer totalDailyRequests = rateLimitRepository.getTotalDailyRequests(today);
-		if (totalDailyRequests != null && totalDailyRequests >= requestsPerDay) {
-			log.warn("Daily rate limit of {} requests exceeded", requestsPerDay);
-			return false;
-		}
+		try {
+			lock.lock();
 
-		// Check per-minute limit for this endpoint
-		Optional<ApiRateLimit> rateLimitOpt = rateLimitRepository.findByEndpoint(endpoint);
+			LocalDateTime now = LocalDateTime.now();
+			LocalDate today = LocalDate.now();
 
-		if (rateLimitOpt.isPresent()) {
-			ApiRateLimit rateLimit = rateLimitOpt.get();
+			// Check daily limit first
+			Integer totalDailyRequests = rateLimitRepository.getTotalDailyRequests(today);
+			if (totalDailyRequests != null && totalDailyRequests >= requestsPerDay) {
+				log.warn("Daily rate limit of {} requests exceeded", requestsPerDay);
+				return false;
+			}
+
+			// Get or create rate limit record for this endpoint
+			ApiRateLimit rateLimit = rateLimitRepository.findByEndpoint(endpoint)
+				.orElseGet(() -> createNewRateLimit(endpoint, now, today));
 
 			// Check if we need to reset the minute window
-			if (ChronoUnit.MINUTES.between(rateLimit.getWindowStart(), now) >= 1) {
-				rateLimit.setRequestsCount(0);
+			if (ChronoUnit.MINUTES.between(rateLimit.getWindowStart(), now) >= windowSizeMinutes) {
+				rateLimitRepository.resetMinuteWindow(rateLimit.getId(), now);
+				rateLimit.setRequestsCount(1);
 				rateLimit.setWindowStart(now);
 			}
 
 			// Check if we need to reset the daily window
 			if (!rateLimit.getDailyWindowStart().equals(today)) {
-				rateLimit.setDailyRequests(0);
+				rateLimitRepository.resetDailyWindow(rateLimit.getId(), today);
+				rateLimit.setDailyRequests(1);
 				rateLimit.setDailyWindowStart(today);
 			}
 
 			// Check if we can make the request
-			return rateLimit.getRequestsCount() < requestsPerMinute;
-		}
+			boolean canMake = rateLimit.getRequestsCount() < requestsPerMinute;
 
-		return true; // First request for this endpoint
+			if (!canMake) {
+				log.debug("Rate limit exceeded for {}: {}/{} requests in current window", endpoint,
+						rateLimit.getRequestsCount(), requestsPerMinute);
+			}
+
+			return canMake;
+		}
+		finally {
+			lock.unlock();
+		}
 	}
 
 	/**
-	 * Updates rate limit counters after a successful request
+	 * Creates a new rate limit record for an endpoint
 	 */
+	private ApiRateLimit createNewRateLimit(String endpoint, LocalDateTime now, LocalDate today) {
+		ApiRateLimit rateLimit = ApiRateLimit.builder()
+			.endpoint(endpoint)
+			.requestsCount(1)
+			.windowStart(now)
+			.dailyRequests(1)
+			.dailyWindowStart(today)
+			.updatedAt(now)
+			.build();
+
+		return rateLimitRepository.save(rateLimit);
+	}
+
+	/**
+	 * Updates rate limit after successful API call
+	 */
+	@Transactional
 	private void updateRateLimit(String endpoint) {
-		LocalDateTime now = LocalDateTime.now();
-		LocalDate today = LocalDate.now();
-
-		ApiRateLimit rateLimit = rateLimitRepository.findByEndpoint(endpoint)
-			.orElse(new ApiRateLimit(null, endpoint, 0, now, 0, today));
-
-		// Update minute window
-		if (ChronoUnit.MINUTES.between(rateLimit.getWindowStart(), now) >= 1) {
-			rateLimit.setRequestsCount(1);
-			rateLimit.setWindowStart(now);
+		Optional<ApiRateLimit> rateLimitOpt = rateLimitRepository.findByEndpoint(endpoint);
+		if (rateLimitOpt.isPresent()) {
+			ApiRateLimit rateLimit = rateLimitOpt.get();
+			rateLimitRepository.incrementRequestCounts(rateLimit.getId());
 		}
-		else {
-			rateLimit.setRequestsCount(rateLimit.getRequestsCount() + 1);
-		}
-
-		// Update daily window
-		if (!rateLimit.getDailyWindowStart().equals(today)) {
-			rateLimit.setDailyRequests(1);
-			rateLimit.setDailyWindowStart(today);
-		}
-		else {
-			rateLimit.setDailyRequests(rateLimit.getDailyRequests() + 1);
-		}
-
-		rateLimitRepository.save(rateLimit);
-		log.debug("Updated rate limit for {}: {}/min, {}/day", endpoint, rateLimit.getRequestsCount(),
-				rateLimit.getDailyRequests());
 	}
 
 	/**
-	 * Forces rate limit update when we get a 429 response
+	 * Forces rate limit update when API returns 429
 	 */
+	@Transactional
 	private void forceUpdateRateLimit(String endpoint) {
-		ApiRateLimit rateLimit = rateLimitRepository.findByEndpoint(endpoint)
-			.orElse(new ApiRateLimit(null, endpoint, requestsPerMinute, LocalDateTime.now(), 0, LocalDate.now()));
-
-		rateLimit.setRequestsCount(requestsPerMinute); // Max out the minute limit
-		rateLimitRepository.save(rateLimit);
+		Optional<ApiRateLimit> rateLimitOpt = rateLimitRepository.findByEndpoint(endpoint);
+		if (rateLimitOpt.isPresent()) {
+			ApiRateLimit rateLimit = rateLimitOpt.get();
+			// Force the rate limit to be at maximum to prevent further calls
+			rateLimit.setRequestsCount(requestsPerMinute);
+			rateLimitRepository.save(rateLimit);
+		}
 	}
 
 	/**
@@ -168,9 +266,34 @@ public class OpenDotaApiService {
 	}
 
 	/**
+	 * Gets remaining requests for current minute window for a specific endpoint
+	 */
+	public int getRemainingMinuteRequests(String endpoint) {
+		Optional<ApiRateLimit> rateLimit = rateLimitRepository.findByEndpoint(endpoint);
+		if (rateLimit.isPresent()) {
+			ApiRateLimit rl = rateLimit.get();
+			LocalDateTime now = LocalDateTime.now();
+
+			// If window has expired, reset count
+			if (ChronoUnit.MINUTES.between(rl.getWindowStart(), now) >= windowSizeMinutes) {
+				return requestsPerMinute;
+			}
+
+			return Math.max(0, requestsPerMinute - rl.getRequestsCount());
+		}
+		return requestsPerMinute;
+	}
+
+	/**
+	 * Gets current rate limit status for an endpoint
+	 */
+	public Optional<ApiRateLimit> getRateLimitStatus(String endpoint) {
+		return rateLimitRepository.findByEndpoint(endpoint);
+	}
+
+	/**
 	 * Specific API methods
 	 */
-
 	public Optional<JsonNode> getHeroes() {
 		return makeApiCall("/heroes");
 	}

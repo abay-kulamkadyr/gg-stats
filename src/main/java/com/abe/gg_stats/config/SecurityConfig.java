@@ -7,7 +7,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@EnableWebSecurity
+// @EnableWebSecurity // Temporarily disabled for development
 public class SecurityConfig {
 
 	@Bean
@@ -19,13 +19,15 @@ public class SecurityConfig {
 				.permitAll()
 				.requestMatchers("/h2-console/**")
 				.permitAll()
+				.requestMatchers("/", "/index.html", "/static/**", "/css/**", "/js/**", "/images/**")
+				.permitAll()
 				.anyRequest()
 				.authenticated())
 			.httpBasic(httpBasic -> {
 			});
 
 		// Allow H2 console frames (if using H2 for development)
-		http.headers(headers -> headers.frameOptions().disable());
+		http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
 
 		return http.build();
 	}
