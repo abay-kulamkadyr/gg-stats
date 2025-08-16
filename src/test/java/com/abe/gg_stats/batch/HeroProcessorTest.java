@@ -1,24 +1,18 @@
 package com.abe.gg_stats.batch;
 
+import com.abe.gg_stats.batch.hero.HeroProcessor;
 import com.abe.gg_stats.entity.Hero;
-import com.abe.gg_stats.service.HeroUpdateService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class HeroProcessorTest {
-
-	@Mock
-	private HeroUpdateService heroUpdateService;
 
 	private HeroProcessor heroProcessor;
 
@@ -26,7 +20,7 @@ class HeroProcessorTest {
 
 	@BeforeEach
 	void setUp() {
-		heroProcessor = new HeroProcessor(heroUpdateService);
+		heroProcessor = new HeroProcessor();
 		objectMapper = new ObjectMapper();
 	}
 
@@ -35,91 +29,100 @@ class HeroProcessorTest {
 		// Given
 		String validHeroJson = """
 				{
-					"id": 1,
-					"name": "antimage",
-					"localized_name": "Anti-Mage"
+				    "id": 1,
+				    "name": "antimage",
+				    "localized_name": "Anti-Mage",
+				    "primary_attr": "agi",
+				    "attack_type": "Melee",
+				    "roles": ["Carry", "Escape", "Nuker"]
 				}
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
-
-		Hero expectedHero = new Hero();
-		expectedHero.setId(1);
-		expectedHero.setName("antimage");
-		expectedHero.setLocalizedName("Anti-Mage");
-
-		when(heroUpdateService.processHeroData(heroData)).thenReturn(expectedHero);
 
 		// When
 		Hero result = heroProcessor.process(heroData);
 
 		// Then
 		assertNotNull(result);
-		assertEquals(expectedHero, result);
-		verify(heroUpdateService).processHeroData(heroData);
+		assertEquals(1, result.getId());
+		assertEquals("antimage", result.getName());
+		assertEquals("Anti-Mage", result.getLocalizedName());
+		assertEquals("agi", result.getPrimaryAttr());
+		assertEquals("Melee", result.getAttackType());
+		assertNotNull(result.getRoles());
+		assertEquals(3, result.getRoles().size());
+		assertTrue(result.getRoles().contains("Carry"));
+		assertTrue(result.getRoles().contains("Escape"));
+		assertTrue(result.getRoles().contains("Nuker"));
 	}
 
 	@Test
-	void testProcess_HeroServiceException_ShouldRethrow() throws Exception {
+	void testProcess_ValidDataWithoutOptionalFields_ShouldSucceed() throws Exception {
 		// Given
 		String validHeroJson = """
 				{
-					"id": 1,
-					"name": "antimage",
-					"localized_name": "Anti-Mage"
+				    "id": 2,
+				    "name": "axe",
+				    "localized_name": "Axe"
 				}
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		HeroUpdateService.HeroProcessingException serviceException = new HeroUpdateService.HeroProcessingException(
-				"Invalid hero data");
-		when(heroUpdateService.processHeroData(heroData)).thenThrow(serviceException);
+		// When
+		Hero result = heroProcessor.process(heroData);
 
-		// When & Then
-		HeroUpdateService.HeroProcessingException exception = assertThrows(
-				HeroUpdateService.HeroProcessingException.class, () -> heroProcessor.process(heroData));
-		assertEquals("Invalid hero data", exception.getMessage());
-		verify(heroUpdateService).processHeroData(heroData);
+		// Then
+		assertNotNull(result);
+		assertEquals(2, result.getId());
+		assertEquals("axe", result.getName());
+		assertEquals("Axe", result.getLocalizedName());
+		assertNull(result.getPrimaryAttr());
+		assertNull(result.getAttackType());
+		assertNotNull(result.getRoles());
+		assertTrue(result.getRoles().isEmpty());
 	}
 
 	@Test
-	void testProcess_UnexpectedException_ShouldRethrow() throws Exception {
+	void testProcess_ValidDataWithEmptyRoles_ShouldSucceed() throws Exception {
 		// Given
 		String validHeroJson = """
 				{
-					"id": 1,
-					"name": "antimage",
-					"localized_name": "Anti-Mage"
+				    "id": 3,
+				    "name": "crystal_maiden",
+				    "localized_name": "Crystal Maiden",
+				    "roles": []
 				}
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		RuntimeException unexpectedException = new RuntimeException("Unexpected error");
-		when(heroUpdateService.processHeroData(heroData)).thenThrow(unexpectedException);
+		// When
+		Hero result = heroProcessor.process(heroData);
 
-		// When & Then
-		HeroProcessor.HeroProcessingException exception = assertThrows(HeroProcessor.HeroProcessingException.class,
-				() -> heroProcessor.process(heroData));
-		assertEquals("Failed to process hero data", exception.getMessage());
-		assertEquals(unexpectedException, exception.getCause());
-		verify(heroUpdateService).processHeroData(heroData);
+		// Then
+		assertNotNull(result);
+		assertEquals(3, result.getId());
+		assertEquals("crystal_maiden", result.getName());
+		assertEquals("Crystal Maiden", result.getLocalizedName());
+		assertNotNull(result.getRoles());
+		assertTrue(result.getRoles().isEmpty());
 	}
 
 	@Test
-	void testProcess_NullData_ShouldHandleGracefully() throws Exception {
+	void testProcess_NullData_ShouldReturnNull() throws Exception {
 		// When
 		Hero result = heroProcessor.process(null);
 
 		// Then
 		assertNull(result);
-		verify(heroUpdateService, never()).processHeroData(any());
 	}
 
 	@Test
-	void testProcess_InvalidData_ShouldHandleGracefully() throws Exception {
-		// Given - Invalid hero data missing required fields
+	void testProcess_MissingId_ShouldReturnNull() throws Exception {
+		// Given
 		String invalidHeroJson = """
 				{
-					"name": "antimage"
+				    "name": "antimage",
+				    "localized_name": "Anti-Mage"
 				}
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
@@ -129,17 +132,15 @@ class HeroProcessorTest {
 
 		// Then
 		assertNull(result);
-		verify(heroUpdateService, never()).processHeroData(any());
 	}
 
 	@Test
-	void testProcess_EmptyName_ShouldHandleGracefully() throws Exception {
-		// Given - Hero data with empty name
+	void testProcess_MissingName_ShouldReturnNull() throws Exception {
+		// Given
 		String invalidHeroJson = """
 				{
-					"id": 1,
-					"name": "",
-					"localized_name": "Anti-Mage"
+				    "id": 1,
+				    "localized_name": "Anti-Mage"
 				}
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
@@ -149,17 +150,15 @@ class HeroProcessorTest {
 
 		// Then
 		assertNull(result);
-		verify(heroUpdateService, never()).processHeroData(any());
 	}
 
 	@Test
-	void testProcess_InvalidId_ShouldHandleGracefully() throws Exception {
-		// Given - Hero data with invalid ID
+	void testProcess_MissingLocalizedName_ShouldReturnNull() throws Exception {
+		// Given
 		String invalidHeroJson = """
 				{
-					"id": -1,
-					"name": "antimage",
-					"localized_name": "Anti-Mage"
+				    "id": 1,
+				    "name": "antimage"
 				}
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
@@ -169,7 +168,109 @@ class HeroProcessorTest {
 
 		// Then
 		assertNull(result);
-		verify(heroUpdateService, never()).processHeroData(any());
+	}
+
+	@Test
+	void testProcess_EmptyName_ShouldReturnNull() throws Exception {
+		// Given
+		String invalidHeroJson = """
+				{
+				    "id": 1,
+				    "name": "",
+				    "localized_name": "Anti-Mage"
+				}
+				""";
+		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
+
+		// When
+		Hero result = heroProcessor.process(heroData);
+
+		// Then
+		assertNull(result);
+	}
+
+	@Test
+	void testProcess_InvalidId_ShouldReturnNull() throws Exception {
+		// Given
+		String invalidHeroJson = """
+				{
+				    "id": -1,
+				    "name": "antimage",
+				    "localized_name": "Anti-Mage"
+				}
+				""";
+		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
+
+		// When
+		Hero result = heroProcessor.process(heroData);
+
+		// Then
+		assertNull(result);
+	}
+
+	@Test
+	void testProcess_ZeroId_ShouldReturnNull() throws Exception {
+		// Given
+		String invalidHeroJson = """
+				{
+				    "id": 0,
+				    "name": "antimage",
+				    "localized_name": "Anti-Mage"
+				}
+				""";
+		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
+
+		// When
+		Hero result = heroProcessor.process(heroData);
+
+		// Then
+		assertNull(result);
+	}
+
+	@Test
+	void testProcess_NonNumericId_ShouldReturnNull() throws Exception {
+		// Given
+		String invalidHeroJson = """
+				{
+				    "id": "invalid",
+				    "name": "antimage",
+				    "localized_name": "Anti-Mage"
+				}
+				""";
+		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
+
+		// When
+		Hero result = heroProcessor.process(heroData);
+
+		// Then
+		assertNull(result);
+	}
+
+	@Test
+	void testProcess_RolesWithNullValues_ShouldFilterOutNulls() throws Exception {
+		// Given
+		String validHeroJson = """
+				{
+				    "id": 4,
+				    "name": "test_hero",
+				    "localized_name": "Test Hero",
+				    "roles": ["Carry", null, "Support", "", "Nuker"]
+				}
+				""";
+		JsonNode heroData = objectMapper.readTree(validHeroJson);
+
+		// When
+		Hero result = heroProcessor.process(heroData);
+
+		// Then
+		assertNotNull(result);
+		assertEquals(4, result.getId());
+		assertNotNull(result.getRoles());
+		assertEquals(3, result.getRoles().size());
+		assertTrue(result.getRoles().contains("Carry"));
+		assertTrue(result.getRoles().contains("Support"));
+		assertTrue(result.getRoles().contains("Nuker")); // Valid role should be included
+		// null and empty string should be filtered out
 	}
 
 }

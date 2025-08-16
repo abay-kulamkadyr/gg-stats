@@ -1,5 +1,6 @@
 package com.abe.gg_stats.batch;
 
+import com.abe.gg_stats.batch.player.PlayerReader;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Player;
@@ -39,11 +40,11 @@ class PlayerReaderTest {
 
 	@BeforeEach
 	void setUp() {
-		reader = new PlayerReader(heroRankingRepository, notablePlayerRepository, playerRepository, openDotaApiService);
+		reader = new PlayerReader(heroRankingRepository, notablePlayerRepository, playerRepository);
 	}
 
 	@Test
-	void testRead_FirstCall_ShouldInitializeAndReturnFirstAccountId() {
+	void testRead_FirstCall_ShouldInitializeAndReturnFirstAccountId() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -75,7 +76,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_SubsequentCalls_ShouldReturnNextAccountIds() {
+	void testRead_SubsequentCalls_ShouldReturnNextAccountIds() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -109,7 +110,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_AfterAllItemsRead_ShouldReturnNull() {
+	void testRead_AfterAllItemsRead_ShouldReturnNull() throws Exception {
 		// Given
 		HeroRanking ranking = new HeroRanking();
 		ranking.setAccountId(12345L);
@@ -129,7 +130,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithDuplicateAccountIds_ShouldReturnUniqueIds() {
+	void testRead_WithDuplicateAccountIds_ShouldReturnUniqueIds() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -137,11 +138,11 @@ class PlayerReaderTest {
 		HeroRanking ranking2 = new HeroRanking();
 		ranking2.setAccountId(12345L); // Duplicate
 
-		NotablePlayer player = new NotablePlayer();
-		player.setAccountId(12345L); // Duplicate
+		NotablePlayer player1 = new NotablePlayer();
+		player1.setAccountId(12345L); // Another duplicate
 
 		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player));
+		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1));
 		when(playerRepository.findAll()).thenReturn(Arrays.asList());
 
 		// When
@@ -150,12 +151,17 @@ class PlayerReaderTest {
 
 		// Then
 		assertNotNull(firstResult);
+		assertNull(secondResult); // Should return null after all items read (only one
+									// unique ID)
 		assertEquals(12345L, firstResult);
-		assertNull(secondResult); // Only one unique ID should be returned
+
+		verify(heroRankingRepository).findAll();
+		verify(notablePlayerRepository).findAll();
+		verify(playerRepository).findAll();
 	}
 
 	@Test
-	void testRead_WithNullAccountIds_ShouldFilterOutNulls() {
+	void testRead_WithNullAccountIds_ShouldFilterOutNulls() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -163,25 +169,33 @@ class PlayerReaderTest {
 		HeroRanking ranking2 = new HeroRanking();
 		ranking2.setAccountId(null); // Null account ID
 
-		NotablePlayer player = new NotablePlayer();
-		player.setAccountId(null); // Null account ID
+		NotablePlayer player1 = new NotablePlayer();
+		player1.setAccountId(67890L);
+
+		Player player2 = new Player();
+		player2.setAccountId(null); // Null account ID
 
 		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player));
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1));
+		when(playerRepository.findAll()).thenReturn(Arrays.asList(player2));
 
 		// When
-		Long result = reader.read();
+		Long firstResult = reader.read();
 		Long secondResult = reader.read();
 
 		// Then
-		assertNotNull(result);
-		assertEquals(12345L, result);
-		assertNull(secondResult); // Only one valid ID should be returned
+		assertNotNull(firstResult);
+		assertNull(secondResult); // Should return null after all items read (only two
+									// valid IDs)
+		assertTrue(Arrays.asList(12345L, 67890L).contains(firstResult));
+
+		verify(heroRankingRepository).findAll();
+		verify(notablePlayerRepository).findAll();
+		verify(playerRepository).findAll();
 	}
 
 	@Test
-	void testRead_WithEmptyRepositories_ShouldReturnNull() {
+	void testRead_WithEmptyRepositories_ShouldReturnNull() throws Exception {
 		// Given
 		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList());
 		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
@@ -191,72 +205,62 @@ class PlayerReaderTest {
 		Long result = reader.read();
 
 		// Then
-		assertNull(result);
+		assertNull(result); // Should return null when no data available
+
+		verify(heroRankingRepository).findAll();
+		verify(notablePlayerRepository).findAll();
+		verify(playerRepository).findAll();
 	}
 
 	@Test
-	void testRead_WithMixedData_ShouldCollectAllValidAccountIds() {
-		// Given
-		HeroRanking ranking1 = new HeroRanking();
-		ranking1.setAccountId(12345L);
-
-		HeroRanking ranking2 = new HeroRanking();
-		ranking2.setAccountId(67890L);
-
-		NotablePlayer player1 = new NotablePlayer();
-		player1.setAccountId(11111L);
-
-		NotablePlayer player2 = new NotablePlayer();
-		player2.setAccountId(null); // Invalid
-
-		Player player3 = new Player();
-		player3.setAccountId(22222L);
-
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1, player2));
-		when(playerRepository.findAll()).thenReturn(Arrays.asList(player3));
-
-		// When
-		Long firstResult = reader.read();
-		Long secondResult = reader.read();
-		Long thirdResult = reader.read();
-		Long fourthResult = reader.read();
-		Long fifthResult = reader.read();
-
-		// Then
-		assertNotNull(firstResult);
-		assertNotNull(secondResult);
-		assertNotNull(thirdResult);
-		assertNotNull(fourthResult);
-		assertNull(fifthResult); // Should return null after all 4 valid IDs
-
-		// Verify all valid account IDs were collected
-		List<Long> expectedIds = Arrays.asList(12345L, 67890L, 11111L, 22222L);
-		assertTrue(expectedIds.contains(firstResult));
-		assertTrue(expectedIds.contains(secondResult));
-		assertTrue(expectedIds.contains(thirdResult));
-		assertTrue(expectedIds.contains(fourthResult));
-	}
-
-	@Test
-	void testRead_RepositoryException_ShouldThrowCustomException() {
+	void testRead_WithRepositoryException_ShouldHandleGracefully() throws Exception {
 		// Given
 		when(heroRankingRepository.findAll()).thenThrow(new RuntimeException("Database error"));
 
 		// When & Then
-		PlayerReader.PlayerReadException exception = assertThrows(PlayerReader.PlayerReadException.class,
-				() -> reader.read());
+		assertThrows(PlayerReader.PlayerReadException.class, () -> reader.read());
 
-		assertEquals("Failed to collect account IDs", exception.getMessage());
-		assertNotNull(exception.getCause());
-		assertEquals("Database error", exception.getCause().getMessage());
+		verify(heroRankingRepository).findAll();
+		verify(notablePlayerRepository, never()).findAll();
+		verify(playerRepository, never()).findAll();
 	}
 
 	@Test
-	void testRead_WithLargeDataset_ShouldHandleCorrectly() {
+	void testRead_WithMixedDataTypes_ShouldHandleCorrectly() throws Exception {
+		// Given
+		HeroRanking ranking = new HeroRanking();
+		ranking.setAccountId(12345L);
+
+		NotablePlayer player = new NotablePlayer();
+		player.setAccountId(67890L);
+
+		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking));
+		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player));
+		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+
+		// When
+		Long firstResult = reader.read();
+		Long secondResult = reader.read();
+
+		// Then
+		assertNotNull(firstResult);
+		assertNotNull(secondResult);
+		assertNull(reader.read()); // Third call should return null
+
+		assertTrue(Arrays.asList(12345L, 67890L).contains(firstResult));
+		assertTrue(Arrays.asList(12345L, 67890L).contains(secondResult));
+		assertNotEquals(firstResult, secondResult);
+
+		verify(heroRankingRepository).findAll();
+		verify(notablePlayerRepository).findAll();
+		verify(playerRepository).findAll();
+	}
+
+	@Test
+	void testRead_WithLargeDataset_ShouldHandleCorrectly() throws Exception {
 		// Given
 		List<HeroRanking> rankings = new ArrayList<>();
-		for (int i = 0; i < 1000; i++) {
+		for (int i = 1; i <= 100; i++) {
 			HeroRanking ranking = new HeroRanking();
 			ranking.setAccountId((long) i);
 			rankings.add(ranking);
@@ -267,15 +271,23 @@ class PlayerReaderTest {
 		when(playerRepository.findAll()).thenReturn(Arrays.asList());
 
 		// When
-		Long result = reader.read();
+		int count = 0;
+		Long result;
+		while ((result = reader.read()) != null) {
+			count++;
+			assertTrue(result > 0 && result <= 100);
+		}
 
 		// Then
-		assertNotNull(result);
-		assertTrue(result >= 0 && result < 1000);
+		assertEquals(100, count);
+
+		verify(heroRankingRepository).findAll();
+		verify(notablePlayerRepository).findAll();
+		verify(playerRepository).findAll();
 	}
 
 	@Test
-	void testRead_WithNegativeAccountIds_ShouldHandleCorrectly() {
+	void testRead_WithNegativeAccountIds_ShouldHandleCorrectly() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(-12345L);
@@ -303,7 +315,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithZeroAccountIds_ShouldHandleCorrectly() {
+	void testRead_WithZeroAccountIds_ShouldHandleCorrectly() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(0L);

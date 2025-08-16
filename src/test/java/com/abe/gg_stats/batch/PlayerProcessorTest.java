@@ -1,5 +1,6 @@
 package com.abe.gg_stats.batch;
 
+import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.entity.Player;
 import com.abe.gg_stats.service.PlayerUpdateService;
 import org.junit.jupiter.api.BeforeEach;

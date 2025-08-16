@@ -1,25 +1,22 @@
-package com.abe.gg_stats.batch;
+package com.abe.gg_stats.batch.player;
 
+import com.abe.gg_stats.batch.BaseDatabaseReader;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Player;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
 import com.abe.gg_stats.repository.PlayerRepository;
-import com.abe.gg_stats.service.OpenDotaApiService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.item.ItemReader;
-import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
-public class PlayerReader implements ItemReader<Long> {
+public class PlayerReader extends BaseDatabaseReader<Long> {
 
 	private final HeroRankingRepository heroRankingRepository;
 
@@ -27,26 +24,18 @@ public class PlayerReader implements ItemReader<Long> {
 
 	private final PlayerRepository playerRepository;
 
-	private final OpenDotaApiService openDotaApiService;
-
-	private Iterator<Long> accountIdIterator;
-
-	private boolean initialized = false;
+	public PlayerReader(HeroRankingRepository heroRankingRepository, NotablePlayerRepository notablePlayerRepository,
+			PlayerRepository playerRepository) {
+		this.heroRankingRepository = heroRankingRepository;
+		this.notablePlayerRepository = notablePlayerRepository;
+		this.playerRepository = playerRepository;
+	}
 
 	@Override
-	public Long read() {
-		if (!initialized || accountIdIterator == null) {
-			Set<Long> accountIds = collectAllAccountIds();
-			accountIdIterator = accountIds.iterator();
-			log.info("Initialized account info reader with {} account_ids", accountIds.size());
-			initialized = true;
-		}
-
-		if (accountIdIterator.hasNext()) {
-			return accountIdIterator.next();
-		}
-
-		return null; // End of data
+	protected void initialize() {
+		Set<Long> accountIds = collectAllAccountIds();
+		this.dataIterator = accountIds.iterator();
+		log.info("Initialized player reader with {} unique account_ids", accountIds.size());
 	}
 
 	/**
@@ -91,6 +80,11 @@ public class PlayerReader implements ItemReader<Long> {
 		}
 
 		return accountIds;
+	}
+
+	@Override
+	protected String getDataTypeDescription() {
+		return "player account IDs";
 	}
 
 	/**

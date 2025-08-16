@@ -1,5 +1,6 @@
 package com.abe.gg_stats.batch;
 
+import com.abe.gg_stats.batch.heroRanking.HeroRankingProcessor;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.fasterxml.jackson.databind.JsonNode;

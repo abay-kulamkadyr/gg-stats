@@ -1,13 +1,12 @@
-package com.abe.gg_stats.batch;
+package com.abe.gg_stats.batch.player.notablePlayer;
 
+import com.abe.gg_stats.batch.BaseProcessor;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
 import com.abe.gg_stats.repository.TeamRepository;
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -17,57 +16,20 @@ import java.util.Optional;
  * Implements proper exception handling and input validation.
  */
 @Component
-@RequiredArgsConstructor
 @Slf4j
-public class NotablePlayerProcessor implements ItemProcessor<JsonNode, NotablePlayer> {
+public class NotablePlayerProcessor extends BaseProcessor<JsonNode, NotablePlayer> {
 
 	private final NotablePlayerRepository notablePlayerRepository;
 
 	private final TeamRepository teamRepository;
 
-	@Override
-	public NotablePlayer process(JsonNode item) throws Exception {
-		try {
-			// Validate input
-			if (item == null) {
-				log.warn("Received null item, skipping");
-				return null;
-			}
-
-			if (!isValidNotablePlayerData(item)) {
-				log.warn("Invalid notable player data received: {}", item.toString());
-				return null;
-			}
-
-			Long accountId = item.get("account_id").asLong();
-
-			// First try to find existing NotablePlayer
-			Optional<NotablePlayer> existingNotablePlayer = notablePlayerRepository.findById(accountId);
-
-			if (existingNotablePlayer.isPresent()) {
-				// Update existing NotablePlayer
-				NotablePlayer notablePlayer = existingNotablePlayer.get();
-				updateNotablePlayerFields(notablePlayer, item);
-				return notablePlayer;
-			}
-
-			// Create new NotablePlayer if not found
-			NotablePlayer notablePlayer = new NotablePlayer();
-			notablePlayer.setAccountId(accountId);
-			updateNotablePlayerFields(notablePlayer, item);
-
-			return notablePlayer;
-		}
-		catch (Exception e) {
-			log.error("Error processing notable player: {}", item != null ? item.toString() : "null", e);
-			throw new NotablePlayerProcessingException("Failed to process notable player data", e);
-		}
+	public NotablePlayerProcessor(NotablePlayerRepository notablePlayerRepository, TeamRepository teamRepository) {
+		this.notablePlayerRepository = notablePlayerRepository;
+		this.teamRepository = teamRepository;
 	}
 
-	/**
-	 * Validates that the notable player data contains required fields
-	 */
-	private boolean isValidNotablePlayerData(JsonNode item) {
+	@Override
+	protected boolean isValidInput(JsonNode item) {
 		if (item == null) {
 			return false;
 		}
@@ -94,6 +56,33 @@ public class NotablePlayerProcessor implements ItemProcessor<JsonNode, NotablePl
 		return true;
 	}
 
+	@Override
+	protected NotablePlayer processItem(JsonNode item) {
+		Long accountId = item.get("account_id").asLong();
+
+		// First try to find existing NotablePlayer
+		Optional<NotablePlayer> existingNotablePlayer = notablePlayerRepository.findById(accountId);
+
+		if (existingNotablePlayer.isPresent()) {
+			// Update existing NotablePlayer
+			NotablePlayer notablePlayer = existingNotablePlayer.get();
+			updateNotablePlayerFields(notablePlayer, item);
+			return notablePlayer;
+		}
+
+		// Create new NotablePlayer if not found
+		NotablePlayer notablePlayer = new NotablePlayer();
+		notablePlayer.setAccountId(accountId);
+		updateNotablePlayerFields(notablePlayer, item);
+
+		return notablePlayer;
+	}
+
+	@Override
+	protected String getItemTypeDescription() {
+		return "notable player";
+	}
+
 	/**
 	 * Updates notable player fields from JSON data
 	 */
@@ -101,13 +90,13 @@ public class NotablePlayerProcessor implements ItemProcessor<JsonNode, NotablePl
 		notablePlayer.setName(item.has("name") ? item.get("name").asText() : null);
 		notablePlayer.setCountryCode(item.has("country_code") ? item.get("country_code").asText() : null);
 		notablePlayer.setFantasyRole(item.has("fantasy_role") ? item.get("fantasy_role").asInt() : null);
-		notablePlayer.setIsLocked(item.has("is_locked") ? item.get("is_locked").asBoolean() : false);
-		notablePlayer.setIsPro(item.has("is_pro") ? item.get("is_pro").asBoolean() : true);
+		notablePlayer.setIsLocked(item.has("is_locked") && item.get("is_locked").asBoolean());
+		notablePlayer.setIsPro(!item.has("is_pro") || item.get("is_pro").asBoolean());
 
 		// Handle team association
 		if (item.has("team_id") && !item.get("team_id").isNull()) {
 			try {
-				Long teamId = item.get("team_id").asLong();
+				long teamId = item.get("team_id").asLong();
 				if (teamId > 0) {
 					Optional<Team> teamOpt = teamRepository.findById(teamId);
 					teamOpt.ifPresent(notablePlayer::setTeam);

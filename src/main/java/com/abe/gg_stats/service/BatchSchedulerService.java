@@ -94,7 +94,7 @@ public class BatchSchedulerService {
 	}
 
 	/**
-	 * Manual trigger for heroes job (can be called via REST endpoint)
+	 * Manual trigger for heroes job
 	 */
 	public boolean triggerHeroesUpdate() {
 		if (canRunJob()) {
