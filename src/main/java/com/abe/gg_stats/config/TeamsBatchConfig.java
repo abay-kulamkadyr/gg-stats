@@ -1,8 +1,8 @@
 package com.abe.gg_stats.config;
 
-import com.abe.gg_stats.batch.TeamProcessor;
-import com.abe.gg_stats.batch.TeamWriter;
-import com.abe.gg_stats.batch.TeamsReader;
+import com.abe.gg_stats.batch.team.TeamProcessor;
+import com.abe.gg_stats.batch.team.TeamWriter;
+import com.abe.gg_stats.batch.team.TeamsReader;
 import com.abe.gg_stats.batch.listener.TeamsStepExecutionListener;
 import com.abe.gg_stats.entity.Team;
 import com.fasterxml.jackson.databind.JsonNode;

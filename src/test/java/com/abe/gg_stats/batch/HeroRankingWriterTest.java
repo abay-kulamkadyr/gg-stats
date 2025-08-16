@@ -1,5 +1,6 @@
 package com.abe.gg_stats.batch;
 
+import com.abe.gg_stats.batch.heroRanking.HeroRankingWriter;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,7 +13,6 @@ import org.springframework.batch.item.Chunk;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -110,7 +110,7 @@ class HeroRankingWriterTest {
 	}
 
 	@Test
-	void testWrite_RepositoryException_ShouldThrowCustomException() {
+	void testWrite_DatabaseError_ShouldContinueProcessing() throws Exception {
 		// Given
 		HeroRanking ranking = new HeroRanking();
 		ranking.setHeroId(1);
@@ -121,19 +121,15 @@ class HeroRankingWriterTest {
 
 		when(heroRankingRepository.save(ranking)).thenThrow(new RuntimeException("Database error"));
 
-		// When & Then
-		HeroRankingWriter.HeroRankingWriteException exception = assertThrows(
-				HeroRankingWriter.HeroRankingWriteException.class, () -> writer.write(chunk));
+		// When - Should not throw exception, just log error
+		writer.write(chunk);
 
-		assertEquals("Failed to write hero ranking", exception.getMessage());
-		assertNotNull(exception.getCause());
-		assertEquals("Database error", exception.getCause().getMessage());
-
+		// Then - Should attempt to save but handle the error gracefully
 		verify(heroRankingRepository).save(ranking);
 	}
 
 	@Test
-	void testWrite_PartialFailure_ShouldThrowExceptionOnFirstError() {
+	void testWrite_PartialFailure_ShouldContinueProcessing() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setHeroId(1);
@@ -150,14 +146,10 @@ class HeroRankingWriterTest {
 		when(heroRankingRepository.save(ranking1)).thenReturn(ranking1);
 		when(heroRankingRepository.save(ranking2)).thenThrow(new RuntimeException("Database error"));
 
-		// When & Then
-		HeroRankingWriter.HeroRankingWriteException exception = assertThrows(
-				HeroRankingWriter.HeroRankingWriteException.class, () -> writer.write(chunk));
+		// When - Should not throw exception, just log error for failed item
+		writer.write(chunk);
 
-		assertEquals("Failed to write hero ranking", exception.getMessage());
-		assertNotNull(exception.getCause());
-		assertEquals("Database error", exception.getCause().getMessage());
-
+		// Then - Should attempt to save both items
 		verify(heroRankingRepository).save(ranking1);
 		verify(heroRankingRepository).save(ranking2);
 	}

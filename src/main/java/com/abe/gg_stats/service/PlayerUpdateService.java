@@ -27,7 +27,6 @@ public class PlayerUpdateService {
 		log.info("Updating player info for account_id: {}", accountId);
 
 		try {
-			// Check if player already has steam ID (already processed)
 			Optional<Player> existingPlayerOpt = playerRepository.findById(accountId);
 			LocalDateTime now = LocalDateTime.now();
 

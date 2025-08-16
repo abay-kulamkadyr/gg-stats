@@ -1,50 +1,46 @@
-package com.abe.gg_stats.batch;
+package com.abe.gg_stats.batch.player;
 
+import com.abe.gg_stats.batch.BaseProcessor;
 import com.abe.gg_stats.service.PlayerUpdateService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
-public class PlayerProcessor implements ItemProcessor<Long, Long> {
+public class PlayerProcessor extends BaseProcessor<Long, Long> {
 
 	private final PlayerUpdateService playerUpdateService;
 
+	public PlayerProcessor(PlayerUpdateService playerUpdateService) {
+		this.playerUpdateService = playerUpdateService;
+	}
+
 	@Override
-	public Long process(Long accountId) throws Exception {
+	protected boolean isValidInput(Long accountId) {
+		return accountId != null && accountId > 0;
+	}
+
+	@Override
+	protected Long processItem(Long accountId) throws Exception {
 		try {
-			// Validate input
-			if (accountId == null) {
-				log.warn("Received null account_id, skipping");
-				return null;
-			}
-
-			if (accountId <= 0) {
-				log.warn("Invalid account_id: {} (must be positive)", accountId);
-				return null;
-			}
-
 			log.info("Processing account_id: {}", accountId);
-
 			playerUpdateService.updatePlayerInfo(accountId);
-
 			log.info("Successfully processed account_id: {}", accountId);
 			return accountId; // Return the same ID to maintain flow
-
 		}
 		catch (PlayerUpdateService.PlayerProcessingException e) {
 			log.error("Failed to process player account_id {}: {}", accountId, e.getMessage());
-			// Re-throw to trigger retry/skip logic
 			throw e;
 		}
 		catch (Exception e) {
 			log.error("Unexpected error processing account_id {}: {}", accountId, e.getMessage(), e);
-			// Re-throw to trigger retry/skip logic
 			throw new PlayerProcessingException("Failed to process player: " + accountId, e);
 		}
+	}
+
+	@Override
+	protected String getItemTypeDescription() {
+		return "player account ID";
 	}
 
 	/**

@@ -1,8 +1,8 @@
 package com.abe.gg_stats.config;
 
-import com.abe.gg_stats.batch.HeroProcessor;
-import com.abe.gg_stats.batch.HeroWriter;
-import com.abe.gg_stats.batch.HeroesReader;
+import com.abe.gg_stats.batch.hero.HeroProcessor;
+import com.abe.gg_stats.batch.hero.HeroWriter;
+import com.abe.gg_stats.batch.hero.HeroesReader;
 import com.abe.gg_stats.batch.listener.HeroesStepExecutionListener;
 import com.abe.gg_stats.entity.Hero;
 import com.fasterxml.jackson.databind.JsonNode;

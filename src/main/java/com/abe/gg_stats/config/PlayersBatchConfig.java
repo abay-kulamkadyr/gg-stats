@@ -1,11 +1,10 @@
 package com.abe.gg_stats.config;
 
-import com.abe.gg_stats.batch.PlayerProcessor;
-import com.abe.gg_stats.batch.PlayerReader;
-import com.abe.gg_stats.batch.PlayerWriter;
+import com.abe.gg_stats.batch.player.PlayerProcessor;
+import com.abe.gg_stats.batch.player.PlayerReader;
+import com.abe.gg_stats.batch.player.PlayerWriter;
 import com.abe.gg_stats.batch.listener.PlayersStepExecutionListener;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;

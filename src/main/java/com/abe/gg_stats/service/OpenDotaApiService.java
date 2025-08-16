@@ -237,10 +237,7 @@ public class OpenDotaApiService {
 	@Transactional
 	private void updateRateLimit(String endpoint) {
 		Optional<ApiRateLimit> rateLimitOpt = rateLimitRepository.findByEndpoint(endpoint);
-		if (rateLimitOpt.isPresent()) {
-			ApiRateLimit rateLimit = rateLimitOpt.get();
-			rateLimitRepository.incrementRequestCounts(rateLimit.getId());
-		}
+		rateLimitOpt.ifPresent(rateLimit -> rateLimitRepository.incrementRequestCounts(rateLimit.getId()));
 	}
 
 	/**
@@ -312,14 +309,6 @@ public class OpenDotaApiService {
 
 	public Optional<JsonNode> getPlayerRanking(Long accountId) {
 		return makeApiCall("/players/" + accountId + "/rankings");
-	}
-
-	public Optional<JsonNode> getPlayerWinLoss(Long accountId) {
-		return makeApiCall("/players/" + accountId + "/wl");
-	}
-
-	public Optional<JsonNode> getPlayerRecentMatches(Long accountId) {
-		return makeApiCall("/players/" + accountId + "/recentMatches");
 	}
 
 	public Optional<JsonNode> getHeroRanking(Integer heroId) {
