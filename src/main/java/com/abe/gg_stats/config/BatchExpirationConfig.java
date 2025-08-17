@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
@@ -19,7 +19,6 @@ import java.time.Duration;
  * "1w") - mo: months (e.g., "3mo") - y: years (e.g., "1y")
  */
 @Configuration
-@ConfigurationProperties(prefix = "app.batch.expiration")
 @Data
 @Slf4j
 public class BatchExpirationConfig {
@@ -28,17 +27,44 @@ public class BatchExpirationConfig {
 
 	private Map<String, Duration> parsedDurations = new HashMap<>();
 
+	// Individual properties for better binding
+	@Value("${app.batch.expiration.heroes:4mo}")
+	private String heroes;
+
+	@Value("${app.batch.expiration.teams:6mo}")
+	private String teams;
+
+	@Value("${app.batch.expiration.notableplayers:3mo}")
+	private String notableplayers;
+
+	@Value("${app.batch.expiration.herorankings:1mo}")
+	private String herorankings;
+
+	@Value("${app.batch.expiration.players:6h}")
+	private String players;
+
+	@Value("${app.batch.expiration.default:3mo}")
+	private String defaultExpiration;
+
 	@PostConstruct
 	public void validateAndParseConfigurations() {
 		log.info("Validating and parsing batch expiration configurations...");
 
-		// Define default values if not provided in properties
-		durations.putIfAbsent("heroes", "4mo");
-		durations.putIfAbsent("teams", "6mo");
-		durations.putIfAbsent("notablePlayers", "3mo");
-		durations.putIfAbsent("heroRankings", "1mo");
-		durations.putIfAbsent("players", "6h");
-		durations.putIfAbsent("default", "3mo");
+		// Use individual properties for better binding
+		durations.put("heroes", heroes != null ? heroes : "4mo");
+		durations.put("teams", teams != null ? teams : "6mo");
+		durations.put("notableplayers", notableplayers != null ? notableplayers : "3mo");
+		durations.put("herorankings", herorankings != null ? herorankings : "1mo");
+		durations.put("players", players != null ? players : "6h");
+		durations.put("default", defaultExpiration != null ? defaultExpiration : "3mo");
+
+		log.info("Using properties from configuration file");
+		log.info("Heroes expiration: {}", heroes != null ? heroes : "4mo (default)");
+		log.info("Teams expiration: {}", teams != null ? teams : "6mo (default)");
+		log.info("Notable players expiration: {}", notableplayers != null ? notableplayers : "3mo (default)");
+		log.info("Hero rankings expiration: {}", herorankings != null ? herorankings : "1mo (default)");
+		log.info("Players expiration: {}", players != null ? players : "6h (default)");
+		log.info("Default expiration: {}", defaultExpiration != null ? defaultExpiration : "3mo (default)");
 
 		durations.forEach((key, value) -> {
 			try {
@@ -84,11 +110,11 @@ public class BatchExpirationConfig {
 	}
 
 	public Duration getNotablePlayersDuration() {
-		return parsedDurations.get("notablePlayers");
+		return parsedDurations.get("notableplayers");
 	}
 
 	public Duration getHeroRankingsDuration() {
-		return parsedDurations.get("heroRankings");
+		return parsedDurations.get("herorankings");
 	}
 
 }
