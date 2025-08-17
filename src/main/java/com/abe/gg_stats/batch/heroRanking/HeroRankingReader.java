@@ -64,7 +64,7 @@ public class HeroRankingReader extends BaseApiReader<JsonNode> {
 
 	@Override
 	protected String getExpirationConfigName() {
-		return "heroRankings";
+		return "herorankings";
 	}
 
 }

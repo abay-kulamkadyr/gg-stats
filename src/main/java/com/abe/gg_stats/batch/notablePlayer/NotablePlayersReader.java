@@ -49,7 +49,7 @@ public class NotablePlayersReader extends BaseApiReader<JsonNode> {
 
 	@Override
 	protected String getExpirationConfigName() {
-		return "notablePlayers";
+		return "notableplayers";
 	}
 
 }

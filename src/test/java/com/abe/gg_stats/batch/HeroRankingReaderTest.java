@@ -127,7 +127,7 @@ class HeroRankingReaderTest {
 		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1));
 		when(heroRankingRepository.findMaxUpdatedAt()).thenReturn(Optional.of(LocalDateTime.now())); // Fresh
 																										// data
-		when(batchExpirationConfig.getDurationByConfigName("heroRankings")).thenReturn(Duration.ofDays(1));
+		when(batchExpirationConfig.getDurationByConfigName("herorankings")).thenReturn(Duration.ofDays(1));
 
 		// When
 		JsonNode result = reader.read();
@@ -143,7 +143,7 @@ class HeroRankingReaderTest {
 		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1));
 		when(heroRankingRepository.findMaxUpdatedAt()).thenReturn(Optional.of(LocalDateTime.now().minusDays(2))); // Expired
 																													// data
-		when(batchExpirationConfig.getDurationByConfigName("heroRankings")).thenReturn(Duration.ofDays(1));
+		when(batchExpirationConfig.getDurationByConfigName("herorankings")).thenReturn(Duration.ofDays(1));
 
 		// Mock API response for expired data
 		ObjectNode responseNode = objectMapper.createObjectNode();
