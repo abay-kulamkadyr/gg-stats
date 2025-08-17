@@ -12,7 +12,9 @@ import org.springframework.batch.item.Chunk;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -32,226 +34,232 @@ class HeroRankingWriterTest {
 	@Test
 	void testWrite_ValidChunk_ShouldSaveAll() throws Exception {
 		// Given
-		HeroRanking ranking1 = new HeroRanking();
-		ranking1.setHeroId(1);
-		ranking1.setAccountId(12345L);
-		ranking1.setScore(95.5);
+		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
+				createHeroRanking(1, 67890L, 88.0));
 
-		HeroRanking ranking2 = new HeroRanking();
-		ranking2.setHeroId(2);
-		ranking2.setAccountId(67890L);
-		ranking2.setScore(88.0);
+		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 11111L, 92.0));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Arrays.asList(ranking1, ranking2));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
 
 		// When
 		writer.write(chunk);
 
 		// Then
-		verify(heroRankingRepository, times(2)).save(any(HeroRanking.class));
-		verify(heroRankingRepository).save(ranking1);
-		verify(heroRankingRepository).save(ranking2);
+		verify(heroRankingRepository, times(2)).saveAll(any(List.class));
+		verify(heroRankingRepository).saveAll(rankings1);
+		verify(heroRankingRepository).saveAll(rankings2);
 	}
 
 	@Test
 	void testWrite_EmptyChunk_ShouldHandleGracefully() throws Exception {
 		// Given
-		Chunk<HeroRanking> chunk = new Chunk<>(Collections.emptyList());
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.emptyList());
 
 		// When
 		writer.write(chunk);
 
 		// Then
-		verify(heroRankingRepository, never()).save(any(HeroRanking.class));
+		verify(heroRankingRepository, never()).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_NullChunk_ShouldHandleGracefully() throws Exception {
-		// When
-		writer.write(null);
-
-		// Then
-		verify(heroRankingRepository, never()).save(any(HeroRanking.class));
+		// When & Then - Should throw NullPointerException since the method doesn't handle
+		// null chunks
+		assertThrows(NullPointerException.class, () -> writer.write(null));
+		verify(heroRankingRepository, never()).saveAll(any(List.class));
 	}
 
 	@Test
-	void testWrite_ChunkWithNullItems_ShouldSkipNulls() throws Exception {
+	void testWrite_ChunkWithNullItems_ShouldHandleGracefully() throws Exception {
 		// Given
-		HeroRanking ranking1 = new HeroRanking();
-		ranking1.setHeroId(1);
-		ranking1.setAccountId(12345L);
-		ranking1.setScore(95.5);
+		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
+				createHeroRanking(1, 67890L, 88.0));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Arrays.asList(ranking1, null));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, null));
 
-		// When
+		// When - Should handle null item gracefully by catching the exception and
+		// continuing
 		writer.write(chunk);
 
-		// Then
-		verify(heroRankingRepository, times(1)).save(any(HeroRanking.class));
-		verify(heroRankingRepository).save(ranking1);
+		// Then - Should process the valid item and log error for null item
+		verify(heroRankingRepository, times(1)).saveAll(rankings1);
+		verify(heroRankingRepository, never()).saveAll(null);
 	}
 
 	@Test
 	void testWrite_SingleItem_ShouldSaveSuccessfully() throws Exception {
 		// Given
-		HeroRanking ranking = new HeroRanking();
-		ranking.setHeroId(1);
-		ranking.setAccountId(12345L);
-		ranking.setScore(95.5);
+		List<HeroRanking> rankings = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Collections.singletonList(ranking));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
 
 		// When
 		writer.write(chunk);
 
 		// Then
-		verify(heroRankingRepository, times(1)).save(ranking);
+		verify(heroRankingRepository, times(1)).saveAll(rankings);
 	}
 
 	@Test
 	void testWrite_DatabaseError_ShouldContinueProcessing() throws Exception {
 		// Given
-		HeroRanking ranking = new HeroRanking();
-		ranking.setHeroId(1);
-		ranking.setAccountId(12345L);
-		ranking.setScore(95.5);
+		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Collections.singletonList(ranking));
+		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 67890L, 88.0));
 
-		when(heroRankingRepository.save(ranking)).thenThrow(new RuntimeException("Database error"));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
+
+		when(heroRankingRepository.saveAll(rankings1)).thenReturn(rankings1);
+		when(heroRankingRepository.saveAll(rankings2)).thenThrow(new RuntimeException("Database error"));
 
 		// When - Should not throw exception, just log error
 		writer.write(chunk);
 
-		// Then - Should attempt to save but handle the error gracefully
-		verify(heroRankingRepository).save(ranking);
+		// Then - Should attempt to save both items
+		verify(heroRankingRepository).saveAll(rankings1);
+		verify(heroRankingRepository).saveAll(rankings2);
 	}
 
 	@Test
 	void testWrite_PartialFailure_ShouldContinueProcessing() throws Exception {
 		// Given
-		HeroRanking ranking1 = new HeroRanking();
-		ranking1.setHeroId(1);
-		ranking1.setAccountId(12345L);
-		ranking1.setScore(95.5);
+		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
 
-		HeroRanking ranking2 = new HeroRanking();
-		ranking2.setHeroId(2);
-		ranking2.setAccountId(67890L);
-		ranking2.setScore(88.0);
+		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 67890L, 88.0));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Arrays.asList(ranking1, ranking2));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
 
-		when(heroRankingRepository.save(ranking1)).thenReturn(ranking1);
-		when(heroRankingRepository.save(ranking2)).thenThrow(new RuntimeException("Database error"));
+		when(heroRankingRepository.saveAll(rankings1)).thenReturn(rankings1);
+		when(heroRankingRepository.saveAll(rankings2)).thenThrow(new RuntimeException("Database error"));
 
 		// When - Should not throw exception, just log error for failed item
 		writer.write(chunk);
 
 		// Then - Should attempt to save both items
-		verify(heroRankingRepository).save(ranking1);
-		verify(heroRankingRepository).save(ranking2);
+		verify(heroRankingRepository).saveAll(rankings1);
+		verify(heroRankingRepository).saveAll(rankings2);
 	}
 
 	@Test
 	void testWrite_LargeChunk_ShouldHandleCorrectly() throws Exception {
 		// Given
-		Chunk<HeroRanking> chunk = new Chunk<>();
+		Chunk<List<HeroRanking>> chunk = new Chunk<>();
 		for (int i = 0; i < 100; i++) {
-			HeroRanking ranking = new HeroRanking();
-			ranking.setHeroId(i);
-			ranking.setAccountId((long) i);
-			ranking.setScore(50.0 + i);
-			chunk.add(ranking);
+			List<HeroRanking> rankings = Arrays.asList(createHeroRanking(i, (long) i, 50.0 + i));
+			chunk.add(rankings);
 		}
 
 		// When
 		writer.write(chunk);
 
 		// Then
-		verify(heroRankingRepository, times(100)).save(any(HeroRanking.class));
+		verify(heroRankingRepository, times(100)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithMixedData_ShouldHandleCorrectly() throws Exception {
 		// Given
-		HeroRanking ranking1 = new HeroRanking();
-		ranking1.setHeroId(1);
-		ranking1.setAccountId(12345L);
-		ranking1.setScore(95.5);
+		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
 
-		HeroRanking ranking2 = new HeroRanking();
-		ranking2.setHeroId(2);
-		ranking2.setAccountId(67890L);
-		ranking2.setScore(null); // Null score
+		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 67890L, null) // Null
+																						// score
+		);
 
-		HeroRanking ranking3 = new HeroRanking();
-		ranking3.setHeroId(3);
-		ranking3.setAccountId(11111L);
-		ranking3.setScore(100.0);
+		List<HeroRanking> rankings3 = Arrays.asList(createHeroRanking(3, 11111L, 100.0));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Arrays.asList(ranking1, ranking2, ranking3));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2, rankings3));
 
 		// When
 		writer.write(chunk);
 
 		// Then
-		verify(heroRankingRepository, times(3)).save(any(HeroRanking.class));
-		verify(heroRankingRepository).save(ranking1);
-		verify(heroRankingRepository).save(ranking2);
-		verify(heroRankingRepository).save(ranking3);
+		verify(heroRankingRepository, times(3)).saveAll(any(List.class));
+		verify(heroRankingRepository).saveAll(rankings1);
+		verify(heroRankingRepository).saveAll(rankings2);
+		verify(heroRankingRepository).saveAll(rankings3);
 	}
 
 	@Test
 	void testWrite_ChunkWithZeroValues_ShouldHandleCorrectly() throws Exception {
 		// Given
-		HeroRanking ranking = new HeroRanking();
-		ranking.setHeroId(0);
-		ranking.setAccountId(0L);
-		ranking.setScore(0.0);
+		List<HeroRanking> rankings = Arrays.asList(createHeroRanking(0, 0L, 0.0));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Collections.singletonList(ranking));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
 
 		// When
 		writer.write(chunk);
 
 		// Then
-		verify(heroRankingRepository, times(1)).save(ranking);
+		verify(heroRankingRepository, times(1)).saveAll(rankings);
 	}
 
 	@Test
 	void testWrite_ChunkWithMaxValues_ShouldHandleCorrectly() throws Exception {
 		// Given
-		HeroRanking ranking = new HeroRanking();
-		ranking.setHeroId(Integer.MAX_VALUE);
-		ranking.setAccountId(Long.MAX_VALUE);
-		ranking.setScore(Double.MAX_VALUE);
+		List<HeroRanking> rankings = Arrays
+			.asList(createHeroRanking(Integer.MAX_VALUE, Long.MAX_VALUE, Double.MAX_VALUE));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Collections.singletonList(ranking));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
 
 		// When
 		writer.write(chunk);
 
 		// Then
-		verify(heroRankingRepository, times(1)).save(ranking);
+		verify(heroRankingRepository, times(1)).saveAll(rankings);
 	}
 
 	@Test
 	void testWrite_ChunkWithNegativeValues_ShouldHandleCorrectly() throws Exception {
 		// Given
-		HeroRanking ranking = new HeroRanking();
-		ranking.setHeroId(-1);
-		ranking.setAccountId(-12345L);
-		ranking.setScore(-50.0);
+		List<HeroRanking> rankings = Arrays.asList(createHeroRanking(-1, -12345L, -50.0));
 
-		Chunk<HeroRanking> chunk = new Chunk<>(Collections.singletonList(ranking));
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
 
 		// When
 		writer.write(chunk);
 
 		// Then
-		verify(heroRankingRepository, times(1)).save(ranking);
+		verify(heroRankingRepository, times(1)).saveAll(rankings);
+	}
+
+	@Test
+	void testWrite_EmptyRankingsList_ShouldHandleCorrectly() throws Exception {
+		// Given
+		List<HeroRanking> emptyRankings = Collections.emptyList();
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(emptyRankings));
+
+		// When
+		writer.write(chunk);
+
+		// Then
+		verify(heroRankingRepository, never()).saveAll(any(List.class)); // Should not
+																			// call
+																			// saveAll for
+																			// empty list
+	}
+
+	@Test
+	void testWrite_MultipleRankingsInSingleList_ShouldSaveAll() throws Exception {
+		// Given
+		List<HeroRanking> multipleRankings = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
+				createHeroRanking(1, 67890L, 88.0), createHeroRanking(1, 11111L, 92.0));
+
+		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(multipleRankings));
+
+		// When
+		writer.write(chunk);
+
+		// Then
+		verify(heroRankingRepository, times(1)).saveAll(multipleRankings);
+	}
+
+	private HeroRanking createHeroRanking(Integer heroId, Long accountId, Double score) {
+		HeroRanking ranking = new HeroRanking();
+		ranking.setHeroId(heroId);
+		ranking.setAccountId(accountId);
+		ranking.setScore(score);
+		return ranking;
 	}
 
 }

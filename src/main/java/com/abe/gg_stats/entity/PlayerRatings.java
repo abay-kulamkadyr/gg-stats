@@ -29,8 +29,7 @@ public class PlayerRatings {
 	@Column(name = "competitive_rank")
 	private Integer competitiveRank;
 
-	@CreationTimestamp
-	@Column(name = "recorded_at")
-	private LocalDateTime recordedAt;
+	@Column(name = "updated_at", insertable = false, updatable = false)
+	private LocalDateTime updatedAt;
 
 }

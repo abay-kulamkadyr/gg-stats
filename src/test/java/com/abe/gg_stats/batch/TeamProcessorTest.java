@@ -82,12 +82,10 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullItem_ShouldReturnNull() throws Exception {
-		// When
-		Team result = processor.process(null);
-
-		// Then
-		assertNull(result);
+	void testProcess_NullItem_ShouldThrowException() throws Exception {
+		// When & Then - BaseProcessor.process has @NonNull annotation, so it should throw
+		// NullPointerException
+		assertThrows(NullPointerException.class, () -> processor.process(null));
 	}
 
 	@Test
