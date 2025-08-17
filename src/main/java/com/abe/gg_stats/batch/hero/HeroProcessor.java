@@ -3,11 +3,14 @@ package com.abe.gg_stats.batch.hero;
 import com.abe.gg_stats.batch.BaseProcessor;
 import com.abe.gg_stats.entity.Hero;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Processor for Hero entities with improved error handling and validation. Implements
@@ -18,10 +21,7 @@ import java.util.List;
 public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 
 	@Override
-	protected boolean isValidInput(JsonNode item) {
-		if (item == null) {
-			return false;
-		}
+	protected boolean isValidInput(@NonNull JsonNode item) {
 
 		// Check for required fields
 		if (!item.has("id") || item.get("id").isNull()) {
@@ -63,27 +63,24 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 	}
 
 	@Override
-	protected Hero processItem(JsonNode item) throws Exception {
-		try {
-			Hero hero = new Hero();
-			hero.setId(item.get("id").asInt());
-			hero.setName(item.get("name").asText());
-			hero.setLocalizedName(item.get("localized_name").asText());
-			hero.setPrimaryAttr(getTextValue(item, "primary_attr"));
-			hero.setAttackType(getTextValue(item, "attack_type"));
+	protected Hero processItem(@NonNull JsonNode item) {
+		Hero hero = new Hero();
 
-			// Process roles array
-			List<String> roles = processRolesArray(item);
-			hero.setRoles(roles);
+		// Required fields
+		hero.setId(item.get("id").asInt());
+		hero.setName(item.get("name").asText());
+		hero.setLocalizedName(item.get("localized_name").asText());
 
-			log.debug("Successfully processed hero: {} (ID: {})", hero.getName(), hero.getId());
-			return hero;
+		// Optional fields
+		hero.setPrimaryAttr(getTextValue(item, "primary_attr").orElse(null));
+		hero.setAttackType(getTextValue(item, "attack_type").orElse(null));
 
-		}
-		catch (Exception e) {
-			log.error("Error processing hero data: {}", item.toString(), e);
-			throw new HeroProcessingException("Failed to process hero data", e);
-		}
+		// Roles array
+		List<String> roles = processRolesArray(item);
+		hero.setRoles(roles);
+
+		log.debug("Successfully processed hero: {} (ID: {})", hero.getName(), hero.getId());
+		return hero;
 	}
 
 	@Override
@@ -95,46 +92,27 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 	 * Process roles array from JSON data
 	 */
 	private List<String> processRolesArray(JsonNode item) {
-		List<String> roles = new ArrayList<>();
-
 		if (item.has("roles") && item.get("roles").isArray()) {
-			item.get("roles").forEach(role -> {
-				if (role != null && !role.isNull()) {
-					String roleText = role.asText();
-					if (roleText != null && !roleText.trim().isEmpty()) {
-						roles.add(roleText);
-					}
-				}
-			});
+			return StreamSupport.stream(item.get("roles").spliterator(), false)
+				.filter(role -> role != null && !role.isNull())
+				.map(JsonNode::asText)
+				.map(String::trim)
+				.filter(s -> !s.isEmpty())
+				.collect(Collectors.toList());
 		}
-
-		return roles;
+		return Collections.emptyList();
 	}
 
 	/**
 	 * Get text value from JSON node, returning null if field is missing or empty
 	 */
-	private String getTextValue(JsonNode node, String fieldName) {
-		if (!node.has(fieldName) || node.get(fieldName).isNull()) {
-			return null;
+	private Optional<String> getTextValue(JsonNode node, String fieldName) {
+		JsonNode field = node.get(fieldName);
+		if (field == null || field.isNull()) {
+			return Optional.empty();
 		}
-		String value = node.get(fieldName).asText();
-		return (value != null && !value.trim().isEmpty()) ? value : null;
-	}
-
-	/**
-	 * Custom exception for hero processing errors
-	 */
-	public static class HeroProcessingException extends Exception {
-
-		public HeroProcessingException(String message) {
-			super(message);
-		}
-
-		public HeroProcessingException(String message, Throwable cause) {
-			super(message, cause);
-		}
-
+		String value = field.asText().trim();
+		return value.isEmpty() ? Optional.empty() : Optional.of(value);
 	}
 
 }

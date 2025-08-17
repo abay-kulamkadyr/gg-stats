@@ -1,8 +1,10 @@
-package com.abe.gg_stats.batch.player.notablePlayer;
+package com.abe.gg_stats.batch.notablePlayer;
 
 import com.abe.gg_stats.batch.BaseWriter;
+import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +19,7 @@ public class NotablePlayerWriter extends BaseWriter<NotablePlayer> {
 	}
 
 	@Override
-	protected void writeItem(NotablePlayer notablePlayer) throws Exception {
+	protected void writeItem(NotablePlayer notablePlayer) {
 		notablePlayerRepository.save(notablePlayer);
 	}
 

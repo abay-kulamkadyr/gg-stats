@@ -27,7 +27,6 @@ class PlayerUpdateServiceTest {
 	@Mock
 	private OpenDotaApiService openDotaApiService;
 
-	private PlayerUpdateService playerUpdateService;
 
 	private ObjectMapper objectMapper;
 

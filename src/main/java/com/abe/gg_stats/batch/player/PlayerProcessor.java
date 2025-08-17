@@ -1,41 +1,56 @@
 package com.abe.gg_stats.batch.player;
 
 import com.abe.gg_stats.batch.BaseProcessor;
-import com.abe.gg_stats.service.PlayerUpdateService;
+import com.abe.gg_stats.entity.Player;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class PlayerProcessor extends BaseProcessor<Long, Long> {
+public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 
-	private final PlayerUpdateService playerUpdateService;
+	@Override
+	protected boolean isValidInput(JsonNode item) {
+		if (item == null || item.isNull()) {
+			log.warn("Player JSON item is null");
+			return false;
+		}
 
-	public PlayerProcessor(PlayerUpdateService playerUpdateService) {
-		this.playerUpdateService = playerUpdateService;
+		// Optional: check that at least one identifier exists
+		boolean hasAccountId = item.has("account_id") && !item.get("account_id").isNull();
+		boolean hasProfile = item.has("profile") && item.get("profile").isObject();
+
+		if (!hasAccountId && !hasProfile) {
+			log.warn("Player JSON item missing both account_id and profile: {}", item);
+			return false;
+		}
+
+		if (hasProfile) {
+			JsonNode profile = item.get("profile");
+
+			// Validate required profile strings if present
+			String steamId = getTextValue(profile, "steamid");
+			String personName = getTextValue(profile, "personaname");
+
+			if (steamId == null || personName == null) {
+				log.warn("Invalid profile data, missing required fields: {}", profile);
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	@Override
-	protected boolean isValidInput(Long accountId) {
-		return accountId != null && accountId > 0;
-	}
-
-	@Override
-	protected Long processItem(Long accountId) throws Exception {
-		try {
-			log.info("Processing account_id: {}", accountId);
-			playerUpdateService.updatePlayerInfo(accountId);
-			log.info("Successfully processed account_id: {}", accountId);
-			return accountId; // Return the same ID to maintain flow
-		}
-		catch (PlayerUpdateService.PlayerProcessingException e) {
-			log.error("Failed to process player account_id {}: {}", accountId, e.getMessage());
-			throw e;
-		}
-		catch (Exception e) {
-			log.error("Unexpected error processing account_id {}: {}", accountId, e.getMessage(), e);
-			throw new PlayerProcessingException("Failed to process player: " + accountId, e);
-		}
+	protected Player processItem(JsonNode item) {
+		Player player = new Player();
+		processProfileData(player, item);
+		processRootLevelData(player, item);
+		return player;
 	}
 
 	@Override
@@ -43,19 +58,82 @@ public class PlayerProcessor extends BaseProcessor<Long, Long> {
 		return "player account ID";
 	}
 
-	/**
-	 * Custom exception for player processing errors
-	 */
-	public static class PlayerProcessingException extends Exception {
-
-		public PlayerProcessingException(String message) {
-			super(message);
+	private void processProfileData(Player player, JsonNode data) {
+		JsonNode profileData = data.get("profile");
+		if (profileData == null) {
+			log.warn("No profile data found in API response");
+			return;
 		}
 
-		public PlayerProcessingException(String message, Throwable cause) {
-			super(message, cause);
+		// Basic profile fields
+		player.setSteamId(getTextValue(profileData, "steamid"));
+		player.setAvatar(getTextValue(profileData, "avatar"));
+		player.setAvatarMedium(getTextValue(profileData, "avatarmedium"));
+		player.setAvatarFull(getTextValue(profileData, "avatarfull"));
+		player.setProfileUrl(getTextValue(profileData, "profileurl"));
+		player.setPersonName(getTextValue(profileData, "personaname"));
+
+		// Date fields
+		player.setLastLogin(parseDateTime(profileData, "last_login"));
+		player.setFullHistoryTime(parseDateTime(profileData, "full_history_time"));
+		player.setLastMatchTime(parseDateTime(profileData, "last_match_time"));
+
+		// Numeric and boolean fields
+		player.setCheese(getIntValue(profileData, "cheese"));
+		player.setFhUnavailable(getBooleanValue(profileData, "fh_unavailable"));
+		player.setLocCountryCode(getTextValue(profileData, "loccountrycode"));
+		player.setPlus(getBooleanValue(profileData, "plus"));
+
+		log.debug("Processed profile data for player: {}", player.getPersonName());
+	}
+
+	private void processRootLevelData(Player player, JsonNode data) {
+		player.setRankTier(getIntValue(data, "rank_tier"));
+		player.setLeaderboardRank(getIntValue(data, "leaderboard_rank"));
+		log.debug("Processed root level data for player: {}", player.getPersonName());
+	}
+
+	private String getTextValue(JsonNode node, String fieldName) {
+		if (!node.has(fieldName) || node.get(fieldName).isNull()) {
+			return null;
+		}
+		String value = node.get(fieldName).asText();
+		return (value != null && !value.trim().isEmpty()) ? value : null;
+	}
+
+	private Integer getIntValue(JsonNode node, String fieldName) {
+		return node.has(fieldName) && !node.get(fieldName).isNull() ? node.get(fieldName).asInt() : null;
+	}
+
+	private Boolean getBooleanValue(JsonNode node, String fieldName) {
+		return node.has(fieldName) && !node.get(fieldName).isNull() ? node.get(fieldName).asBoolean() : null;
+	}
+
+	private LocalDateTime parseDateTime(JsonNode data, String fieldName) {
+		if (!data.has(fieldName) || data.get(fieldName).isNull()) {
+			return null;
 		}
 
+		String dateTimeStr = data.get(fieldName).asText();
+		if (dateTimeStr == null || dateTimeStr.trim().isEmpty()) {
+			return null;
+		}
+
+		try {
+			// Try parsing as Unix timestamp first
+			long timestamp = Long.parseLong(dateTimeStr);
+			return LocalDateTime.ofEpochSecond(timestamp, 0, java.time.ZoneOffset.UTC);
+		}
+		catch (NumberFormatException e) {
+			// Try parsing as ISO date time string
+			try {
+				return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_DATE_TIME);
+			}
+			catch (DateTimeParseException e2) {
+				log.warn("Could not parse date time for field {}: {}", fieldName, dateTimeStr);
+				return null;
+			}
+		}
 	}
 
 }

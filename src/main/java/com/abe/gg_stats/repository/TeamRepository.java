@@ -1,6 +1,7 @@
 package com.abe.gg_stats.repository;
 
 import com.abe.gg_stats.entity.Team;
+import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -15,5 +16,8 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
 	@Query("SELECT t FROM Team t ORDER BY t.rating DESC")
 	List<Team> findAllOrderByRatingDesc();
+
+	@Query("SELECT MAX(t.updatedAt) FROM Team t")
+	Optional<LocalDateTime> findMaxUpdatedAt();
 
 }

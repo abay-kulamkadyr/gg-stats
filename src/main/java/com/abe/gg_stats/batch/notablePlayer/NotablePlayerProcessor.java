@@ -1,4 +1,4 @@
-package com.abe.gg_stats.batch.player.notablePlayer;
+package com.abe.gg_stats.batch.notablePlayer;
 
 import com.abe.gg_stats.batch.BaseProcessor;
 import com.abe.gg_stats.entity.NotablePlayer;
@@ -106,21 +106,6 @@ public class NotablePlayerProcessor extends BaseProcessor<JsonNode, NotablePlaye
 				log.warn("Invalid team_id in notable player data: {}", item.get("team_id"));
 			}
 		}
-	}
-
-	/**
-	 * Custom exception for notable player processing errors
-	 */
-	public static class NotablePlayerProcessingException extends Exception {
-
-		public NotablePlayerProcessingException(String message) {
-			super(message);
-		}
-
-		public NotablePlayerProcessingException(String message, Throwable cause) {
-			super(message, cause);
-		}
-
 	}
 
 }

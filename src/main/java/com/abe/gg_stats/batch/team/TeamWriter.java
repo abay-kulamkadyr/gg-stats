@@ -17,7 +17,7 @@ public class TeamWriter extends BaseWriter<Team> {
 	}
 
 	@Override
-	protected void writeItem(Team team) throws Exception {
+	protected void writeItem(Team team) {
 		teamRepository.save(team);
 	}
 

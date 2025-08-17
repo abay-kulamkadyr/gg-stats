@@ -24,7 +24,7 @@ public class TimeUnitParser {
 	/**
 	 * Parse a time string into a Duration
 	 * @param timeString time string like "2h", "30m", "1d", "1w", "3mo", "1y"
-	 * @return Duration object, or null if parsing fails
+	 * @return Duration object, or throw ParseException
 	 */
 	public static Duration parse(String timeString) throws ParseException {
 		if (!StringUtils.hasText(timeString)) {

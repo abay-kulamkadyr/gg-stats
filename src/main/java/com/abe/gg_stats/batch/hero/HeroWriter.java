@@ -17,7 +17,7 @@ public class HeroWriter extends BaseWriter<Hero> {
 	}
 
 	@Override
-	protected void writeItem(Hero hero) throws Exception {
+	protected void writeItem(Hero hero) {
 		heroRepository.save(hero);
 	}
 

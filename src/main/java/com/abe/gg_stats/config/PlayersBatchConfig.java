@@ -1,9 +1,11 @@
 package com.abe.gg_stats.config;
 
+import com.abe.gg_stats.batch.listener.PlayersStepExecutionListener;
 import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.batch.player.PlayerReader;
 import com.abe.gg_stats.batch.player.PlayerWriter;
-import com.abe.gg_stats.batch.listener.PlayersStepExecutionListener;
+import com.abe.gg_stats.entity.Player;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -39,7 +41,7 @@ public class PlayersBatchConfig {
 
 	@Bean("playerStep")
 	public Step playerStep(PlayerReader playerReader, PlayerProcessor playerProcessor, PlayerWriter playerWriter) {
-		return new StepBuilder("playerStep", jobRepository).<Long, Long>chunk(chunkSize, transactionManager)
+		return new StepBuilder("playerStep", jobRepository).<JsonNode, Player>chunk(chunkSize, transactionManager)
 			.reader(playerReader)
 			.processor(playerProcessor)
 			.writer(playerWriter)

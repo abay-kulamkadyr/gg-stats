@@ -2,69 +2,30 @@ package com.abe.gg_stats.batch.heroRanking;
 
 import com.abe.gg_stats.batch.BaseProcessor;
 import com.abe.gg_stats.entity.HeroRanking;
-import com.abe.gg_stats.repository.HeroRankingRepository;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-/**
- * Processor for HeroRanking entities with improved error handling and validation.
- * Implements proper exception handling and input validation.
- */
 @Component
 @Slf4j
-public class HeroRankingProcessor extends BaseProcessor<JsonNode, HeroRanking> {
-
-	private final HeroRankingRepository heroRankingRepository;
-
-	@Autowired
-	public HeroRankingProcessor(HeroRankingRepository heroRankingRepository) {
-		this.heroRankingRepository = heroRankingRepository;
-	}
+public class HeroRankingProcessor extends BaseProcessor<JsonNode, List<HeroRanking>> {
 
 	@Override
 	protected boolean isValidInput(JsonNode item) {
-		if (item == null) {
-			return false;
-		}
-
-		// Check for required fields
-		if (!item.has("account_id") || item.get("account_id").isNull()) {
-			log.debug("Hero ranking data missing or null 'account_id' field");
-			return false;
-		}
-
+		// Check for required root fields
 		if (!item.has("hero_id") || item.get("hero_id").isNull()) {
-			log.debug("Hero ranking data missing or null 'hero_id' field");
+			log.debug("Hero ranking data missing or null 'hero_id' field in the root object.");
 			return false;
 		}
 
-		// Validate account_id is a positive long
-		try {
-			long accountId = item.get("account_id").asLong();
-			if (accountId <= 0) {
-				log.debug("Hero ranking account_id must be positive, got: {}", accountId);
-				return false;
-			}
-		}
-		catch (Exception e) {
-			log.debug("Hero ranking account_id is not a valid long: {}", item.get("account_id"));
-			return false;
-		}
-
-		// Validate hero_id is a positive integer
-		try {
-			int heroId = item.get("hero_id").asInt();
-			if (heroId <= 0) {
-				log.debug("Hero ranking hero_id must be positive, got: {}", heroId);
-				return false;
-			}
-		}
-		catch (Exception e) {
-			log.debug("Hero ranking hero_id is not a valid integer: {}", item.get("hero_id"));
+		if (!item.has("rankings") || !item.get("rankings").isArray()) {
+			log.debug("Hero ranking data missing or 'rankings' field is not an array.");
 			return false;
 		}
 
@@ -72,41 +33,43 @@ public class HeroRankingProcessor extends BaseProcessor<JsonNode, HeroRanking> {
 	}
 
 	@Override
-	protected HeroRanking processItem(JsonNode item) {
-		Long accountId = item.get("account_id").asLong();
+	protected List<HeroRanking> processItem(JsonNode item) {
+		// Get the heroId from the root of the JSON
 		Integer heroId = item.get("hero_id").asInt();
-		Double score = item.has("score") ? item.get("score").asDouble() : null;
+		JsonNode rankingsNode = item.get("rankings");
 
-		Optional<HeroRanking> existingRanking = heroRankingRepository.findByHeroIdAndAccountId(accountId, heroId);
+		// Process each individual ranking object within the "rankings" array
+		return StreamSupport.stream(rankingsNode.spliterator(), false).map(rankingNode -> {
+			try {
+				// Extract individual fields for each ranking
+				Long accountId = Optional.ofNullable(rankingNode.get("account_id")).map(JsonNode::asLong).orElse(null);
+				Double score = Optional.ofNullable(rankingNode.get("score")).map(JsonNode::asDouble).orElse(null);
 
-		HeroRanking ranking = existingRanking.orElseGet(HeroRanking::new);
+				// Validate individual ranking items
+				if (accountId == null || accountId <= 0) {
+					log.warn("Invalid account_id in ranking for hero {}: {}", heroId, rankingNode.get("account_id"));
+					return null;
+				}
 
-		ranking.setAccountId(accountId);
-		ranking.setHeroId(heroId);
-		ranking.setScore(score);
-
-		log.debug("Processed hero ranking: hero_id={}, account_id={}, score={}", heroId, accountId, score);
-		return ranking;
+				// Create and return the HeroRanking entity
+				HeroRanking ranking = new HeroRanking();
+				ranking.setHeroId(heroId);
+				ranking.setAccountId(accountId);
+				ranking.setScore(score);
+				return ranking;
+			}
+			catch (Exception e) {
+				log.error("Error processing a hero ranking item for hero {}: {}", heroId, rankingNode, e);
+				return null;
+			}
+		})
+			.filter(java.util.Objects::nonNull) // Remove any null items from the stream
+			.collect(Collectors.toList());
 	}
 
 	@Override
 	protected String getItemTypeDescription() {
-		return "hero ranking";
-	}
-
-	/**
-	 * Custom exception for hero ranking processing errors
-	 */
-	public static class HeroRankingProcessingException extends Exception {
-
-		public HeroRankingProcessingException(String message) {
-			super(message);
-		}
-
-		public HeroRankingProcessingException(String message, Throwable cause) {
-			super(message, cause);
-		}
-
+		return "hero ranking list";
 	}
 
 }
