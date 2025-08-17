@@ -1,6 +1,6 @@
 package com.abe.gg_stats.batch;
 
-import com.abe.gg_stats.batch.player.notablePlayer.NotablePlayerProcessor;
+import com.abe.gg_stats.batch.notablePlayer.NotablePlayerProcessor;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.repository.NotablePlayerRepository;

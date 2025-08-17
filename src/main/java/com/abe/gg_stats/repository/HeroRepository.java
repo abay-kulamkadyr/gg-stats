@@ -20,4 +20,7 @@ public interface HeroRepository extends JpaRepository<Hero, Integer> {
 	@Query("SELECT updatedAt FROM Hero")
 	List<LocalDateTime> findAllUpdates();
 
+	@Query("SELECT MAX(h.updatedAt) FROM Hero h")
+	Optional<LocalDateTime> findMaxUpdatedAt();
+
 }

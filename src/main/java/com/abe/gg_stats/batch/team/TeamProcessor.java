@@ -43,7 +43,7 @@ public class TeamProcessor extends BaseProcessor<JsonNode, Team> {
 	}
 
 	@Override
-	protected Team processItem(JsonNode item) throws Exception {
+	protected Team processItem(JsonNode item) {
 		Team team = new Team();
 		team.setTeamId(item.get("team_id").asLong());
 
@@ -71,21 +71,6 @@ public class TeamProcessor extends BaseProcessor<JsonNode, Team> {
 	@Override
 	protected String getItemTypeDescription() {
 		return "team";
-	}
-
-	/**
-	 * Custom exception for team processing errors
-	 */
-	public static class TeamProcessingException extends Exception {
-
-		public TeamProcessingException(String message) {
-			super(message);
-		}
-
-		public TeamProcessingException(String message, Throwable cause) {
-			super(message, cause);
-		}
-
 	}
 
 }

@@ -1,50 +1,41 @@
 package com.abe.gg_stats.batch;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemProcessor;
 
 @Slf4j
-public abstract class BaseProcessor<I, O> implements ItemProcessor<I, O> {
+public abstract class BaseProcessor<JsonNode, O> implements ItemProcessor<JsonNode, O> {
 
 	@Override
-	public O process(I item) throws Exception {
-		try {
-			log.debug("Processing item: {}", item != null ? item.toString() : "null");
+	public O process(@NonNull JsonNode item) {
+		log.debug("Processing item: {}", item);
 
-			// Validate input
-			if (!isValidInput(item)) {
-				log.warn("Invalid input received: {}", item != null ? item.toString() : "null");
-				return null;
-			}
-
-			// Process the item
-			O result = processItem(item);
-
-			if (result == null) {
-				log.warn("Processing returned null for item: {}", item != null ? item.toString() : "null");
-				return null;
-			}
-
-			assert item != null;
-			log.debug("Successfully processed item: {}", item);
-			return result;
-
+		// Validate input
+		if (!isValidInput(item)) {
+			log.warn("Invalid input received: {}", item);
+			return null;
 		}
-		catch (Exception e) {
-			log.error("Error processing item: {}", item != null ? item.toString() : "null", e);
-			throw e;
+
+		// Process the item
+		O result = processItem(item);
+
+		if (result == null) {
+			log.warn("Processing returned null for item: {}", item);
+			return null;
 		}
+		return result;
 	}
 
 	/**
 	 * Validate the input item
 	 */
-	protected abstract boolean isValidInput(I item);
+	protected abstract boolean isValidInput(JsonNode item);
 
 	/**
 	 * Process the validated item
 	 */
-	protected abstract O processItem(I item) throws Exception;
+	protected abstract O processItem(JsonNode item);
 
 	/**
 	 * Get a description of the item type for logging

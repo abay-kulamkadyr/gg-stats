@@ -1,8 +1,8 @@
 package com.abe.gg_stats.config;
 
-import com.abe.gg_stats.batch.player.notablePlayer.NotablePlayerProcessor;
-import com.abe.gg_stats.batch.player.notablePlayer.NotablePlayerWriter;
-import com.abe.gg_stats.batch.player.notablePlayer.NotablePlayersReader;
+import com.abe.gg_stats.batch.notablePlayer.NotablePlayerProcessor;
+import com.abe.gg_stats.batch.notablePlayer.NotablePlayerWriter;
+import com.abe.gg_stats.batch.notablePlayer.NotablePlayersReader;
 import com.abe.gg_stats.batch.listener.NotablePlayersStepExecutionListener;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.fasterxml.jackson.databind.JsonNode;

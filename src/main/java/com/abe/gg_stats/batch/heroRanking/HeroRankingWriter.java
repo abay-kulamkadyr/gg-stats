@@ -3,7 +3,10 @@ package com.abe.gg_stats.batch.heroRanking;
 import com.abe.gg_stats.batch.BaseWriter;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,7 +15,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
-public class HeroRankingWriter extends BaseWriter<HeroRanking> {
+public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 
 	private final HeroRankingRepository heroRankingRepository;
 
@@ -20,21 +23,49 @@ public class HeroRankingWriter extends BaseWriter<HeroRanking> {
 		this.heroRankingRepository = heroRankingRepository;
 	}
 
-	@Override
-	protected void writeItem(HeroRanking ranking) throws Exception {
-		if (ranking == null) {
-			log.warn("Received null ranking, skipping");
+	private void writeItem(List<? extends HeroRanking> items) {
+		if (items.isEmpty()) {
+			log.debug("No hero ranking items to write.");
 			return;
 		}
 
-		heroRankingRepository.save(ranking);
-		log.debug("Saved hero ranking: hero_id={}, account_id={}, score={}", ranking.getHeroId(),
-				ranking.getAccountId(), ranking.getScore());
+		log.info("Writing {} hero ranking items.", items.size());
+
+		// Use saveAll() for a single, efficient batch insert/update
+		heroRankingRepository.saveAll(items);
+
+		log.debug("Successfully saved {} hero ranking items.", items.size());
 	}
 
 	@Override
-	protected String getItemTypeDescription() {
-		return "hero ranking";
+	public void write(Chunk<? extends List<HeroRanking>> chunk) throws Exception {
+		if (chunk.isEmpty()) {
+			log.debug("Empty chunk received, nothing to write");
+			return;
+		}
+
+		log.info("Writing {} items to database", chunk.size());
+
+		int successCount = 0;
+		int errorCount = 0;
+
+		for (var item : chunk) {
+			try {
+				writeItem(item);
+				successCount++;
+				log.debug("Successfully wrote item: {}", item.toString());
+			}
+			catch (Exception e) {
+				errorCount++;
+				log.error("Error writing item: {}", item != null ? item.toString() : "null", e);
+			}
+		}
+
+		log.info("Write operation completed: {} successful, {} errors", successCount, errorCount);
+
+		if (errorCount > 0) {
+			log.warn("Some items failed to write. Check logs for details.");
+		}
 	}
 
 }

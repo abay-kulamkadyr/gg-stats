@@ -1,5 +1,6 @@
 package com.abe.gg_stats.batch;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
@@ -8,8 +9,8 @@ import org.springframework.batch.item.ItemWriter;
 public abstract class BaseWriter<T> implements ItemWriter<T> {
 
 	@Override
-	public void write(Chunk<? extends T> chunk) throws Exception {
-		if (chunk == null || chunk.isEmpty()) {
+	public void write(@NonNull Chunk<? extends T> chunk) {
+		if (chunk.isEmpty()) {
 			log.debug("Empty chunk received, nothing to write");
 			return;
 		}
@@ -28,7 +29,6 @@ public abstract class BaseWriter<T> implements ItemWriter<T> {
 			catch (Exception e) {
 				errorCount++;
 				log.error("Error writing item: {}", item != null ? item.toString() : "null", e);
-				// Continue processing other items
 			}
 		}
 
@@ -42,7 +42,7 @@ public abstract class BaseWriter<T> implements ItemWriter<T> {
 	/**
 	 * Write a single item to the database
 	 */
-	protected abstract void writeItem(T item) throws Exception;
+	protected abstract void writeItem(T item);
 
 	/**
 	 * Get a description of the item type for logging

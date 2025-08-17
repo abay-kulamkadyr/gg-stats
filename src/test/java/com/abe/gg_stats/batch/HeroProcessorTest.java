@@ -108,15 +108,6 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullData_ShouldReturnNull() throws Exception {
-		// When
-		Hero result = heroProcessor.process(null);
-
-		// Then
-		assertNull(result);
-	}
-
-	@Test
 	void testProcess_MissingId_ShouldReturnNull() throws Exception {
 		// Given
 		String invalidHeroJson = """

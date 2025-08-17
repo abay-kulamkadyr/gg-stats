@@ -71,6 +71,10 @@ public class BatchExpirationConfig {
 		}
 	}
 
+	public Duration getDurationByConfigName(String configName) {
+		return parsedDurations.get(configName);
+	}
+
 	public Duration getHeroesDuration() {
 		return parsedDurations.get("heroes");
 	}

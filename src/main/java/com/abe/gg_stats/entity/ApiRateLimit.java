@@ -44,9 +44,4 @@ public class ApiRateLimit {
 	@Builder.Default
 	private LocalDateTime updatedAt = LocalDateTime.now();
 
-	@PreUpdate
-	protected void onUpdate() {
-		updatedAt = LocalDateTime.now();
-	}
-
 }

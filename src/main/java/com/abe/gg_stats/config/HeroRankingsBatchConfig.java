@@ -6,6 +6,7 @@ import com.abe.gg_stats.batch.heroRanking.HeroRankingWriter;
 import com.abe.gg_stats.batch.listener.HeroRankingsStepExecutionListener;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -48,7 +49,7 @@ public class HeroRankingsBatchConfig {
 	public Step heroRankingStep(HeroRankingReader heroRankingReader, HeroRankingProcessor heroRankingProcessor,
 			HeroRankingWriter heroRankingWriter) {
 		return new StepBuilder("heroRankingStep", jobRepository)
-			.<JsonNode, HeroRanking>chunk(chunkSize, transactionManager)
+			.<JsonNode, List<HeroRanking>>chunk(chunkSize, transactionManager)
 			.reader(heroRankingReader)
 			.processor(heroRankingProcessor)
 			.writer(heroRankingWriter)
