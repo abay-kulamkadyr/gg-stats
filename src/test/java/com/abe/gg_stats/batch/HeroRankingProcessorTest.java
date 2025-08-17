@@ -2,26 +2,19 @@ package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.batch.heroRanking.HeroRankingProcessor;
 import com.abe.gg_stats.entity.HeroRanking;
-import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class HeroRankingProcessorTest {
-
-	@Mock
-	private HeroRankingRepository heroRankingRepository;
 
 	private HeroRankingProcessor processor;
 
@@ -29,118 +22,93 @@ class HeroRankingProcessorTest {
 
 	@BeforeEach
 	void setUp() {
-		processor = new HeroRankingProcessor(heroRankingRepository);
+		processor = new HeroRankingProcessor();
 		objectMapper = new ObjectMapper();
 	}
 
 	@Test
-	void testProcess_ValidNewHeroRanking_ShouldCreateNew() throws Exception {
+	void testProcess_ValidHeroRankingData_ShouldCreateList() throws Exception {
 		// Given
 		String validJson = """
 				{
-					"account_id": 12345,
 					"hero_id": 1,
-					"score": 95.5
+					"rankings": [
+						{
+							"account_id": 12345,
+							"score": 95.5
+						},
+						{
+							"account_id": 67890,
+							"score": 88.0
+						}
+					]
 				}
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		when(heroRankingRepository.findByHeroIdAndAccountId(12345L, 1)).thenReturn(Optional.empty());
-
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
-		assertEquals(12345L, result.getAccountId());
-		assertEquals(1, result.getHeroId());
-		assertEquals(95.5, result.getScore());
+		assertEquals(2, result.size());
 
-		verify(heroRankingRepository).findByHeroIdAndAccountId(12345L, 1);
+		HeroRanking firstRanking = result.get(0);
+		assertEquals(1, firstRanking.getHeroId());
+		assertEquals(12345L, firstRanking.getAccountId());
+		assertEquals(95.5, firstRanking.getScore());
+
+		HeroRanking secondRanking = result.get(1);
+		assertEquals(1, secondRanking.getHeroId());
+		assertEquals(67890L, secondRanking.getAccountId());
+		assertEquals(88.0, secondRanking.getScore());
 	}
 
 	@Test
-	void testProcess_ValidExistingHeroRanking_ShouldUpdate() throws Exception {
+	void testProcess_ValidDataWithoutScore_ShouldHandleGracefully() throws Exception {
 		// Given
 		String validJson = """
 				{
-					"account_id": 12345,
-					"hero_id": 1,
-					"score": 98.0
+					"hero_id": 2,
+					"rankings": [
+						{
+							"account_id": 12345
+						}
+					]
 				}
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		HeroRanking existingRanking = new HeroRanking();
-		existingRanking.setAccountId(12345L);
-		existingRanking.setHeroId(1);
-		existingRanking.setScore(90.0);
-
-		when(heroRankingRepository.findByHeroIdAndAccountId(12345L, 1)).thenReturn(Optional.of(existingRanking));
-
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
-		assertEquals(12345L, result.getAccountId());
-		assertEquals(1, result.getHeroId());
-		assertEquals(98.0, result.getScore());
-		assertSame(existingRanking, result); // Should be the same instance
+		assertEquals(1, result.size());
 
-		verify(heroRankingRepository).findByHeroIdAndAccountId(12345L, 1);
+		HeroRanking ranking = result.get(0);
+		assertEquals(2, ranking.getHeroId());
+		assertEquals(12345L, ranking.getAccountId());
+		assertNull(ranking.getScore());
 	}
 
 	@Test
-	void testProcess_WithoutScore_ShouldHandleGracefully() throws Exception {
+	void testProcess_EmptyRankingsArray_ShouldReturnEmptyList() throws Exception {
 		// Given
 		String validJson = """
 				{
-					"account_id": 12345,
-					"hero_id": 1
+					"hero_id": 3,
+					"rankings": []
 				}
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		when(heroRankingRepository.findByHeroIdAndAccountId(12345L, 1)).thenReturn(Optional.empty());
-
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
-		assertEquals(12345L, result.getAccountId());
-		assertEquals(1, result.getHeroId());
-		assertNull(result.getScore());
-	}
-
-	@Test
-	void testProcess_NullItem_ShouldReturnNull() throws Exception {
-		// When
-		HeroRanking result = processor.process(null);
-
-		// Then
-		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
-	}
-
-	@Test
-	void testProcess_MissingAccountId_ShouldReturnNull() throws Exception {
-		// Given
-		String invalidJson = """
-				{
-					"hero_id": 1,
-					"score": 95.5
-				}
-				""";
-		JsonNode item = objectMapper.readTree(invalidJson);
-
-		// When
-		HeroRanking result = processor.process(item);
-
-		// Then
-		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
+		assertTrue(result.isEmpty());
 	}
 
 	@Test
@@ -148,38 +116,38 @@ class HeroRankingProcessorTest {
 		// Given
 		String invalidJson = """
 				{
-					"account_id": 12345,
-					"score": 95.5
+					"rankings": [
+						{
+							"account_id": 12345,
+							"score": 95.5
+						}
+					]
 				}
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
 	}
 
 	@Test
-	void testProcess_NullAccountId_ShouldReturnNull() throws Exception {
+	void testProcess_MissingRankings_ShouldReturnNull() throws Exception {
 		// Given
 		String invalidJson = """
 				{
-					"account_id": null,
-					"hero_id": 1,
-					"score": 95.5
+					"hero_id": 1
 				}
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
 	}
 
 	@Test
@@ -187,192 +155,143 @@ class HeroRankingProcessorTest {
 		// Given
 		String invalidJson = """
 				{
-					"account_id": 12345,
 					"hero_id": null,
-					"score": 95.5
+					"rankings": [
+						{
+							"account_id": 12345,
+							"score": 95.5
+						}
+					]
 				}
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
 	}
 
 	@Test
-	void testProcess_InvalidAccountIdType_ShouldReturnNull() throws Exception {
+	void testProcess_RankingsNotArray_ShouldReturnNull() throws Exception {
 		// Given
 		String invalidJson = """
 				{
-					"account_id": "invalid_id",
 					"hero_id": 1,
-					"score": 95.5
+					"rankings": "not_an_array"
 				}
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
 	}
 
 	@Test
-	void testProcess_InvalidHeroIdType_ShouldReturnNull() throws Exception {
-		// Given
-		String invalidJson = """
-				{
-					"account_id": 12345,
-					"hero_id": "invalid_hero_id",
-					"score": 95.5
-				}
-				""";
-		JsonNode item = objectMapper.readTree(invalidJson);
-
-		// When
-		HeroRanking result = processor.process(item);
-
-		// Then
-		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
-	}
-
-	@Test
-	void testProcess_NegativeAccountId_ShouldReturnNull() throws Exception {
-		// Given
-		String invalidJson = """
-				{
-					"account_id": -12345,
-					"hero_id": 1,
-					"score": 95.5
-				}
-				""";
-		JsonNode item = objectMapper.readTree(invalidJson);
-
-		// When
-		HeroRanking result = processor.process(item);
-
-		// Then
-		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
-	}
-
-	@Test
-	void testProcess_NegativeHeroId_ShouldReturnNull() throws Exception {
-		// Given
-		String invalidJson = """
-				{
-					"account_id": 12345,
-					"hero_id": -1,
-					"score": 95.5
-				}
-				""";
-		JsonNode item = objectMapper.readTree(invalidJson);
-
-		// When
-		HeroRanking result = processor.process(item);
-
-		// Then
-		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
-	}
-
-	@Test
-	void testProcess_ZeroAccountId_ShouldReturnNull() throws Exception {
-		// Given
-		String invalidJson = """
-				{
-					"account_id": 0,
-					"hero_id": 1,
-					"score": 95.5
-				}
-				""";
-		JsonNode item = objectMapper.readTree(invalidJson);
-
-		// When
-		HeroRanking result = processor.process(item);
-
-		// Then
-		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
-	}
-
-	@Test
-	void testProcess_ZeroHeroId_ShouldReturnNull() throws Exception {
-		// Given
-		String invalidJson = """
-				{
-					"account_id": 12345,
-					"hero_id": 0,
-					"score": 95.5
-				}
-				""";
-		JsonNode item = objectMapper.readTree(invalidJson);
-
-		// When
-		HeroRanking result = processor.process(item);
-
-		// Then
-		assertNull(result);
-		verify(heroRankingRepository, never()).findByHeroIdAndAccountId(any(), any());
-	}
-
-	@Test
-	void testProcess_WithDifferentScoreTypes_ShouldHandleCorrectly() throws Exception {
+	void testProcess_InvalidAccountId_ShouldFilterOutInvalidRankings() throws Exception {
 		// Given
 		String validJson = """
 				{
-					"account_id": 12345,
 					"hero_id": 1,
-					"score": 100
+					"rankings": [
+						{
+							"account_id": 12345,
+							"score": 95.5
+						},
+						{
+							"account_id": -1,
+							"score": 88.0
+						},
+						{
+							"account_id": 67890,
+							"score": 92.0
+						}
+					]
 				}
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		when(heroRankingRepository.findByHeroIdAndAccountId(12345L, 1)).thenReturn(Optional.empty());
-
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
-		assertEquals(100.0, result.getScore());
+		assertEquals(2, result.size()); // Should filter out the negative account_id
+
+		// Verify valid rankings are included
+		assertTrue(result.stream().anyMatch(r -> r.getAccountId() == 12345L));
+		assertTrue(result.stream().anyMatch(r -> r.getAccountId() == 67890L));
+		// Verify invalid ranking is filtered out
+		assertFalse(result.stream().anyMatch(r -> r.getAccountId() == -1L));
 	}
 
 	@Test
-	void testProcess_RepositoryException_ShouldThrowCustomException() {
+	void testProcess_WithNullValuesInRankings_ShouldFilterOutNulls() throws Exception {
 		// Given
 		String validJson = """
 				{
-					"account_id": 12345,
 					"hero_id": 1,
-					"score": 95.5
+					"rankings": [
+						{
+							"account_id": 12345,
+							"score": 95.5
+						},
+						null,
+						{
+							"account_id": 67890,
+							"score": 88.0
+						}
+					]
 				}
 				""";
-		JsonNode item;
-		try {
-			item = objectMapper.readTree(validJson);
-		}
-		catch (Exception e) {
-			fail("Failed to parse test JSON");
-			return;
-		}
+		JsonNode item = objectMapper.readTree(validJson);
 
-		when(heroRankingRepository.findByHeroIdAndAccountId(12345L, 1))
-			.thenThrow(new RuntimeException("Database error"));
+		// When
+		List<HeroRanking> result = processor.process(item);
 
-		// When & Then
-		HeroRankingProcessor.HeroRankingProcessingException exception = assertThrows(
-				HeroRankingProcessor.HeroRankingProcessingException.class, () -> processor.process(item));
+		// Then
+		assertNotNull(result);
+		assertEquals(2, result.size()); // Should filter out the null ranking
+	}
 
-		assertEquals("Failed to process hero ranking data", exception.getMessage());
-		assertNotNull(exception.getCause());
-		assertEquals("Database error", exception.getCause().getMessage());
+	@Test
+	void testProcess_WithExceptionInRanking_ShouldFilterOutFailedRankings() throws Exception {
+		// Given
+		String validJson = """
+				{
+					"hero_id": 1,
+					"rankings": [
+						{
+							"account_id": 12345,
+							"score": 95.5
+						},
+						{
+							"account_id": "invalid_id",
+							"score": 88.0
+						},
+						{
+							"account_id": 67890,
+							"score": 92.0
+						}
+					]
+				}
+				""";
+		JsonNode item = objectMapper.readTree(validJson);
+
+		// When
+		List<HeroRanking> result = processor.process(item);
+
+		// Then
+		assertNotNull(result);
+		assertEquals(2, result.size()); // Should filter out the invalid ranking
+
+		// Verify valid rankings are included
+		assertTrue(result.stream().anyMatch(r -> r.getAccountId() == 12345L));
+		assertTrue(result.stream().anyMatch(r -> r.getAccountId() == 67890L));
 	}
 
 	@Test
@@ -380,24 +299,53 @@ class HeroRankingProcessorTest {
 		// Given
 		String validJson = """
 				{
-					"account_id": 9223372036854775807,
 					"hero_id": 2147483647,
-					"score": 100.0
+					"rankings": [
+						{
+							"account_id": 9223372036854775807,
+							"score": 100.0
+						}
+					]
 				}
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		when(heroRankingRepository.findByHeroIdAndAccountId(9223372036854775807L, 2147483647))
-			.thenReturn(Optional.empty());
-
 		// When
-		HeroRanking result = processor.process(item);
+		List<HeroRanking> result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
-		assertEquals(9223372036854775807L, result.getAccountId());
-		assertEquals(2147483647, result.getHeroId());
-		assertEquals(100.0, result.getScore());
+		assertEquals(1, result.size());
+
+		HeroRanking ranking = result.get(0);
+		assertEquals(2147483647, ranking.getHeroId());
+		assertEquals(9223372036854775807L, ranking.getAccountId());
+		assertEquals(100.0, ranking.getScore());
+	}
+
+	@Test
+	void testProcess_WithDifferentScoreTypes_ShouldHandleCorrectly() throws Exception {
+		// Given
+		String validJson = """
+				{
+					"hero_id": 1,
+					"rankings": [
+						{
+							"account_id": 12345,
+							"score": 100
+						}
+					]
+				}
+				""";
+		JsonNode item = objectMapper.readTree(validJson);
+
+		// When
+		List<HeroRanking> result = processor.process(item);
+
+		// Then
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		assertEquals(100.0, result.get(0).getScore());
 	}
 
 }

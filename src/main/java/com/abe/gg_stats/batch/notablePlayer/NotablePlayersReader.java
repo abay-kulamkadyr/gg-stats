@@ -30,7 +30,6 @@ public class NotablePlayersReader extends BaseApiReader<JsonNode> {
 
 	@Override
 	protected void initialize() {
-		// Notable players data doesn't have expiration logic - always fetch from API
 		Optional<LocalDateTime> latestUpdate = notablePlayerRepository.findMaxUpdatedAt();
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();

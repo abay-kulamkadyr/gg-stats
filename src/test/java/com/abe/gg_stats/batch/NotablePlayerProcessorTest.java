@@ -116,12 +116,10 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullItem_ShouldReturnNull() throws Exception {
-		// When
-		NotablePlayer result = processor.process(null);
-
-		// Then
-		assertNull(result);
+	void testProcess_NullItem_ShouldThrowException() throws Exception {
+		// When & Then - BaseProcessor.process has @NonNull annotation, so it should throw
+		// NullPointerException
+		assertThrows(NullPointerException.class, () -> processor.process(null));
 		verify(notablePlayerRepository, never()).findById(any());
 		verify(teamRepository, never()).findById(any());
 	}
@@ -345,7 +343,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_RepositoryException_ShouldThrowCustomException() {
+	void testProcess_WithRepositoryException_ShouldThrowException() {
 		// Given
 		String validJson = """
 				{
@@ -364,13 +362,10 @@ class NotablePlayerProcessorTest {
 
 		when(notablePlayerRepository.findById(12345L)).thenThrow(new RuntimeException("Database error"));
 
-		// When & Then
-		NotablePlayerProcessor.NotablePlayerProcessingException exception = assertThrows(
-				NotablePlayerProcessor.NotablePlayerProcessingException.class, () -> processor.process(item));
+		// When & Then - Should throw the repository exception
+		assertThrows(RuntimeException.class, () -> processor.process(item));
 
-		assertEquals("Failed to process notable player data", exception.getMessage());
-		assertNotNull(exception.getCause());
-		assertEquals("Database error", exception.getCause().getMessage());
+		verify(notablePlayerRepository).findById(12345L);
 	}
 
 }

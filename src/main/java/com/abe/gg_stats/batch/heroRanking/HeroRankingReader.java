@@ -42,6 +42,7 @@ public class HeroRankingReader extends BaseApiReader<JsonNode> {
 		List<JsonNode> heroRankings = new ArrayList<>();
 		heroIds.forEach(heroId -> fetchDataFromApiIfNeeded(heroId).ifPresent(heroRankings::add));
 		log.info("Initialized hero ranking reader with {} heroes loaded", heroRankings.size());
+		this.dataIterator = heroRankings.iterator();
 	}
 
 	Optional<JsonNode> fetchDataFromApiIfNeeded(Integer heroId) {
@@ -58,13 +59,7 @@ public class HeroRankingReader extends BaseApiReader<JsonNode> {
 		}
 
 		// Fetch player info from OpenDota API
-		Optional<JsonNode> heroRanking = openDotaApiService.getHeroRanking(heroId);
-		if (heroRanking.isEmpty()) {
-			log.warn("No data received from OpenDota API for hero_id: {}", heroId);
-			return Optional.empty();
-		}
-
-		return heroRanking;
+		return openDotaApiService.getHeroRanking(heroId);
 	}
 
 	@Override

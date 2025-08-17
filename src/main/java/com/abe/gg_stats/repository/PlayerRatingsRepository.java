@@ -12,9 +12,9 @@ import java.util.List;
 @Repository
 public interface PlayerRatingsRepository extends JpaRepository<PlayerRatings, Long> {
 
-	Optional<List<PlayerRatings>> findByPlayerAccountIdOrderByRecordedAtDesc(Long accountId);
+	Optional<List<PlayerRatings>> findByPlayerAccountIdOrderByUpdatedAtDesc(Long accountId);
 
-	@Query("SELECT pr FROM PlayerRatings pr WHERE pr.recordedAt >= ?1")
+	@Query("SELECT pr FROM PlayerRatings pr WHERE pr.updatedAt >= ?1")
 	Optional<List<PlayerRatings>> findRecentRatings(LocalDateTime since);
 
 	@Query("SELECT MAX(rp.updatedAt) FROM PlayerRatings rp")

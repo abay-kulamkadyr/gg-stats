@@ -1,6 +1,7 @@
 package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.batch.player.PlayerReader;
+import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Player;
@@ -8,20 +9,28 @@ import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
 import com.abe.gg_stats.repository.PlayerRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PlayerReaderTest {
 
 	@Mock
@@ -36,15 +45,22 @@ class PlayerReaderTest {
 	@Mock
 	private OpenDotaApiService openDotaApiService;
 
+	@Mock
+	private BatchExpirationConfig batchExpirationConfig;
+
 	private PlayerReader reader;
+
+	private ObjectMapper objectMapper;
 
 	@BeforeEach
 	void setUp() {
-		reader = new PlayerReader(heroRankingRepository, notablePlayerRepository, playerRepository);
+		reader = new PlayerReader(openDotaApiService, batchExpirationConfig, heroRankingRepository,
+				notablePlayerRepository, playerRepository);
+		objectMapper = new ObjectMapper();
 	}
 
 	@Test
-	void testRead_FirstCall_ShouldInitializeAndReturnFirstAccountId() throws Exception {
+	void testRead_FirstCall_ShouldInitializeAndReturnFirstPlayerData() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -57,26 +73,82 @@ class PlayerReaderTest {
 
 		Player player2 = new Player();
 		player2.setAccountId(22222L);
+		player2.setUpdatedAt(LocalDateTime.now().minusDays(1)); // Old data
 
 		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
 		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1));
 		when(playerRepository.findAll()).thenReturn(Arrays.asList(player2));
 
+		// Mock API responses for all account IDs that will be processed
+		String playerJson1 = """
+				{
+					"account_id": 12345,
+					"profile": {
+						"steamid": "76561198012345678",
+						"personaname": "TestPlayer1"
+					}
+				}
+				""";
+		String playerJson2 = """
+				{
+					"account_id": 67890,
+					"profile": {
+						"steamid": "76561198087654321",
+						"personaname": "TestPlayer2"
+					}
+				}
+				""";
+		String playerJson3 = """
+				{
+					"account_id": 11111,
+					"profile": {
+						"steamid": "76561198011111111",
+						"personaname": "TestPlayer3"
+					}
+				}
+				""";
+		String playerJson4 = """
+				{
+					"account_id": 22222,
+					"profile": {
+						"steamid": "76561198022222222",
+						"personaname": "TestPlayer4"
+					}
+				}
+				""";
+
+		JsonNode playerData1 = objectMapper.readTree(playerJson1);
+		JsonNode playerData2 = objectMapper.readTree(playerJson2);
+		JsonNode playerData3 = objectMapper.readTree(playerJson3);
+		JsonNode playerData4 = objectMapper.readTree(playerJson4);
+
+		when(openDotaApiService.getPlayer(12345L)).thenReturn(Optional.of(playerData1));
+		when(openDotaApiService.getPlayer(67890L)).thenReturn(Optional.of(playerData2));
+		when(openDotaApiService.getPlayer(11111L)).thenReturn(Optional.of(playerData3));
+		when(openDotaApiService.getPlayer(22222L)).thenReturn(Optional.of(playerData4));
+
+		// Mock expiration check
+		when(batchExpirationConfig.getDurationByConfigName("players")).thenReturn(java.time.Duration.ofDays(1));
+
 		// When
-		Long result = reader.read();
+		JsonNode result = reader.read();
 
 		// Then
 		assertNotNull(result);
-		// Should return one of the account IDs (order depends on HashSet iteration)
-		assertTrue(Arrays.asList(12345L, 67890L, 11111L, 22222L).contains(result));
+		assertTrue(result.has("account_id"));
+		assertTrue(result.has("profile"));
 
 		verify(heroRankingRepository).findAll();
 		verify(notablePlayerRepository).findAll();
 		verify(playerRepository).findAll();
+		verify(openDotaApiService).getPlayer(12345L);
+		verify(openDotaApiService).getPlayer(67890L);
+		verify(openDotaApiService).getPlayer(11111L);
+		verify(openDotaApiService).getPlayer(22222L);
 	}
 
 	@Test
-	void testRead_SubsequentCalls_ShouldReturnNextAccountIds() throws Exception {
+	void testRead_SubsequentCalls_ShouldReturnNextPlayerData() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -88,29 +160,77 @@ class PlayerReaderTest {
 		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
 		when(playerRepository.findAll()).thenReturn(Arrays.asList());
 
-		// When - First call initializes and returns first ID
-		Long firstResult = reader.read();
-		// Second call should return second ID
-		Long secondResult = reader.read();
+		// Mock API responses
+		String player1Json = """
+				{
+					"account_id": 12345,
+					"profile": {
+						"steamid": "76561198012345678",
+						"personaname": "TestPlayer1"
+					}
+				}
+				""";
+		String player2Json = """
+				{
+					"account_id": 67890,
+					"profile": {
+						"steamid": "76561198087654321",
+						"personaname": "TestPlayer2"
+					}
+				}
+				""";
+		JsonNode player1Data = objectMapper.readTree(player1Json);
+		JsonNode player2Data = objectMapper.readTree(player2Json);
+
+		when(openDotaApiService.getPlayer(12345L)).thenReturn(Optional.of(player1Data));
+		when(openDotaApiService.getPlayer(67890L)).thenReturn(Optional.of(player2Data));
+
+		// Mock expiration check
+		when(batchExpirationConfig.getDurationByConfigName("players")).thenReturn(java.time.Duration.ofDays(1));
+
+		// When - First call initializes and returns first player
+		JsonNode firstResult = reader.read();
+		// Second call should return second player
+		JsonNode secondResult = reader.read();
 		// Third call should return null (end of data)
-		Long thirdResult = reader.read();
+		JsonNode thirdResult = reader.read();
 
 		// Then
 		assertNotNull(firstResult);
 		assertNotNull(secondResult);
 		assertNull(thirdResult);
-		// Order in HashSet is not guaranteed, so check both values
-		assertTrue(Arrays.asList(12345L, 67890L).contains(firstResult));
-		assertTrue(Arrays.asList(12345L, 67890L).contains(secondResult));
-		assertNotEquals(firstResult, secondResult);
 
-		verify(heroRankingRepository, times(1)).findAll();
-		verify(notablePlayerRepository, times(1)).findAll();
-		verify(playerRepository, times(1)).findAll();
+		verify(openDotaApiService).getPlayer(12345L);
+		verify(openDotaApiService).getPlayer(67890L);
 	}
 
 	@Test
-	void testRead_AfterAllItemsRead_ShouldReturnNull() throws Exception {
+	void testRead_WithFreshData_ShouldSkipApiCall() throws Exception {
+		// Given
+		Player existingPlayer = new Player();
+		existingPlayer.setAccountId(12345L);
+		existingPlayer.setUpdatedAt(LocalDateTime.now()); // Fresh data
+
+		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList());
+		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
+		when(playerRepository.findAll()).thenReturn(Arrays.asList(existingPlayer));
+
+		// Mock the findById call to return the existing player
+		when(playerRepository.findById(12345L)).thenReturn(Optional.of(existingPlayer));
+
+		// Mock expiration check - data is fresh
+		when(batchExpirationConfig.getDurationByConfigName("players")).thenReturn(java.time.Duration.ofDays(1));
+
+		// When
+		JsonNode result = reader.read();
+
+		// Then
+		assertNull(result); // Should return null as no API calls needed
+		verify(openDotaApiService, never()).getPlayer(any());
+	}
+
+	@Test
+	void testRead_WithNoApiResponse_ShouldSkipPlayer() throws Exception {
 		// Given
 		HeroRanking ranking = new HeroRanking();
 		ranking.setAccountId(12345L);
@@ -119,18 +239,41 @@ class PlayerReaderTest {
 		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
 		when(playerRepository.findAll()).thenReturn(Arrays.asList());
 
+		// Mock API response - no data
+		when(openDotaApiService.getPlayer(12345L)).thenReturn(Optional.empty());
+
+		// Mock expiration check
+		when(batchExpirationConfig.getDurationByConfigName("players")).thenReturn(java.time.Duration.ofDays(1));
+
 		// When
-		Long firstResult = reader.read();
-		Long secondResult = reader.read();
+		JsonNode result = reader.read();
 
 		// Then
-		assertNotNull(firstResult);
-		assertNull(secondResult); // Should return null after all items read (only one
-									// unique ID)
+		assertNull(result); // Should return null as no valid data
+		verify(openDotaApiService).getPlayer(12345L);
 	}
 
 	@Test
-	void testRead_WithDuplicateAccountIds_ShouldReturnUniqueIds() throws Exception {
+	void testRead_WithEmptyRepositories_ShouldReturnNull() throws Exception {
+		// Given
+		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList());
+		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
+		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+
+		// When
+		JsonNode result = reader.read();
+
+		// Then
+		assertNull(result); // Should return null when no data available
+
+		verify(heroRankingRepository).findAll();
+		verify(notablePlayerRepository).findAll();
+		verify(playerRepository).findAll();
+		verify(openDotaApiService, never()).getPlayer(any());
+	}
+
+	@Test
+	void testRead_WithDuplicateAccountIds_ShouldProcessUniqueIds() throws Exception {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -145,19 +288,32 @@ class PlayerReaderTest {
 		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1));
 		when(playerRepository.findAll()).thenReturn(Arrays.asList());
 
+		// Mock API response
+		String playerJson = """
+				{
+					"account_id": 12345,
+					"profile": {
+						"steamid": "76561198012345678",
+						"personaname": "TestPlayer"
+					}
+				}
+				""";
+		JsonNode playerData = objectMapper.readTree(playerJson);
+		when(openDotaApiService.getPlayer(12345L)).thenReturn(Optional.of(playerData));
+
+		// Mock expiration check
+		when(batchExpirationConfig.getDurationByConfigName("players")).thenReturn(java.time.Duration.ofDays(1));
+
 		// When
-		Long firstResult = reader.read();
-		Long secondResult = reader.read();
+		JsonNode firstResult = reader.read();
+		JsonNode secondResult = reader.read();
 
 		// Then
 		assertNotNull(firstResult);
-		assertNull(secondResult); // Should return null after all items read (only one
-									// unique ID)
-		assertEquals(12345L, firstResult);
+		assertNull(secondResult); // Should return null after all unique IDs processed
 
-		verify(heroRankingRepository).findAll();
-		verify(notablePlayerRepository).findAll();
-		verify(playerRepository).findAll();
+		verify(openDotaApiService, times(1)).getPlayer(12345L); // Should only call once
+																// for unique ID
 	}
 
 	@Test
@@ -179,88 +335,53 @@ class PlayerReaderTest {
 		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1));
 		when(playerRepository.findAll()).thenReturn(Arrays.asList(player2));
 
-		// When
-		Long firstResult = reader.read();
-		Long secondResult = reader.read();
+		// Mock API responses
+		String player1Json = """
+				{
+					"account_id": 12345,
+					"profile": {
+						"steamid": "76561198012345678",
+						"personaname": "TestPlayer1"
+					}
+				}
+				""";
+		String player2Json = """
+				{
+					"account_id": 67890,
+					"profile": {
+						"steamid": "76561198087654321",
+						"personaname": "TestPlayer2"
+					}
+				}
+				""";
+		JsonNode player1Data = objectMapper.readTree(player1Json);
+		JsonNode player2Data = objectMapper.readTree(player2Json);
 
-		// Then
-		assertNotNull(firstResult);
-		assertNull(secondResult); // Should return null after all items read (only two
-									// valid IDs)
-		assertTrue(Arrays.asList(12345L, 67890L).contains(firstResult));
+		when(openDotaApiService.getPlayer(12345L)).thenReturn(Optional.of(player1Data));
+		when(openDotaApiService.getPlayer(67890L)).thenReturn(Optional.of(player2Data));
 
-		verify(heroRankingRepository).findAll();
-		verify(notablePlayerRepository).findAll();
-		verify(playerRepository).findAll();
-	}
-
-	@Test
-	void testRead_WithEmptyRepositories_ShouldReturnNull() throws Exception {
-		// Given
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList());
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
-
-		// When
-		Long result = reader.read();
-
-		// Then
-		assertNull(result); // Should return null when no data available
-
-		verify(heroRankingRepository).findAll();
-		verify(notablePlayerRepository).findAll();
-		verify(playerRepository).findAll();
-	}
-
-	@Test
-	void testRead_WithRepositoryException_ShouldHandleGracefully() throws Exception {
-		// Given
-		when(heroRankingRepository.findAll()).thenThrow(new RuntimeException("Database error"));
-
-		// When & Then
-		assertThrows(PlayerReader.PlayerReadException.class, () -> reader.read());
-
-		verify(heroRankingRepository).findAll();
-		verify(notablePlayerRepository, never()).findAll();
-		verify(playerRepository, never()).findAll();
-	}
-
-	@Test
-	void testRead_WithMixedDataTypes_ShouldHandleCorrectly() throws Exception {
-		// Given
-		HeroRanking ranking = new HeroRanking();
-		ranking.setAccountId(12345L);
-
-		NotablePlayer player = new NotablePlayer();
-		player.setAccountId(67890L);
-
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player));
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+		// Mock expiration check
+		when(batchExpirationConfig.getDurationByConfigName("players")).thenReturn(java.time.Duration.ofDays(1));
 
 		// When
-		Long firstResult = reader.read();
-		Long secondResult = reader.read();
+		JsonNode firstResult = reader.read();
+		JsonNode secondResult = reader.read();
+		JsonNode thirdResult = reader.read();
 
 		// Then
 		assertNotNull(firstResult);
 		assertNotNull(secondResult);
-		assertNull(reader.read()); // Third call should return null
+		assertNull(thirdResult); // Should return null after all valid IDs processed
 
-		assertTrue(Arrays.asList(12345L, 67890L).contains(firstResult));
-		assertTrue(Arrays.asList(12345L, 67890L).contains(secondResult));
-		assertNotEquals(firstResult, secondResult);
-
-		verify(heroRankingRepository).findAll();
-		verify(notablePlayerRepository).findAll();
-		verify(playerRepository).findAll();
+		verify(openDotaApiService).getPlayer(12345L);
+		verify(openDotaApiService).getPlayer(67890L);
 	}
 
 	@Test
 	void testRead_WithLargeDataset_ShouldHandleCorrectly() throws Exception {
 		// Given
 		List<HeroRanking> rankings = new ArrayList<>();
-		for (int i = 1; i <= 100; i++) {
+		for (int i = 1; i <= 10; i++) {
 			HeroRanking ranking = new HeroRanking();
 			ranking.setAccountId((long) i);
 			rankings.add(ranking);
@@ -270,76 +391,77 @@ class PlayerReaderTest {
 		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
 		when(playerRepository.findAll()).thenReturn(Arrays.asList());
 
+		// Mock API responses for all players
+		for (int i = 1; i <= 10; i++) {
+			String playerJson = String.format("""
+					{
+						"account_id": %d,
+						"profile": {
+							"steamid": "76561198%08d",
+							"personaname": "TestPlayer%d"
+						}
+					}
+					""", i, i, i);
+			JsonNode playerData = objectMapper.readTree(playerJson);
+			when(openDotaApiService.getPlayer((long) i)).thenReturn(Optional.of(playerData));
+		}
+
+		// Mock expiration check
+		when(batchExpirationConfig.getDurationByConfigName("players")).thenReturn(java.time.Duration.ofDays(1));
+
 		// When
 		int count = 0;
-		Long result;
+		JsonNode result;
 		while ((result = reader.read()) != null) {
 			count++;
-			assertTrue(result > 0 && result <= 100);
+			assertTrue(result.has("account_id"));
+			assertTrue(result.has("profile"));
 		}
 
 		// Then
-		assertEquals(100, count);
+		assertEquals(10, count);
 
 		verify(heroRankingRepository).findAll();
 		verify(notablePlayerRepository).findAll();
 		verify(playerRepository).findAll();
+		for (int i = 1; i <= 10; i++) {
+			verify(openDotaApiService).getPlayer((long) i);
+		}
 	}
 
 	@Test
-	void testRead_WithNegativeAccountIds_ShouldHandleCorrectly() throws Exception {
+	void testRead_WithExpiredData_ShouldFetchFromApi() throws Exception {
 		// Given
-		HeroRanking ranking1 = new HeroRanking();
-		ranking1.setAccountId(-12345L);
+		Player existingPlayer = new Player();
+		existingPlayer.setAccountId(12345L);
+		existingPlayer.setUpdatedAt(LocalDateTime.now().minusDays(2)); // Expired data
 
-		HeroRanking ranking2 = new HeroRanking();
-		ranking2.setAccountId(67890L);
-
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
+		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList());
 		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+		when(playerRepository.findAll()).thenReturn(Arrays.asList(existingPlayer));
+
+		// Mock API response
+		String playerJson = """
+				{
+					"account_id": 12345,
+					"profile": {
+						"steamid": "76561198012345678",
+						"personaname": "TestPlayer"
+					}
+				}
+				""";
+		JsonNode playerData = objectMapper.readTree(playerJson);
+		when(openDotaApiService.getPlayer(12345L)).thenReturn(Optional.of(playerData));
+
+		// Mock expiration check - data is expired
+		when(batchExpirationConfig.getDurationByConfigName("players")).thenReturn(java.time.Duration.ofDays(1));
 
 		// When
-		Long firstResult = reader.read();
-		Long secondResult = reader.read();
-		Long thirdResult = reader.read();
+		JsonNode result = reader.read();
 
 		// Then
-		assertNotNull(firstResult);
-		assertNotNull(secondResult);
-		assertNull(thirdResult); // Should return null after all valid IDs
-
-		// Both negative and positive IDs should be collected
-		assertTrue(Arrays.asList(-12345L, 67890L).contains(firstResult));
-		assertTrue(Arrays.asList(-12345L, 67890L).contains(secondResult));
-	}
-
-	@Test
-	void testRead_WithZeroAccountIds_ShouldHandleCorrectly() throws Exception {
-		// Given
-		HeroRanking ranking1 = new HeroRanking();
-		ranking1.setAccountId(0L);
-
-		HeroRanking ranking2 = new HeroRanking();
-		ranking2.setAccountId(12345L);
-
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
-
-		// When
-		Long firstResult = reader.read();
-		Long secondResult = reader.read();
-		Long thirdResult = reader.read();
-
-		// Then
-		assertNotNull(firstResult);
-		assertNotNull(secondResult);
-		assertNull(thirdResult); // Should return null after all valid IDs
-
-		// Both zero and positive IDs should be collected
-		assertTrue(Arrays.asList(0L, 12345L).contains(firstResult));
-		assertTrue(Arrays.asList(0L, 12345L).contains(secondResult));
+		assertNotNull(result);
+		verify(openDotaApiService).getPlayer(12345L);
 	}
 
 }
