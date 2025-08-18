@@ -4,6 +4,7 @@ import com.abe.gg_stats.batch.BaseWriter;
 import com.abe.gg_stats.entity.Hero;
 import com.abe.gg_stats.repository.HeroRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,6 +13,7 @@ public class HeroWriter extends BaseWriter<Hero> {
 
 	private final HeroRepository heroRepository;
 
+	@Autowired
 	public HeroWriter(HeroRepository heroRepository) {
 		this.heroRepository = heroRepository;
 	}

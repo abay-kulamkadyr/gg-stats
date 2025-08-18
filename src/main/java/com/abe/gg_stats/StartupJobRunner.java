@@ -20,10 +20,10 @@ public class StartupJobRunner implements ApplicationRunner {
 	public void run(ApplicationArguments args) throws Exception {
 		// Uncomment the job you want to run immediately on startup
 
-		//batchSchedulerService.triggerHeroesUpdate();
-		//batchSchedulerService.triggerNotablePlayerUpdate();
-		//batchSchedulerService.triggerTeamsUpdate();
-		//batchSchedulerService.triggerHeroRankingUpdate();
+		// batchSchedulerService.triggerHeroesUpdate();
+		// batchSchedulerService.triggerNotablePlayerUpdate();
+		// batchSchedulerService.triggerTeamsUpdate();
+		// batchSchedulerService.triggerHeroRankingUpdate();
 		batchSchedulerService.triggerPlayerUpdate();
 		log.info("Startup jobs completed");
 	}

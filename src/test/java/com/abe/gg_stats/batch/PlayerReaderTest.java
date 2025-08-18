@@ -9,6 +9,7 @@ import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
 import com.abe.gg_stats.repository.PlayerRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,9 +26,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -60,7 +67,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_FirstCall_ShouldInitializeAndReturnFirstPlayerData() throws Exception {
+	void testRead_FirstCall_ShouldInitializeAndReturnFirstPlayerData() throws JsonProcessingException {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -76,8 +83,8 @@ class PlayerReaderTest {
 		player2.setUpdatedAt(LocalDateTime.now().minusDays(1)); // Old data
 
 		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1));
-		when(playerRepository.findAll()).thenReturn(Arrays.asList(player2));
+		when(notablePlayerRepository.findAll()).thenReturn(List.of(player1));
+		when(playerRepository.findAll()).thenReturn(List.of(player2));
 
 		// Mock API responses for all account IDs that will be processed
 		String playerJson1 = """
@@ -148,7 +155,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_SubsequentCalls_ShouldReturnNextPlayerData() throws Exception {
+	void testRead_SubsequentCalls_ShouldReturnNextPlayerData() throws JsonProcessingException {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -157,8 +164,8 @@ class PlayerReaderTest {
 		ranking2.setAccountId(67890L);
 
 		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+		when(notablePlayerRepository.findAll()).thenReturn(List.of());
+		when(playerRepository.findAll()).thenReturn(List.of());
 
 		// Mock API responses
 		String player1Json = """
@@ -205,15 +212,15 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithFreshData_ShouldSkipApiCall() throws Exception {
+	void testRead_WithFreshData_ShouldSkipApiCall() {
 		// Given
 		Player existingPlayer = new Player();
 		existingPlayer.setAccountId(12345L);
 		existingPlayer.setUpdatedAt(LocalDateTime.now()); // Fresh data
 
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList());
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList(existingPlayer));
+		when(heroRankingRepository.findAll()).thenReturn(List.of());
+		when(notablePlayerRepository.findAll()).thenReturn(List.of());
+		when(playerRepository.findAll()).thenReturn(List.of(existingPlayer));
 
 		// Mock the findById call to return the existing player
 		when(playerRepository.findById(12345L)).thenReturn(Optional.of(existingPlayer));
@@ -230,14 +237,14 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithNoApiResponse_ShouldSkipPlayer() throws Exception {
+	void testRead_WithNoApiResponse_ShouldSkipPlayer() {
 		// Given
 		HeroRanking ranking = new HeroRanking();
 		ranking.setAccountId(12345L);
 
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+		when(heroRankingRepository.findAll()).thenReturn(List.of(ranking));
+		when(notablePlayerRepository.findAll()).thenReturn(List.of());
+		when(playerRepository.findAll()).thenReturn(List.of());
 
 		// Mock API response - no data
 		when(openDotaApiService.getPlayer(12345L)).thenReturn(Optional.empty());
@@ -254,11 +261,11 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithEmptyRepositories_ShouldReturnNull() throws Exception {
+	void testRead_WithEmptyRepositories_ShouldReturnNull() {
 		// Given
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList());
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+		when(heroRankingRepository.findAll()).thenReturn(List.of());
+		when(notablePlayerRepository.findAll()).thenReturn(List.of());
+		when(playerRepository.findAll()).thenReturn(List.of());
 
 		// When
 		JsonNode result = reader.read();
@@ -273,7 +280,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithDuplicateAccountIds_ShouldProcessUniqueIds() throws Exception {
+	void testRead_WithDuplicateAccountIds_ShouldProcessUniqueIds() throws JsonProcessingException {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -285,8 +292,8 @@ class PlayerReaderTest {
 		player1.setAccountId(12345L); // Another duplicate
 
 		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1));
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+		when(notablePlayerRepository.findAll()).thenReturn(List.of(player1));
+		when(playerRepository.findAll()).thenReturn(List.of());
 
 		// Mock API response
 		String playerJson = """
@@ -317,7 +324,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithNullAccountIds_ShouldFilterOutNulls() throws Exception {
+	void testRead_WithNullAccountIds_ShouldFilterOutNulls() throws JsonProcessingException {
 		// Given
 		HeroRanking ranking1 = new HeroRanking();
 		ranking1.setAccountId(12345L);
@@ -332,8 +339,8 @@ class PlayerReaderTest {
 		player2.setAccountId(null); // Null account ID
 
 		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList(ranking1, ranking2));
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList(player1));
-		when(playerRepository.findAll()).thenReturn(Arrays.asList(player2));
+		when(notablePlayerRepository.findAll()).thenReturn(List.of(player1));
+		when(playerRepository.findAll()).thenReturn(List.of(player2));
 
 		// Mock API responses
 		String player1Json = """
@@ -378,7 +385,7 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithLargeDataset_ShouldHandleCorrectly() throws Exception {
+	void testRead_WithLargeDataset_ShouldHandleCorrectly() throws JsonProcessingException {
 		// Given
 		List<HeroRanking> rankings = new ArrayList<>();
 		for (int i = 1; i <= 10; i++) {
@@ -388,8 +395,8 @@ class PlayerReaderTest {
 		}
 
 		when(heroRankingRepository.findAll()).thenReturn(rankings);
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList());
+		when(notablePlayerRepository.findAll()).thenReturn(List.of());
+		when(playerRepository.findAll()).thenReturn(List.of());
 
 		// Mock API responses for all players
 		for (int i = 1; i <= 10; i++) {
@@ -430,15 +437,15 @@ class PlayerReaderTest {
 	}
 
 	@Test
-	void testRead_WithExpiredData_ShouldFetchFromApi() throws Exception {
+	void testRead_WithExpiredData_ShouldFetchFromApi() throws JsonProcessingException {
 		// Given
 		Player existingPlayer = new Player();
 		existingPlayer.setAccountId(12345L);
 		existingPlayer.setUpdatedAt(LocalDateTime.now().minusDays(2)); // Expired data
 
-		when(heroRankingRepository.findAll()).thenReturn(Arrays.asList());
-		when(notablePlayerRepository.findAll()).thenReturn(Arrays.asList());
-		when(playerRepository.findAll()).thenReturn(Arrays.asList(existingPlayer));
+		when(heroRankingRepository.findAll()).thenReturn(List.of());
+		when(notablePlayerRepository.findAll()).thenReturn(List.of());
+		when(playerRepository.findAll()).thenReturn(List.of(existingPlayer));
 
 		// Mock API response
 		String playerJson = """

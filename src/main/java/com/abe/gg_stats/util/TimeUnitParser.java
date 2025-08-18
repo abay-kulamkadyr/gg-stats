@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +17,10 @@ import java.util.regex.Pattern;
  */
 @Slf4j
 public class TimeUnitParser {
+
+	private TimeUnitParser() {
+		// Private constructor for utility class - no exceptions thrown
+	}
 
 	private static final Pattern TIME_PATTERN = Pattern.compile("^(\\d+)(mo|[mhdw]|y)$");
 

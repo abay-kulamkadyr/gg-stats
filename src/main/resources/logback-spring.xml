@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File Appender -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>./gg-stats.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>./gg-stats.log.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Logging Levels -->
+    
+    <!-- Root level -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <!-- Application specific logging -->
+    <logger name="com.abe.gg_stats" level="INFO"/>
+    
+    <!-- Batch processing - INFO for production, DEBUG for development -->
+    <logger name="com.abe.gg_stats.batch" level="INFO"/>
+    
+    <!-- Service layer - INFO for production, DEBUG for development -->
+    <logger name="com.abe.gg_stats.service" level="INFO"/>
+    
+    <!-- Controller layer - WARN for production, INFO for development -->
+    <logger name="com.abe.gg_stats.controller" level="WARN"/>
+    
+    <!-- Entity and repository - WARN for production -->
+    <logger name="com.abe.gg_stats.entity" level="WARN"/>
+    <logger name="com.abe.gg_stats.repository" level="WARN"/>
+    
+    <!-- Utility classes - WARN for production -->
+    <logger name="com.abe.gg_stats.util" level="WARN"/>
+    
+    <!-- Configuration - INFO for startup, WARN for runtime -->
+    <logger name="com.abe.gg_stats.config" level="INFO"/>
+    
+    <!-- Third-party libraries -->
+    <logger name="org.springframework.batch" level="WARN"/>
+    <logger name="org.springframework.jdbc" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
+    
+    <!-- Security - WARN for production -->
+    <logger name="org.springframework.security" level="WARN"/>
+    
+    <!-- Web - WARN for production -->
+    <logger name="org.springframework.web" level="WARN"/>
+    
+    <!-- Database - WARN for production -->
+    <logger name="org.postgresql" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    
+    <!-- Jackson - WARN for production -->
+    <logger name="com.fasterxml.jackson" level="WARN"/>
+</configuration>

@@ -2,7 +2,6 @@ package com.abe.gg_stats.batch.heroRanking;
 
 import com.abe.gg_stats.batch.BaseApiReader;
 import com.abe.gg_stats.config.BatchExpirationConfig;
-import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;

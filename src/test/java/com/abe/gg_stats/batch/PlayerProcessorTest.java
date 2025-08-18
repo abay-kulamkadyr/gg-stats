@@ -1,17 +1,21 @@
 package com.abe.gg_stats.batch;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.entity.Player;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.time.LocalDateTime;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 class PlayerProcessorTest {
@@ -27,7 +31,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidPlayerData_ShouldSucceed() throws Exception {
+	void testProcess_ValidPlayerData_ShouldSucceed() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -73,7 +77,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidDataWithoutOptionalFields_ShouldSucceed() throws Exception {
+	void testProcess_ValidDataWithoutOptionalFields_ShouldSucceed() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -105,7 +109,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidDataWithAccountId_ShouldSucceed() throws Exception {
+	void testProcess_ValidDataWithAccountId_ShouldSucceed() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -128,7 +132,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullItem_ShouldThrowException() throws Exception {
+	void testProcess_NullItem_ShouldThrowException() {
 		// When & Then - BaseProcessor.process has @NonNull annotation, so it should throw
 		// NullPointerException
 		assertThrows(NullPointerException.class, () -> playerProcessor.process(null));
@@ -159,7 +163,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_MissingSteamId_ShouldReturnNull() throws Exception {
+	void testProcess_MissingSteamId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -178,7 +182,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_MissingPersonName_ShouldReturnNull() throws Exception {
+	void testProcess_MissingPersonName_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -197,7 +201,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_EmptySteamId_ShouldReturnNull() throws Exception {
+	void testProcess_EmptySteamId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -217,7 +221,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_EmptyPersonName_ShouldReturnNull() throws Exception {
+	void testProcess_EmptyPersonName_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -237,7 +241,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithUnixTimestamp_ShouldParseCorrectly() throws Exception {
+	void testProcess_WithUnixTimestamp_ShouldParseCorrectly() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -262,7 +266,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithISODateTime_ShouldParseCorrectly() throws Exception {
+	void testProcess_WithISODateTime_ShouldParseCorrectly() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -287,7 +291,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithInvalidDateTime_ShouldHandleGracefully() throws Exception {
+	void testProcess_WithInvalidDateTime_ShouldHandleGracefully() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -309,7 +313,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithNullValues_ShouldHandleGracefully() throws Exception {
+	void testProcess_WithNullValues_ShouldHandleGracefully() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -343,7 +347,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithWhitespaceValues_ShouldPreserveWhitespace() throws Exception {
+	void testProcess_WithWhitespaceValues_ShouldPreserveWhitespace() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -367,7 +371,7 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithEmptyStringValues_ShouldHandleGracefully() throws Exception {
+	void testProcess_WithEmptyStringValues_ShouldHandleGracefully() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{

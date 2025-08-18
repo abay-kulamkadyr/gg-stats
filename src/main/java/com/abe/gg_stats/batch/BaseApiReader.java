@@ -2,14 +2,12 @@ package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.service.OpenDotaApiService;
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemReader;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.Iterator;
-import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j

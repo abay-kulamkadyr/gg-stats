@@ -1,10 +1,8 @@
 package com.abe.gg_stats.batch.notablePlayer;
 
 import com.abe.gg_stats.batch.BaseWriter;
-import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

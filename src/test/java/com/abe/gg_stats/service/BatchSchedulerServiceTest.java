@@ -1,5 +1,15 @@
 package com.abe.gg_stats.service;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,10 +19,6 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.launch.JobLauncher;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BatchSchedulerServiceTest {
@@ -211,7 +217,7 @@ class BatchSchedulerServiceTest {
 	}
 
 	@Test
-	void testCanRunJob_WithSufficientRequests_ShouldReturnTrue() throws Exception {
+	void testCanRunJob_WithSufficientRequests_ShouldReturnTrue() {
 		// Given
 		when(openDotaApiService.getRemainingDailyRequests()).thenReturn(100);
 
@@ -309,7 +315,7 @@ class BatchSchedulerServiceTest {
 	}
 
 	@Test
-	void testGetSchedulerStatus_WithSufficientRequests_ShouldReturnEnabledStatus() throws Exception {
+	void testGetSchedulerStatus_WithSufficientRequests_ShouldReturnEnabledStatus() {
 		// Given
 		when(openDotaApiService.getRemainingDailyRequests()).thenReturn(100);
 
@@ -328,7 +334,7 @@ class BatchSchedulerServiceTest {
 	}
 
 	@Test
-	void testGetSchedulerStatus_WithInsufficientRequests_ShouldReturnDisabledStatus() throws Exception {
+	void testGetSchedulerStatus_WithInsufficientRequests_ShouldReturnDisabledStatus() {
 		// Given
 		when(openDotaApiService.getRemainingDailyRequests()).thenReturn(30);
 
@@ -347,7 +353,7 @@ class BatchSchedulerServiceTest {
 	}
 
 	@Test
-	void testGetSchedulerStatus_WithZeroRequests_ShouldReturnDisabledStatus() throws Exception {
+	void testGetSchedulerStatus_WithZeroRequests_ShouldReturnDisabledStatus() {
 		// Given
 		when(openDotaApiService.getRemainingDailyRequests()).thenReturn(0);
 

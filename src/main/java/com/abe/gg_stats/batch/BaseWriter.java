@@ -1,5 +1,6 @@
 package com.abe.gg_stats.batch;
 
+import com.abe.gg_stats.util.LoggingUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
@@ -11,11 +12,11 @@ public abstract class BaseWriter<T> implements ItemWriter<T> {
 	@Override
 	public void write(@NonNull Chunk<? extends T> chunk) {
 		if (chunk.isEmpty()) {
-			log.debug("Empty chunk received, nothing to write");
+			LoggingUtils.logDebug("Empty chunk received, nothing to write");
 			return;
 		}
 
-		log.info("Writing {} items to database", chunk.size());
+		LoggingUtils.logOperationStart("batch write operation", "items=" + chunk.size());
 
 		int successCount = 0;
 		int errorCount = 0;
@@ -24,18 +25,18 @@ public abstract class BaseWriter<T> implements ItemWriter<T> {
 			try {
 				writeItem(item);
 				successCount++;
-				log.debug("Successfully wrote item: {}", item.toString());
+				LoggingUtils.logDebug("Successfully wrote item: {}", item.toString());
 			}
 			catch (Exception e) {
 				errorCount++;
-				log.error("Error writing item: {}", item != null ? item.toString() : "null", e);
+				LoggingUtils.logOperationFailure("item write", "Failed to write item", e);
 			}
 		}
 
-		log.info("Write operation completed: {} successful, {} errors", successCount, errorCount);
+		LoggingUtils.logOperationSuccess("batch write operation", "successful=" + successCount, "errors=" + errorCount);
 
 		if (errorCount > 0) {
-			log.warn("Some items failed to write. Check logs for details.");
+			LoggingUtils.logWarning("Some items failed to write", "errorCount=" + errorCount);
 		}
 	}
 
