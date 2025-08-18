@@ -1,15 +1,19 @@
 package com.abe.gg_stats.batch;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.abe.gg_stats.batch.hero.HeroProcessor;
 import com.abe.gg_stats.entity.Hero;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 class HeroProcessorTest {
@@ -25,7 +29,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidData_ShouldSucceed() throws Exception {
+	void testProcess_ValidData_ShouldSucceed() throws JsonProcessingException {
 		// Given
 		String validHeroJson = """
 				{
@@ -57,7 +61,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidDataWithoutOptionalFields_ShouldSucceed() throws Exception {
+	void testProcess_ValidDataWithoutOptionalFields_ShouldSucceed() throws JsonProcessingException {
 		// Given
 		String validHeroJson = """
 				{
@@ -83,7 +87,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidDataWithEmptyRoles_ShouldSucceed() throws Exception {
+	void testProcess_ValidDataWithEmptyRoles_ShouldSucceed() throws JsonProcessingException {
 		// Given
 		String validHeroJson = """
 				{
@@ -108,7 +112,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_MissingId_ShouldReturnNull() throws Exception {
+	void testProcess_MissingId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidHeroJson = """
 				{
@@ -126,7 +130,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_MissingName_ShouldReturnNull() throws Exception {
+	void testProcess_MissingName_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidHeroJson = """
 				{
@@ -144,7 +148,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_MissingLocalizedName_ShouldReturnNull() throws Exception {
+	void testProcess_MissingLocalizedName_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidHeroJson = """
 				{
@@ -162,7 +166,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_EmptyName_ShouldReturnNull() throws Exception {
+	void testProcess_EmptyName_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidHeroJson = """
 				{
@@ -181,7 +185,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_InvalidId_ShouldReturnNull() throws Exception {
+	void testProcess_InvalidId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidHeroJson = """
 				{
@@ -200,7 +204,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_ZeroId_ShouldReturnNull() throws Exception {
+	void testProcess_ZeroId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidHeroJson = """
 				{
@@ -219,7 +223,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_NonNumericId_ShouldReturnNull() throws Exception {
+	void testProcess_NonNumericId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidHeroJson = """
 				{
@@ -238,7 +242,7 @@ class HeroProcessorTest {
 	}
 
 	@Test
-	void testProcess_RolesWithNullValues_ShouldFilterOutNulls() throws Exception {
+	void testProcess_RolesWithNullValues_ShouldFilterOutNulls() throws JsonProcessingException {
 		// Given
 		String validHeroJson = """
 				{

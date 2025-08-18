@@ -1,15 +1,20 @@
 package com.abe.gg_stats.batch;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.abe.gg_stats.batch.team.TeamProcessor;
 import com.abe.gg_stats.entity.Team;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 class TeamProcessorTest {
@@ -25,7 +30,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidTeamData_ShouldCreateTeam() throws Exception {
+	void testProcess_ValidTeamData_ShouldCreateTeam() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -57,7 +62,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_TeamDataWithDefaults_ShouldSetDefaults() throws Exception {
+	void testProcess_TeamDataWithDefaults_ShouldSetDefaults() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -82,14 +87,14 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullItem_ShouldThrowException() throws Exception {
+	void testProcess_NullItem_ShouldThrowException() {
 		// When & Then - BaseProcessor.process has @NonNull annotation, so it should throw
 		// NullPointerException
 		assertThrows(NullPointerException.class, () -> processor.process(null));
 	}
 
 	@Test
-	void testProcess_MissingTeamId_ShouldReturnNull() throws Exception {
+	void testProcess_MissingTeamId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -107,7 +112,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullTeamId_ShouldReturnNull() throws Exception {
+	void testProcess_NullTeamId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -125,7 +130,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_InvalidTeamIdType_ShouldReturnNull() throws Exception {
+	void testProcess_InvalidTeamIdType_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -143,7 +148,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_NegativeTeamId_ShouldReturnNull() throws Exception {
+	void testProcess_NegativeTeamId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -161,7 +166,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_ZeroTeamId_ShouldReturnNull() throws Exception {
+	void testProcess_ZeroTeamId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -179,7 +184,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithOptionalFields_ShouldHandleCorrectly() throws Exception {
+	void testProcess_WithOptionalFields_ShouldHandleCorrectly() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -211,7 +216,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithNullOptionalFields_ShouldHandleCorrectly() throws Exception {
+	void testProcess_WithNullOptionalFields_ShouldHandleCorrectly() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -245,7 +250,7 @@ class TeamProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithInvalidFieldTypes_ShouldHandleGracefully() throws Exception {
+	void testProcess_WithInvalidFieldTypes_ShouldHandleGracefully() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{

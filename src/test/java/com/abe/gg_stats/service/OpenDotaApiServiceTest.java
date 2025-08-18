@@ -1,5 +1,15 @@
 package com.abe.gg_stats.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.abe.gg_stats.entity.ApiRateLimit;
 import com.abe.gg_stats.repository.ApiRateLimitRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,10 +29,6 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OpenDotaApiServiceTest {
@@ -84,7 +90,7 @@ class OpenDotaApiServiceTest {
 	}
 
 	@Test
-	void testMakeApiCall_HttpError_ShouldReturnEmpty() throws Exception {
+	void testMakeApiCall_HttpError_ShouldReturnEmpty() {
 		// Given
 		String endpoint = "/heroes";
 		HttpClientErrorException httpError = new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Bad Request");
@@ -113,7 +119,7 @@ class OpenDotaApiServiceTest {
 	}
 
 	@Test
-	void testMakeApiCall_TooManyRequests_ShouldUpdateRateLimit() throws Exception {
+	void testMakeApiCall_TooManyRequests_ShouldUpdateRateLimit() {
 		// Given
 		String endpoint = "/heroes";
 		HttpClientErrorException rateLimitError = new HttpClientErrorException(HttpStatus.TOO_MANY_REQUESTS,
@@ -140,7 +146,7 @@ class OpenDotaApiServiceTest {
 	}
 
 	@Test
-	void testMakeApiCall_ConnectionError_ShouldReturnEmpty() throws Exception {
+	void testMakeApiCall_ConnectionError_ShouldReturnEmpty() {
 		// Given
 		String endpoint = "/heroes";
 		ResourceAccessException connectionError = new ResourceAccessException("Connection failed");
@@ -169,7 +175,7 @@ class OpenDotaApiServiceTest {
 	}
 
 	@Test
-	void testMakeApiCall_UnexpectedException_ShouldReturnEmpty() throws Exception {
+	void testMakeApiCall_UnexpectedException_ShouldReturnEmpty() {
 		// Given
 		String endpoint = "/heroes";
 		RuntimeException unexpectedError = new RuntimeException("Unexpected error");
@@ -227,7 +233,7 @@ class OpenDotaApiServiceTest {
 	}
 
 	@Test
-	void testMakeApiCall_NonOkStatus_ShouldReturnEmpty() throws Exception {
+	void testMakeApiCall_NonOkStatus_ShouldReturnEmpty() {
 		// Given
 		String endpoint = "/heroes";
 		ResponseEntity<String> response = new ResponseEntity<>("Error", HttpStatus.INTERNAL_SERVER_ERROR);

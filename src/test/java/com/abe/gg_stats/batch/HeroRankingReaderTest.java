@@ -22,9 +22,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class HeroRankingReaderTest {
@@ -53,7 +59,7 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_FirstCall_ShouldInitializeAndFetchFirstHero() throws Exception {
+	void testRead_FirstCall_ShouldInitializeAndFetchFirstHero() {
 		// Given
 		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1, 2, 3));
 
@@ -81,7 +87,7 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_SubsequentCalls_ShouldReturnNextHeroes() throws Exception {
+	void testRead_SubsequentCalls_ShouldReturnNextHeroes() {
 		// Given
 		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1, 2));
 
@@ -122,9 +128,9 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_WithFreshData_ShouldSkipApiCall() throws Exception {
+	void testRead_WithFreshData_ShouldSkipApiCall() {
 		// Given
-		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1));
+		when(heroRepository.findAllIds()).thenReturn(List.of(1));
 		when(heroRankingRepository.findMaxUpdatedAt()).thenReturn(Optional.of(LocalDateTime.now())); // Fresh
 																										// data
 		when(batchExpirationConfig.getDurationByConfigName("herorankings")).thenReturn(Duration.ofDays(1));
@@ -138,9 +144,9 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_WithExpiredData_ShouldFetchFromApi() throws Exception {
+	void testRead_WithExpiredData_ShouldFetchFromApi() {
 		// Given
-		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1));
+		when(heroRepository.findAllIds()).thenReturn(List.of(1));
 		when(heroRankingRepository.findMaxUpdatedAt()).thenReturn(Optional.of(LocalDateTime.now().minusDays(2))); // Expired
 																													// data
 		when(batchExpirationConfig.getDurationByConfigName("herorankings")).thenReturn(Duration.ofDays(1));
@@ -166,7 +172,7 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_WithNoApiResponse_ShouldSkipHero() throws Exception {
+	void testRead_WithNoApiResponse_ShouldSkipHero() {
 		// Given
 		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1, 2));
 
@@ -193,9 +199,9 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_WithAllHeroesProcessed_ShouldReturnNull() throws Exception {
+	void testRead_WithAllHeroesProcessed_ShouldReturnNull() {
 		// Given
-		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1));
+		when(heroRepository.findAllIds()).thenReturn(List.of(1));
 
 		ObjectNode responseNode = objectMapper.createObjectNode();
 		ArrayNode rankingsArray = objectMapper.createArrayNode();
@@ -218,9 +224,9 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_WithEmptyHeroList_ShouldReturnNull() throws Exception {
+	void testRead_WithEmptyHeroList_ShouldReturnNull() {
 		// Given
-		when(heroRepository.findAllIds()).thenReturn(Arrays.asList());
+		when(heroRepository.findAllIds()).thenReturn(List.of());
 
 		// When
 		JsonNode result = reader.read();
@@ -232,7 +238,7 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_WithMultipleHeroes_ShouldProcessAllHeroes() throws Exception {
+	void testRead_WithMultipleHeroes_ShouldProcessAllHeroes() {
 		// Given
 		when(heroRepository.findAllIds()).thenReturn(Arrays.asList(1, 2, 3));
 
@@ -277,7 +283,7 @@ class HeroRankingReaderTest {
 	}
 
 	@Test
-	void testRead_WithLargeHeroList_ShouldHandleCorrectly() throws Exception {
+	void testRead_WithLargeHeroList_ShouldHandleCorrectly() {
 		// Given
 		List<Integer> heroIds = new ArrayList<>();
 		for (int i = 0; i < 10; i++) {

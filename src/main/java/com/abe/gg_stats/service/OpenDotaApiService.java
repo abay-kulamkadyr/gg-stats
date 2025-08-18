@@ -2,6 +2,7 @@ package com.abe.gg_stats.service;
 
 import com.abe.gg_stats.entity.ApiRateLimit;
 import com.abe.gg_stats.repository.ApiRateLimitRepository;
+import com.abe.gg_stats.util.LoggingUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StopWatch;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
@@ -75,45 +77,52 @@ public class OpenDotaApiService {
 	 */
 	public Optional<JsonNode> makeApiCall(String endpoint) {
 		if (!canMakeRequest(endpoint)) {
-			log.warn("Rate limit exceeded for endpoint: {}", endpoint);
+			LoggingUtils.logWarning("Rate limit exceeded", "endpoint=" + endpoint);
 			return Optional.empty();
 		}
 
 		if (isCircuitOpen()) {
-			log.warn("Circuit breaker is open for endpoint: {}, skipping request", endpoint);
+			LoggingUtils.logWarning("Circuit breaker is open", "endpoint=" + endpoint);
 			return Optional.empty();
 		}
 
+		StopWatch stopWatch = LoggingUtils.createStopWatch("API call to " + endpoint);
+
 		try {
 			String url = baseUrl + endpoint;
-			log.debug("Making API call to: {}", url);
+			LoggingUtils.logApiCall(endpoint, "GET");
 
 			ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
 			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
 				updateRateLimit(endpoint);
 				resetCircuitBreaker();
+
+				LoggingUtils.logApiResponse(endpoint, response.getStatusCode().value(), stopWatch.getTotalTimeMillis());
 				return Optional.of(objectMapper.readTree(response.getBody()));
 			}
 
 		}
 		catch (HttpClientErrorException e) {
 			if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-				log.warn("Rate limited by OpenDota API for endpoint: {}", endpoint);
+				LoggingUtils.logWarning("Rate limited by OpenDota API", "endpoint=" + endpoint);
 				forceUpdateRateLimit(endpoint);
 			}
 			else {
-				log.error("HTTP error calling OpenDota API: {} - {}", e.getStatusCode(), e.getMessage());
+				LoggingUtils.logOperationFailure("OpenDota API call", "HTTP error: " + e.getStatusCode(), e);
 				recordFailure();
 			}
 		}
 		catch (ResourceAccessException e) {
-			log.error("Connection error calling OpenDota API: {}", e.getMessage());
+			LoggingUtils.logOperationFailure("OpenDota API call", "Connection error", e);
 			recordFailure();
 		}
 		catch (Exception e) {
-			log.error("Error calling OpenDota API: {}", e.getMessage(), e);
+			LoggingUtils.logOperationFailure("OpenDota API call", "Unexpected error", e);
 			recordFailure();
+		}
+		finally {
+			LoggingUtils.logOperationTiming(stopWatch);
 		}
 
 		return Optional.empty();

@@ -1,5 +1,6 @@
 package com.abe.gg_stats.batch;
 
+import com.abe.gg_stats.util.LoggingUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemProcessor;
@@ -9,11 +10,11 @@ public abstract class BaseProcessor<JsonNode, O> implements ItemProcessor<JsonNo
 
 	@Override
 	public O process(@NonNull JsonNode item) {
-		log.debug("Processing item: {}", item);
+		LoggingUtils.logDebug("Processing item: {}", item);
 
 		// Validate input
 		if (!isValidInput(item)) {
-			log.warn("Invalid input received: {}", item);
+			LoggingUtils.logWarning("Invalid input received", item);
 			return null;
 		}
 
@@ -21,9 +22,11 @@ public abstract class BaseProcessor<JsonNode, O> implements ItemProcessor<JsonNo
 		O result = processItem(item);
 
 		if (result == null) {
-			log.warn("Processing returned null for item: {}", item);
+			LoggingUtils.logWarning("Processing returned null for item", item);
 			return null;
 		}
+
+		LoggingUtils.logDebug("Processing completed successfully", "result=" + result);
 		return result;
 	}
 

@@ -5,6 +5,7 @@ import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
 import com.abe.gg_stats.repository.TeamRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,9 +16,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class NotablePlayerProcessorTest {
@@ -39,7 +48,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidNewNotablePlayer_ShouldCreateNew() throws Exception {
+	void testProcess_ValidNewNotablePlayer_ShouldCreateNew() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -79,7 +88,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidExistingNotablePlayer_ShouldUpdate() throws Exception {
+	void testProcess_ValidExistingNotablePlayer_ShouldUpdate() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -116,7 +125,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullItem_ShouldThrowException() throws Exception {
+	void testProcess_NullItem_ShouldThrowException() {
 		// When & Then - BaseProcessor.process has @NonNull annotation, so it should throw
 		// NullPointerException
 		assertThrows(NullPointerException.class, () -> processor.process(null));
@@ -125,7 +134,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_MissingAccountId_ShouldReturnNull() throws Exception {
+	void testProcess_MissingAccountId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -144,7 +153,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullAccountId_ShouldReturnNull() throws Exception {
+	void testProcess_NullAccountId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -163,7 +172,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_InvalidAccountIdType_ShouldReturnNull() throws Exception {
+	void testProcess_InvalidAccountIdType_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -182,7 +191,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_NegativeAccountId_ShouldReturnNull() throws Exception {
+	void testProcess_NegativeAccountId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -201,7 +210,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_ZeroAccountId_ShouldReturnNull() throws Exception {
+	void testProcess_ZeroAccountId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -220,7 +229,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithTeamId_ShouldAssociateTeam() throws Exception {
+	void testProcess_WithTeamId_ShouldAssociateTeam() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -248,7 +257,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithInvalidTeamId_ShouldHandleGracefully() throws Exception {
+	void testProcess_WithInvalidTeamId_ShouldHandleGracefully() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -271,7 +280,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithNegativeTeamId_ShouldHandleGracefully() throws Exception {
+	void testProcess_WithNegativeTeamId_ShouldHandleGracefully() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -294,7 +303,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithNullTeamId_ShouldHandleGracefully() throws Exception {
+	void testProcess_WithNullTeamId_ShouldHandleGracefully() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -317,7 +326,7 @@ class NotablePlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithMissingFields_ShouldSetDefaults() throws Exception {
+	void testProcess_WithMissingFields_ShouldSetDefaults() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{

@@ -1,6 +1,5 @@
 package com.abe.gg_stats.batch.heroRanking;
 
-import com.abe.gg_stats.batch.BaseWriter;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import java.util.List;
@@ -53,7 +52,7 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 			try {
 				writeItem(item);
 				successCount++;
-				log.debug("Successfully wrote item: {}", item.toString());
+				log.debug("Successfully wrote item: {}", item);
 			}
 			catch (Exception e) {
 				errorCount++;

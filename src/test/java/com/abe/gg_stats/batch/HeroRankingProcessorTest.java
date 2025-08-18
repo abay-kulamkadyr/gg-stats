@@ -1,7 +1,14 @@
 package com.abe.gg_stats.batch;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.abe.gg_stats.batch.heroRanking.HeroRankingProcessor;
 import com.abe.gg_stats.entity.HeroRanking;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,8 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 class HeroRankingProcessorTest {
@@ -27,7 +32,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidHeroRankingData_ShouldCreateList() throws Exception {
+	void testProcess_ValidHeroRankingData_ShouldCreateList() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -65,7 +70,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_ValidDataWithoutScore_ShouldHandleGracefully() throws Exception {
+	void testProcess_ValidDataWithoutScore_ShouldHandleGracefully() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -93,7 +98,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_EmptyRankingsArray_ShouldReturnEmptyList() throws Exception {
+	void testProcess_EmptyRankingsArray_ShouldReturnEmptyList() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -112,7 +117,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_MissingHeroId_ShouldReturnNull() throws Exception {
+	void testProcess_MissingHeroId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -134,7 +139,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_MissingRankings_ShouldReturnNull() throws Exception {
+	void testProcess_MissingRankings_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -151,7 +156,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullHeroId_ShouldReturnNull() throws Exception {
+	void testProcess_NullHeroId_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -174,7 +179,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_RankingsNotArray_ShouldReturnNull() throws Exception {
+	void testProcess_RankingsNotArray_ShouldReturnNull() throws JsonProcessingException {
 		// Given
 		String invalidJson = """
 				{
@@ -192,7 +197,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_InvalidAccountId_ShouldFilterOutInvalidRankings() throws Exception {
+	void testProcess_InvalidAccountId_ShouldFilterOutInvalidRankings() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -230,7 +235,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithNullValuesInRankings_ShouldFilterOutNulls() throws Exception {
+	void testProcess_WithNullValuesInRankings_ShouldFilterOutNulls() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -259,7 +264,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithExceptionInRanking_ShouldFilterOutFailedRankings() throws Exception {
+	void testProcess_WithExceptionInRanking_ShouldFilterOutFailedRankings() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -295,7 +300,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithMaxValues_ShouldHandleCorrectly() throws Exception {
+	void testProcess_WithMaxValues_ShouldHandleCorrectly() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{
@@ -324,7 +329,7 @@ class HeroRankingProcessorTest {
 	}
 
 	@Test
-	void testProcess_WithDifferentScoreTypes_ShouldHandleCorrectly() throws Exception {
+	void testProcess_WithDifferentScoreTypes_ShouldHandleCorrectly() throws JsonProcessingException {
 		// Given
 		String validJson = """
 				{

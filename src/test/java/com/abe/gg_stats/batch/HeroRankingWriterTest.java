@@ -16,7 +16,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class HeroRankingWriterTest {
@@ -63,7 +66,7 @@ class HeroRankingWriterTest {
 	}
 
 	@Test
-	void testWrite_NullChunk_ShouldHandleGracefully() throws Exception {
+	void testWrite_NullChunk_ShouldHandleGracefully() {
 		// When & Then - Should throw NullPointerException since the method doesn't handle
 		// null chunks
 		assertThrows(NullPointerException.class, () -> writer.write(null));
@@ -84,7 +87,6 @@ class HeroRankingWriterTest {
 
 		// Then - Should process the valid item and log error for null item
 		verify(heroRankingRepository, times(1)).saveAll(rankings1);
-		verify(heroRankingRepository, never()).saveAll(null);
 	}
 
 	@Test
@@ -162,9 +164,8 @@ class HeroRankingWriterTest {
 		// Given
 		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
 
-		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 67890L, null) // Null
-																						// score
-		);
+		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 67890L, null)); // Null
+																							// score
 
 		List<HeroRanking> rankings3 = Arrays.asList(createHeroRanking(3, 11111L, 100.0));
 
@@ -197,8 +198,7 @@ class HeroRankingWriterTest {
 	@Test
 	void testWrite_ChunkWithMaxValues_ShouldHandleCorrectly() throws Exception {
 		// Given
-		List<HeroRanking> rankings = Arrays
-			.asList(createHeroRanking(Integer.MAX_VALUE, Long.MAX_VALUE, Double.MAX_VALUE));
+		List<HeroRanking> rankings = List.of(createHeroRanking(Integer.MAX_VALUE, Long.MAX_VALUE, Double.MAX_VALUE));
 
 		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
 

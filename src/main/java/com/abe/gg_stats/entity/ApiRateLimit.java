@@ -1,6 +1,11 @@
 package com.abe.gg_stats.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -40,8 +45,7 @@ public class ApiRateLimit {
 	@Builder.Default
 	private LocalDate dailyWindowStart = LocalDate.now();
 
-	@Column(name = "updated_at")
-	@Builder.Default
+	@Column(name = "updated_at", insertable = false, updatable = false)
 	private LocalDateTime updatedAt = LocalDateTime.now();
 
 }

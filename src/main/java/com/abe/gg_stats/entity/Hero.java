@@ -1,18 +1,22 @@
 package com.abe.gg_stats.entity;
 
-import jakarta.persistence.*;
-import lombok.Data;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
 
 @Entity
 @Table(name = "hero")
-@Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Hero {
@@ -35,12 +39,43 @@ public class Hero {
 	@Column(name = "roles", columnDefinition = "TEXT[]")
 	private List<String> roles;
 
+	/**
+	 * Get roles as an immutable list to prevent external modification
+	 */
+	public List<String> getRoles() {
+		return roles != null ? Collections.unmodifiableList(roles) : Collections.emptyList();
+	}
+
+	// Setter methods needed for JPA and batch processing
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public void setLocalizedName(String localizedName) {
+		this.localizedName = localizedName;
+	}
+
+	public void setPrimaryAttr(String primaryAttr) {
+		this.primaryAttr = primaryAttr;
+	}
+
+	public void setAttackType(String attackType) {
+		this.attackType = attackType;
+	}
+
+	public void setRoles(List<String> roles) {
+		this.roles = roles != null ? new ArrayList<>(roles) : null;
+	}
+
 	@CreationTimestamp
 	@Column(name = "created_at")
 	private LocalDateTime createdAt;
 
-	@UpdateTimestamp
-	@Column(name = "updated_at")
+	@Column(name = "updated_at", insertable = false, updatable = false)
 	private LocalDateTime updatedAt;
 
 }

@@ -2,13 +2,18 @@ package com.abe.gg_stats.controller;
 
 import com.abe.gg_stats.service.BatchSchedulerService;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.abe.gg_stats.util.LoggingUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST controller for managing batch jobs and system status. Provides endpoints for
@@ -46,11 +51,12 @@ public class BatchController {
 			status.put("circuitBreaker", circuitBreakerStatus);
 
 			status.put("status", "healthy");
+			LoggingUtils.logDebug("System status retrieved successfully", "status=healthy");
 			return ResponseEntity.ok(status);
 
 		}
 		catch (Exception e) {
-			log.error("Error getting system status", e);
+			LoggingUtils.logOperationFailure("system status retrieval", "Failed to retrieve system status", e);
 			status.put("status", "error");
 			status.put("message", "Failed to retrieve system status: " + e.getMessage());
 			return ResponseEntity.internalServerError().body(status);
