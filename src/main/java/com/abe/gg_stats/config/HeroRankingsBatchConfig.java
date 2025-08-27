@@ -40,7 +40,8 @@ public class HeroRankingsBatchConfig {
 
 	@Bean("heroRankingUpdateJob")
 	public Job heroRankingUpdateJob(Step heroRankingStep) {
-		return new JobBuilder("heroRankingUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
+		return new JobBuilder("heroRankingUpdateJob", jobRepository)//
+			.incrementer(new RunIdIncrementer())
 			.start(heroRankingStep)
 			.build();
 	}

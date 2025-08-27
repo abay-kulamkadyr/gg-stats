@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- Define JSON encoder -->
+    <springProfile name="production,prod">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>true</includeContext>
+                <includeMdc>true</includeMdc>
+                <customFields>{"service":"gg-stats","version":"${BUILD_VERSION:-unknown}"}</customFields>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <message>message</message>
+                    <level>level</level>
+                    <thread>thread</thread>
+                    <logger>logger</logger>
+                </fieldNames>
+            </encoder>
+        </appender>
+        
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${logging.file.name:-./logs/gg-stats.log}</file>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>true</includeContext>
+                <includeMdc>true</includeMdc>
+                <customFields>{"service":"gg-stats","version":"${BUILD_VERSION:-unknown}"}</customFields>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <message>message</message>
+                    <level>level</level>
+                    <thread>thread</thread>
+                    <logger>logger</logger>
+                </fieldNames>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${logging.file.name:-./logs/gg-stats}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+    </springProfile>
+    
+    <!-- Standard logging for development -->
+    <springProfile name="!production,!prod">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{operationType:-}] [%X{serviceName:-}] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+        
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${logging.file.name:-./gg-stats.log}</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{jobId:-}] [%X{stepName:-}] [%X{batchType:-}] [%X{apiEndpoint:-}] %logger{36} - %msg%n</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${logging.file.name:-./gg-stats}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>7</maxHistory>
+                <totalSizeCap>350MB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+    </springProfile>
+    
+    <!-- Async appenders for better performance -->
+    <appender name="ASYNC_STDOUT" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="STDOUT"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+    
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE"/>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+    
+    <!-- Logger configurations -->
+    <logger name="com.abe.gg_stats" level="${logging.level.com.abe.gg_stats:-DEBUG}" additivity="false">
+        <appender-ref ref="ASYNC_STDOUT"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </logger>
+    
+    <!-- Spring Boot batch logging -->
+    <logger name="org.springframework.batch" level="${logging.level.org.springframework.batch:-INFO}"/>
+    
+    <!-- Database logging -->
+    <logger name="org.springframework.jdbc" level="${logging.level.org.springframework.jdbc:-WARN}"/>
+    <logger name="org.hibernate.SQL" level="${logging.level.org.hibernate.SQL:-WARN}"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="${logging.level.org.hibernate.type.descriptor.sql.BasicBinder:-WARN}"/>
+    
+    <!-- HTTP client logging for debugging -->
+    <logger name="org.springframework.web.client.RestTemplate" level="DEBUG"/>
+    <logger name="org.apache.http" level="INFO"/>
+    
+    <!-- Root logger -->
+    <root level="${logging.level.root:-INFO}">
+        <appender-ref ref="ASYNC_STDOUT"/>
+        <appender-ref ref="ASYNC_FILE"/>
+    </root>
+</configuration>

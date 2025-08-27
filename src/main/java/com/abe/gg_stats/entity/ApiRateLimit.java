@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.ZonedDateTime;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -23,7 +24,6 @@ import java.time.LocalDateTime;
 public class ApiRateLimit {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	@Column(nullable = false, unique = true)
@@ -34,18 +34,16 @@ public class ApiRateLimit {
 	private Integer requestsCount = 0;
 
 	@Column(name = "window_start", nullable = false)
-	@Builder.Default
-	private LocalDateTime windowStart = LocalDateTime.now();
+	private ZonedDateTime windowStart;
 
 	@Column(name = "daily_requests", nullable = false)
 	@Builder.Default
 	private Integer dailyRequests = 0;
 
 	@Column(name = "daily_window_start", nullable = false)
-	@Builder.Default
-	private LocalDate dailyWindowStart = LocalDate.now();
+	private LocalDate dailyWindowStart;
 
 	@Column(name = "updated_at", insertable = false, updatable = false)
-	private LocalDateTime updatedAt = LocalDateTime.now();
+	private LocalDateTime updatedAt;
 
 }

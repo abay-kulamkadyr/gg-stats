@@ -1,11 +1,11 @@
 package com.abe.gg_stats.batch.listener;
 
+import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.StructuredLoggingContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
-
-import com.abe.gg_stats.util.LoggingUtils;
 
 /**
  * Base class for step execution listeners to reduce code duplication and provide
@@ -21,24 +21,50 @@ public abstract class BaseStepExecutionListener implements StepExecutionListener
 
 	@Override
 	public void beforeStep(StepExecution stepExecution) {
-		LoggingUtils.logOperationStart(getStepName() + " batch step", "step=" + stepExecution.getStepName(),
-				"parameters=" + stepExecution.getJobParameters());
+		// Set up structured logging context for this batch step
+		String jobId = stepExecution.getJobExecution().getJobId().toString();
+		String stepName = stepExecution.getStepName();
+		
+		// Extract correlation ID from job parameters or create new one
+		String correlationId = stepExecution.getJobParameters().getString("correlationId");
+		if (correlationId != null) {
+			// Inherit correlation from job launcher
+			StructuredLoggingContext.updateContext(StructuredLoggingContext.CORRELATION_ID, correlationId);
+		}
+		
+		// Set up batch-specific context
+		String actualCorrelationId = StructuredLoggingContext.setBatchContext(getStepName(), jobId, stepName);
+		
+		LoggingUtils.logOperationStart(getStepName() + " batch step", 
+			"jobId=" + jobId,
+			"stepName=" + stepName,
+			"correlationId=" + actualCorrelationId,
+			"parameters=" + stepExecution.getJobParameters());
 	}
 
 	@Override
 	public ExitStatus afterStep(StepExecution stepExecution) {
-		if (stepExecution.getStatus().isUnsuccessful()) {
-			LoggingUtils.logOperationFailure(getStepName() + " batch step", "Step execution failed",
-					stepExecution.getFailureExceptions().get(0));
-			return ExitStatus.FAILED;
+		try {
+			if (stepExecution.getStatus().isUnsuccessful()) {
+				LoggingUtils.logOperationFailure(getStepName() + " batch step", "Step execution failed",
+						stepExecution.getFailureExceptions().get(0));
+				return ExitStatus.FAILED;
+			}
+
+			LoggingUtils.logOperationSuccess(getStepName() + " batch step", 
+				"stepName=" + stepExecution.getStepName(),
+				"read=" + stepExecution.getReadCount(), 
+				"write=" + stepExecution.getWriteCount(),
+				"skip=" + stepExecution.getSkipCount(), 
+				"commit=" + stepExecution.getCommitCount(),
+				"rollback=" + stepExecution.getRollbackCount(),
+				"correlationId=" + StructuredLoggingContext.getCurrentCorrelationId());
+
+			return ExitStatus.COMPLETED;
+		} finally {
+			// Clear structured logging context to prevent memory leaks
+			StructuredLoggingContext.clearContext();
 		}
-
-		LoggingUtils.logOperationSuccess(getStepName() + " batch step", "step=" + stepExecution.getStepName(),
-				"read=" + stepExecution.getReadCount(), "write=" + stepExecution.getWriteCount(),
-				"skip=" + stepExecution.getSkipCount(), "commit=" + stepExecution.getCommitCount(),
-				"rollback=" + stepExecution.getRollbackCount());
-
-		return ExitStatus.COMPLETED;
 	}
 
 }

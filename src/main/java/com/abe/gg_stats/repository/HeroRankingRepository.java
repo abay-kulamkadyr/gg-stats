@@ -16,6 +16,8 @@ public interface HeroRankingRepository extends JpaRepository<HeroRanking, Long> 
 
 	List<HeroRanking> findByHeroId(Integer heroId);
 
+	List<HeroRanking> findByAccountId(Long accountId);
+
 	@Query("SELECT MAX(hr.updatedAt) FROM HeroRanking hr")
 	Optional<LocalDateTime> findMaxUpdatedAt();
 

@@ -4,52 +4,51 @@ import com.abe.gg_stats.batch.BaseApiReader;
 import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.abe.gg_stats.util.LoggingUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@Slf4j
 public class HeroesReader extends BaseApiReader<JsonNode> {
 
-	private final HeroRepository heroRepository;
+  private final HeroRepository heroRepository;
 
-	@Autowired
-	public HeroesReader(OpenDotaApiService openDotaApiService, HeroRepository heroRepository,
-			BatchExpirationConfig expirationConfig) {
-		super(openDotaApiService, expirationConfig);
-		this.heroRepository = heroRepository;
-	}
+  @Autowired
+  public HeroesReader(OpenDotaApiService openDotaApiService, HeroRepository heroRepository,
+      BatchExpirationConfig expirationConfig) {
+    super(openDotaApiService, expirationConfig);
+    this.heroRepository = heroRepository;
+  }
 
-	@Override
-	protected void initialize() {
-		Optional<LocalDateTime> latestUpdate = heroRepository.findMaxUpdatedAt();
+  @Override
+  protected void initialize() {
+    Optional<LocalDateTime> latestUpdate = heroRepository.findMaxUpdatedAt();
 
-		if (latestUpdate.isPresent() && noRefreshNeeded(latestUpdate.get())) {
-			Duration expiration = super.getExpiration();
-			log.info("Heroes data is up to date (last update: {}), expires in: {}", latestUpdate.get(),
-					super.formatDuration(expiration));
-			return;
-		}
+    if (latestUpdate.isPresent() && noRefreshNeeded(latestUpdate.get())) {
+      Duration expiration = super.getExpiration();
+      LoggingUtils.logOperationSuccess("Heroes data cache check", 
+          "lastUpdate=" + latestUpdate.get(),
+          "expiresIn=" + super.formatDuration(expiration));
+      return;
+    }
 
-		// Fetch from API
-		Optional<JsonNode> apiData = openDotaApiService.getHeroes();
+    // Fetch from API
+    Optional<JsonNode> apiData = openDotaApiService.getHeroes();
 
-		if (apiData.isPresent()) {
-			this.dataIterator = apiData.get().elements();
-		}
-		else {
-			log.warn("Failed to initialize heroes reader - no data from API");
-		}
-	}
+    if (apiData.isPresent()) {
+      this.dataIterator = apiData.get().elements();
+    } else {
+      LoggingUtils.logWarning("Failed to initialize heroes reader - no data from API");
+    }
+  }
 
-	@Override
-	protected String getExpirationConfigName() {
-		return "heroes";
-	}
+  @Override
+  protected String getExpirationConfigName() {
+    return "heroes";
+  }
 
 }

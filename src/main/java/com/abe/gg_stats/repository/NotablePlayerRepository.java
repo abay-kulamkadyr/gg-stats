@@ -16,6 +16,8 @@ public interface NotablePlayerRepository extends JpaRepository<NotablePlayer, Lo
 
 	List<NotablePlayer> findByCountryCode(String countryCode);
 
+	Optional<NotablePlayer> findByAccountId(Long accountId);
+
 	@Query("SELECT pp FROM NotablePlayer pp WHERE pp.isPro = true")
 	List<NotablePlayer> findActivePros();
 

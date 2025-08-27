@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +39,9 @@ public class TeamsBatchConfig {
 
 	@Bean("teamsUpdateJob")
 	public Job teamsUpdateJob(Step teamsStep) {
-		return new JobBuilder("teamsUpdateJob", jobRepository).start(teamsStep).build();
+		return new JobBuilder("teamsUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
+			.start(teamsStep)
+			.build();
 	}
 
 	@Bean("teamsStep")

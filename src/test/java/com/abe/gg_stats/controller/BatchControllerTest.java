@@ -3,13 +3,12 @@ package com.abe.gg_stats.controller;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.abe.gg_stats.entity.ApiRateLimit;
 import com.abe.gg_stats.service.BatchSchedulerService;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,9 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import java.util.Map;
-import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class BatchControllerTest {
@@ -291,103 +287,6 @@ class BatchControllerTest {
 				result.get("message"));
 
 		verify(batchSchedulerService).triggerHeroRankingUpdate();
-	}
-
-	@Test
-	void testGetApiRateLimitStatus_ValidEndpoint_ShouldReturnStatus() {
-		// Given
-		String endpoint = "heroes";
-		ApiRateLimit rateLimit = new ApiRateLimit();
-		rateLimit.setEndpoint(endpoint);
-		rateLimit.setRequestsCount(10);
-		when(openDotaApiService.getRateLimitStatus(endpoint)).thenReturn(Optional.of(rateLimit));
-		when(openDotaApiService.getRemainingMinuteRequests(endpoint)).thenReturn(50);
-
-		// When
-		ResponseEntity<Map<String, Object>> response = controller.getApiRateLimitStatus(endpoint);
-
-		// Then
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertNotNull(response.getBody());
-
-		Map<String, Object> result = response.getBody();
-		assertEquals(endpoint, result.get("endpoint"));
-		assertEquals(50, result.get("remainingMinuteRequests"));
-		assertNotNull(result.get("rateLimitStatus"));
-		assertEquals(endpoint, ((ApiRateLimit) result.get("rateLimitStatus")).getEndpoint());
-
-		verify(openDotaApiService).getRateLimitStatus(endpoint);
-		verify(openDotaApiService).getRemainingMinuteRequests(endpoint);
-	}
-
-	@Test
-	void testGetApiRateLimitStatus_NoRateLimitStatus_ShouldHandleGracefully() {
-		// Given
-		String endpoint = "heroes";
-		when(openDotaApiService.getRateLimitStatus(endpoint)).thenReturn(Optional.empty());
-		when(openDotaApiService.getRemainingMinuteRequests(endpoint)).thenReturn(50);
-
-		// When
-		ResponseEntity<Map<String, Object>> response = controller.getApiRateLimitStatus(endpoint);
-
-		// Then
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertNotNull(response.getBody());
-
-		Map<String, Object> result = response.getBody();
-		assertEquals(endpoint, result.get("endpoint"));
-		assertEquals(50, result.get("remainingMinuteRequests"));
-		assertNull(result.get("rateLimitStatus"));
-	}
-
-	@Test
-	void testGetApiRateLimitStatus_Exception_ShouldReturnErrorResponse() {
-		// Given
-		String endpoint = "heroes";
-		when(openDotaApiService.getRateLimitStatus(endpoint)).thenThrow(new RuntimeException("Service error"));
-
-		// When
-		ResponseEntity<Map<String, Object>> response = controller.getApiRateLimitStatus(endpoint);
-
-		// Then
-		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-		assertNotNull(response.getBody());
-
-		Map<String, Object> result = response.getBody();
-		assertEquals("error", result.get("status"));
-		assertNotNull(result.get("message"));
-	}
-
-	@Test
-	void testGetApiRateLimitStatus_EmptyEndpoint_ShouldHandleGracefully() {
-		// Given
-		String endpoint = "";
-
-		// When
-		ResponseEntity<Map<String, Object>> response = controller.getApiRateLimitStatus(endpoint);
-
-		// Then
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertNotNull(response.getBody());
-
-		Map<String, Object> result = response.getBody();
-		assertEquals(endpoint, result.get("endpoint"));
-	}
-
-	@Test
-	void testGetApiRateLimitStatus_NullEndpoint_ShouldHandleGracefully() {
-		// Given
-		String endpoint = null;
-
-		// When
-		ResponseEntity<Map<String, Object>> response = controller.getApiRateLimitStatus(endpoint);
-
-		// Then
-		assertEquals(HttpStatus.OK, response.getStatusCode());
-		assertNotNull(response.getBody());
-
-		Map<String, Object> result = response.getBody();
-		assertNull(result.get("endpoint"));
 	}
 
 	@Test

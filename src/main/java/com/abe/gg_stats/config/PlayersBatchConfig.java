@@ -1,8 +1,8 @@
 package com.abe.gg_stats.config;
 
 import com.abe.gg_stats.batch.listener.PlayersStepExecutionListener;
-import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.batch.player.PlayerReader;
+import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.batch.player.PlayerWriter;
 import com.abe.gg_stats.entity.Player;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +37,9 @@ public class PlayersBatchConfig {
 
 	@Bean("playerUpdateJob")
 	public Job playerUpdateJob(Step playerStep) {
-		return new JobBuilder("playerUpdateJob", jobRepository).start(playerStep).build();
+		return new JobBuilder("playerUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
+			.start(playerStep)
+			.build();
 	}
 
 	@Bean("playerStep")

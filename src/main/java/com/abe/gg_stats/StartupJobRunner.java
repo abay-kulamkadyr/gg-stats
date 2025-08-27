@@ -1,11 +1,16 @@
 package com.abe.gg_stats;
 
 import com.abe.gg_stats.service.BatchSchedulerService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,18 +19,18 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "app.startup.jobs.enabled", havingValue = "true", matchIfMissing = true)
 public class StartupJobRunner implements ApplicationRunner {
 
+	@Autowired
 	private final BatchSchedulerService batchSchedulerService;
 
 	@Override
-	public void run(ApplicationArguments args) throws Exception {
-		// Uncomment the job you want to run immediately on startup
-
-		// batchSchedulerService.triggerHeroesUpdate();
-		// batchSchedulerService.triggerNotablePlayerUpdate();
-		// batchSchedulerService.triggerTeamsUpdate();
-		// batchSchedulerService.triggerHeroRankingUpdate();
-		batchSchedulerService.triggerPlayerUpdate();
-		log.info("Startup jobs completed");
+	public void run(ApplicationArguments args) {
+		try (ExecutorService executor = Executors.newFixedThreadPool(5)) {
+			executor.submit(batchSchedulerService::triggerHeroesUpdate);
+			executor.submit(batchSchedulerService::triggerNotablePlayerUpdate);
+			executor.submit(batchSchedulerService::triggerTeamsUpdate);
+			executor.submit(batchSchedulerService::triggerHeroRankingUpdate);
+			executor.submit(batchSchedulerService::triggerPlayerUpdate);
+		}
 	}
 
 }
