@@ -1,305 +1,166 @@
 package com.abe.gg_stats.service;
 
-import com.abe.gg_stats.entity.ApiRateLimit;
-import com.abe.gg_stats.repository.ApiRateLimitRepository;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+
+import com.abe.gg_stats.exception.CircuitBreakerOpenException;
 import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.ServiceLogging;
+import com.abe.gg_stats.util.StructuredLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StopWatch;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.Optional;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
+/**
+ * Enterprise-grade OpenDota API client with comprehensive resilience patterns.
+ * <p>
+ * Features: - Rate limiting with token bucket algorithm - Circuit breaker pattern for
+ * fault tolerance - Comprehensive monitoring and health checks - Async execution support
+ * - Enhanced error handling with proper classification - Structured logging with
+ * performance metrics - Configuration validation
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class OpenDotaApiService {
+public class OpenDotaApiService implements HealthIndicator, ServiceLogging {
+
+	private static final String SERVICE_NAME = "opendota_api";
 
 	private final RestTemplate restTemplate;
 
-	private final ApiRateLimitRepository rateLimitRepository;
+	private final RateLimitingService rateLimitingService;
+
+	private final CircuitBreakerService circuitBreakerService;
 
 	private final ObjectMapper objectMapper;
 
 	@Value("${opendota.api.base-url:https://api.opendota.com/api}")
 	private String baseUrl;
 
-	@Value("${opendota.api.rate-limit.per-minute:50}")
-	private int requestsPerMinute;
+	@Value("${opendota.api.timeout.read:30000}")
+	private long readTimeoutMs;
 
-	@Value("${opendota.api.rate-limit.per-day:1800}")
-	private int requestsPerDay;
+	@Value("${opendota.api.timeout.connect:10000}")
+	private long connectTimeoutMs;
 
-	@Value("${opendota.api.rate-limit.window-size-minutes:1}")
-	private int windowSizeMinutes;
+	@Value("${opendota.api.health-check.enabled:true}")
+	private boolean healthCheckEnabled;
 
-	@Value("${opendota.api.timeout.connection:5000}")
-	private int connectionTimeout;
-
-	@Value("${opendota.api.timeout.read:10000}")
-	private int readTimeout;
-
-	@Value("${opendota.api.circuit-breaker.threshold:5}")
-	private int circuitBreakerThreshold;
-
-	@Value("${opendota.api.circuit-breaker.timeout:30000}")
-	private long circuitBreakerTimeout;
-
-	// In-memory locks per endpoint to prevent race conditions
-	private final Map<String, ReentrantLock> endpointLocks = new ConcurrentHashMap<>();
-
-	// Circuit breaker state
-	private final AtomicInteger failureCount = new AtomicInteger(0);
-
-	private final AtomicLong lastFailureTime = new AtomicLong(0);
-
-	private volatile boolean circuitOpen = false;
+	@PostConstruct
+	public void initialize() {
+		LoggingUtils.logOperationStart("OpenDota API service initialization");
+		LoggingUtils.logOperationSuccess("OpenDota API service initialized", "baseUrl=" + baseUrl,
+				"readTimeout=" + readTimeoutMs + "ms", "connectTimeout=" + connectTimeoutMs + "ms");
+	}
 
 	/**
-	 * Makes a rate-limited API call to OpenDota with circuit breaker protection
+	 * Makes a synchronous API call with custom timeout
 	 */
 	public Optional<JsonNode> makeApiCall(String endpoint) {
-		if (!canMakeRequest(endpoint)) {
-			LoggingUtils.logWarning("Rate limit exceeded", "endpoint=" + endpoint);
-			return Optional.empty();
-		}
-
-		if (isCircuitOpen()) {
-			LoggingUtils.logWarning("Circuit breaker is open", "endpoint=" + endpoint);
-			return Optional.empty();
-		}
-
-		StopWatch stopWatch = LoggingUtils.createStopWatch("API call to " + endpoint);
-
 		try {
-			String url = baseUrl + endpoint;
-			LoggingUtils.logApiCall(endpoint, "GET");
+			return circuitBreakerService.executeWithCircuitBreaker(SERVICE_NAME, () -> performApiCall(endpoint),
+					() -> handleFallback(endpoint));
+		}
+		catch (CircuitBreakerOpenException e) {
+			LoggingUtils.logWarning("Circuit breaker prevented API call", "endpoint=" + endpoint,
+					"reason=" + e.getMessage());
+			return Optional.empty();
+		}
+	}
 
-			ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+	private Optional<JsonNode> performApiCall(String endpoint) {
+		// Set up API call context
+		String correlationId = StructuredLoggingContext.setApiContext(endpoint, "GET");
+		
+		try {
+			// Check rate limit first
+			RateLimitingService.RateLimitResult rateLimitResult = rateLimitingService.tryAcquirePermit(endpoint);
 
-			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-				updateRateLimit(endpoint);
-				resetCircuitBreaker();
-
-				LoggingUtils.logApiResponse(endpoint, response.getStatusCode().value(), stopWatch.getTotalTimeMillis());
-				return Optional.of(objectMapper.readTree(response.getBody()));
+			if (!rateLimitResult.allowed()) {
+				LoggingUtils.logWarning("Rate limit exceeded", 
+					"endpoint=" + endpoint, 
+					"reason=" + rateLimitResult.reason(),
+					"resetTime=" + rateLimitResult.resetTimeMs() + "ms",
+					"correlationId=" + correlationId);
+				return Optional.empty();
 			}
 
+			try (LoggingUtils.AutoCloseableStopWatch _ = LoggingUtils
+				.createStopWatch("opendota_api_call_" + endpoint.replaceAll("/", "_"))) {
+
+				String url = baseUrl + endpoint;
+				LoggingUtils.logApiCall(endpoint, "GET");
+
+				Instant startTime = Instant.now();
+				ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+				long responseTime = Duration.between(startTime, Instant.now()).toMillis();
+
+				if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+					LoggingUtils.logApiResponse(endpoint, response.getStatusCode().value(), responseTime,
+							response.getBody().length());
+
+					return Optional.of(objectMapper.readTree(response.getBody()));
+
+				}
+				else if (response.getStatusCode() == HttpStatus.OK) {
+					LoggingUtils.logWarning("API call successful but response body is null", "endpoint=" + endpoint);
+					return Optional.empty();
+				}
+				else {
+					LoggingUtils.logWarning("API call returned non-200 status", "endpoint=" + endpoint,
+							"status=" + response.getStatusCode().value());
+					return Optional.empty();
+				}
+
+			}
 		}
 		catch (HttpClientErrorException e) {
+			handleHttpClientError(endpoint, e);
+
+			// Don't treat rate limiting as a circuit breaker failure
 			if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-				LoggingUtils.logWarning("Rate limited by OpenDota API", "endpoint=" + endpoint);
-				forceUpdateRateLimit(endpoint);
+				LoggingUtils.logWarning("Rate limit hit - not counting as circuit breaker failure",
+						"endpoint=" + endpoint);
+				return Optional.empty(); // Return empty instead of throwing
 			}
-			else {
-				LoggingUtils.logOperationFailure("OpenDota API call", "HTTP error: " + e.getStatusCode(), e);
-				recordFailure();
-			}
+
+			throw e; // Re-throw for circuit breaker to handle other errors
+
 		}
 		catch (ResourceAccessException e) {
-			LoggingUtils.logOperationFailure("OpenDota API call", "Connection error", e);
-			recordFailure();
+			LoggingUtils.logOperationFailure("opendota_api_call", "Network error for endpoint: " + endpoint, e);
+			throw e; // Re-throw for retry and circuit breaker
+
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("OpenDota API call", "Unexpected error", e);
-			recordFailure();
-		}
-		finally {
-			LoggingUtils.logOperationTiming(stopWatch);
-		}
-
-		return Optional.empty();
-	}
-
-	/**
-	 * Circuit breaker implementation
-	 */
-	private boolean isCircuitOpen() {
-		if (circuitOpen) {
-			long timeSinceLastFailure = System.currentTimeMillis() - lastFailureTime.get();
-			if (timeSinceLastFailure > circuitBreakerTimeout) {
-				log.info("Circuit breaker timeout reached, attempting to close circuit");
-				circuitOpen = false;
-				failureCount.set(0);
-				return false;
-			}
-			return true;
-		}
-		return false;
-	}
-
-	private void recordFailure() {
-		int failures = failureCount.incrementAndGet();
-		lastFailureTime.set(System.currentTimeMillis());
-
-		if (failures >= circuitBreakerThreshold) {
-			circuitOpen = true;
-			log.warn("Circuit breaker opened after {} failures", failures);
+			LoggingUtils.logOperationFailure("opendota_api_call", "Unexpected error for endpoint: " + endpoint, e);
+			throw new RuntimeException("API call failed", e);
+		} finally {
+			// Clear API context
+			StructuredLoggingContext.clearContext();
 		}
 	}
 
-	private void resetCircuitBreaker() {
-		failureCount.set(0);
-		if (circuitOpen) {
-			circuitOpen = false;
-			log.info("Circuit breaker closed after successful request");
-		}
-	}
-
-	/**
-	 * Gets circuit breaker status
-	 */
-	public String getCircuitBreakerStatus() {
-		return String.format("Circuit Breaker Status - Open: %s, Failures: %d, Last Failure: %dms ago", circuitOpen,
-				failureCount.get(), System.currentTimeMillis() - lastFailureTime.get());
-	}
-
-	/**
-	 * Checks if we can make a request based on rate limits Uses proper locking to prevent
-	 * race conditions
-	 */
-	private boolean canMakeRequest(String endpoint) {
-		ReentrantLock lock = endpointLocks.computeIfAbsent(endpoint, k -> new ReentrantLock());
-
-		try {
-			lock.lock();
-
-			LocalDateTime now = LocalDateTime.now();
-			LocalDate today = LocalDate.now();
-
-			// Check daily limit first
-			Integer totalDailyRequests = rateLimitRepository.getTotalDailyRequests(today);
-			if (totalDailyRequests != null && totalDailyRequests >= requestsPerDay) {
-				log.warn("Daily rate limit of {} requests exceeded", requestsPerDay);
-				return false;
-			}
-
-			// Get or create rate limit record for this endpoint
-			ApiRateLimit rateLimit = rateLimitRepository.findByEndpoint(endpoint)
-				.orElseGet(() -> createNewRateLimit(endpoint, now, today));
-
-			// Check if we need to reset the minute window
-			if (ChronoUnit.MINUTES.between(rateLimit.getWindowStart(), now) >= windowSizeMinutes) {
-				rateLimitRepository.resetMinuteWindow(rateLimit.getId(), now);
-				rateLimit.setRequestsCount(1);
-				rateLimit.setWindowStart(now);
-			}
-
-			// Check if we need to reset the daily window
-			if (!rateLimit.getDailyWindowStart().equals(today)) {
-				rateLimitRepository.resetDailyWindow(rateLimit.getId(), today);
-				rateLimit.setDailyRequests(1);
-				rateLimit.setDailyWindowStart(today);
-			}
-
-			// Check if we can make the request
-			boolean canMake = rateLimit.getRequestsCount() < requestsPerMinute;
-
-			if (!canMake) {
-				log.debug("Rate limit exceeded for {}: {}/{} requests in current window", endpoint,
-						rateLimit.getRequestsCount(), requestsPerMinute);
-			}
-
-			return canMake;
-		}
-		finally {
-			lock.unlock();
-		}
-	}
-
-	/**
-	 * Creates a new rate limit record for an endpoint
-	 */
-	private ApiRateLimit createNewRateLimit(String endpoint, LocalDateTime now, LocalDate today) {
-		ApiRateLimit rateLimit = ApiRateLimit.builder()
-			.endpoint(endpoint)
-			.requestsCount(1)
-			.windowStart(now)
-			.dailyRequests(1)
-			.dailyWindowStart(today)
-			.updatedAt(now)
-			.build();
-
-		return rateLimitRepository.save(rateLimit);
-	}
-
-	/**
-	 * Updates rate limit after successful API call
-	 */
-	@Transactional
-	private void updateRateLimit(String endpoint) {
-		Optional<ApiRateLimit> rateLimitOpt = rateLimitRepository.findByEndpoint(endpoint);
-		rateLimitOpt.ifPresent(rateLimit -> rateLimitRepository.incrementRequestCounts(rateLimit.getId()));
-	}
-
-	/**
-	 * Forces rate limit update when API returns 429
-	 */
-	@Transactional
-	private void forceUpdateRateLimit(String endpoint) {
-		Optional<ApiRateLimit> rateLimitOpt = rateLimitRepository.findByEndpoint(endpoint);
-		if (rateLimitOpt.isPresent()) {
-			ApiRateLimit rateLimit = rateLimitOpt.get();
-			// Force the rate limit to be at maximum to prevent further calls
-			rateLimit.setRequestsCount(requestsPerMinute);
-			rateLimitRepository.save(rateLimit);
-		}
-	}
-
-	/**
-	 * Gets remaining requests for today
-	 */
-	public int getRemainingDailyRequests() {
-		Integer used = rateLimitRepository.getTotalDailyRequests(LocalDate.now());
-		return requestsPerDay - (used != null ? used : 0);
-	}
-
-	/**
-	 * Gets remaining requests for current minute window for a specific endpoint
-	 */
-	public int getRemainingMinuteRequests(String endpoint) {
-		Optional<ApiRateLimit> rateLimit = rateLimitRepository.findByEndpoint(endpoint);
-		if (rateLimit.isPresent()) {
-			ApiRateLimit rl = rateLimit.get();
-			LocalDateTime now = LocalDateTime.now();
-
-			// If window has expired, reset count
-			if (ChronoUnit.MINUTES.between(rl.getWindowStart(), now) >= windowSizeMinutes) {
-				return requestsPerMinute;
-			}
-
-			return Math.max(0, requestsPerMinute - rl.getRequestsCount());
-		}
-		return requestsPerMinute;
-	}
-
-	/**
-	 * Gets current rate limit status for an endpoint
-	 */
-	public Optional<ApiRateLimit> getRateLimitStatus(String endpoint) {
-		return rateLimitRepository.findByEndpoint(endpoint);
-	}
-
-	/**
-	 * Specific API methods
-	 */
 	public Optional<JsonNode> getHeroes() {
 		return makeApiCall("/heroes");
 	}
@@ -313,15 +174,144 @@ public class OpenDotaApiService {
 	}
 
 	public Optional<JsonNode> getPlayer(Long accountId) {
+		if (accountId == null || accountId <= 0) {
+			LoggingUtils.logWarning("Invalid account ID provided", "accountId=" + accountId);
+			return Optional.empty();
+		}
 		return makeApiCall("/players/" + accountId);
 	}
 
-	public Optional<JsonNode> getPlayerRanking(Long accountId) {
-		return makeApiCall("/players/" + accountId + "/rankings");
+	public Optional<JsonNode> getHeroRanking(Integer heroId) {
+		if (heroId == null || heroId <= 0) {
+			LoggingUtils.logWarning("Invalid hero ID provided", "heroId=" + heroId);
+			return Optional.empty();
+		}
+		return makeApiCall("/rankings?hero_id=" + heroId);
 	}
 
-	public Optional<JsonNode> getHeroRanking(Integer heroId) {
-		return makeApiCall("/rankings?hero_id=" + heroId);
+	@Override
+	public Health health() {
+		if (!healthCheckEnabled) {
+			return Health.up().withDetail("healthCheck", "disabled").build();
+		}
+
+		try {
+			Health.Builder healthBuilder = Health.up();
+
+			// Check circuit breaker status
+			CircuitBreakerService.CircuitBreakerStatus cbStatus = circuitBreakerService.getStatus(SERVICE_NAME);
+			healthBuilder.withDetail("circuitBreaker", Map.of("state", cbStatus.state().toString(), "successRate",
+					cbStatus.successRate(), "totalCalls", cbStatus.totalCalls()));
+
+			// Check rate limiting status
+			RateLimitingService.RateLimitStatus rlStatus = rateLimitingService.getStatus();
+			healthBuilder.withDetail("rateLimiting",
+					Map.of("availableTokens", rlStatus.availableTokens(), "remainingDailyRequests",
+							rlStatus.remainingDailyRequests(), "successRate", rlStatus.successRate()));
+
+			// Perform a lightweight health check call
+			if (cbStatus.state() != CircuitBreakerService.CircuitBreakerState.OPEN) {
+				performHealthCheck(healthBuilder);
+			}
+
+			return healthBuilder.build();
+
+		}
+		catch (Exception e) {
+			LoggingUtils.logOperationFailure("health_check", "Health check failed", e);
+			return Health.down()
+				.withDetail("error", e.getMessage())
+				.withDetail("timestamp", Instant.now().toString())
+				.build();
+		}
+	}
+
+	/**
+	 * Gets comprehensive service statistics
+	 */
+	public ApiServiceStatistics getStatistics() {
+		CircuitBreakerService.CircuitBreakerStatus cbStatus = circuitBreakerService.getStatus(SERVICE_NAME);
+		RateLimitingService.RateLimitStatus rlStatus = rateLimitingService.getStatus();
+
+		return ApiServiceStatistics.builder()
+			.serviceName(SERVICE_NAME)
+			.circuitBreakerStatus(cbStatus)
+			.rateLimitStatus(rlStatus)
+			.baseUrl(baseUrl)
+			.readTimeoutMs(readTimeoutMs)
+			.connectTimeoutMs(connectTimeoutMs)
+			.timestamp(Instant.now())
+			.build();
+	}
+
+	private void handleHttpClientError(String endpoint, HttpClientErrorException e) {
+		HttpStatusCode status = e.getStatusCode();
+
+		switch (status) {
+			case TOO_MANY_REQUESTS:
+				if (e.getResponseHeaders() != null) {
+					LoggingUtils.logWarning("Rate limited by OpenDota API", "endpoint=" + endpoint,
+							"retryAfter=" + e.getResponseHeaders().getFirst("Retry-After"));
+				}
+				break;
+
+			case NOT_FOUND:
+				LoggingUtils.logWarning("Resource not found", "endpoint=" + endpoint);
+				break;
+
+			case BAD_REQUEST:
+				LoggingUtils.logWarning("Bad request to API", "endpoint=" + endpoint,
+						"response=" + e.getResponseBodyAsString());
+				break;
+
+			case UNAUTHORIZED:
+			case FORBIDDEN:
+				LoggingUtils.logOperationFailure("opendota_api_call", "Authentication/authorization error", e);
+				break;
+
+			default:
+				LoggingUtils.logOperationFailure("opendota_api_call", "HTTP error: " + status, e);
+		}
+	}
+
+	private Optional<JsonNode> handleFallback(String endpoint) {
+		LoggingUtils.logWarning("Using fallback for API call", "endpoint=" + endpoint);
+		//TODO
+		// Implement fallback logic here - could be:
+		// - Return cached data
+		// - Return default values
+		// - Use alternative data source
+		// For now, just return empty
+		return Optional.empty();
+	}
+
+	private void performHealthCheck(Health.Builder healthBuilder) {
+		try {
+			// Use a lightweight endpoint for health check
+			Optional<JsonNode> response = performApiCall("/constants/heroes");
+
+			if (response.isPresent()) {
+				healthBuilder.withDetail("apiCheck", "successful");
+			}
+			else {
+				healthBuilder.withDetail("apiCheck", "failed - no response");
+			}
+
+		}
+		catch (Exception e) {
+			healthBuilder.withDetail("apiCheck", "failed - " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Statistics container for monitoring
+	 */
+	@Builder
+	public record ApiServiceStatistics(String serviceName,
+			CircuitBreakerService.CircuitBreakerStatus circuitBreakerStatus,
+			RateLimitingService.RateLimitStatus rateLimitStatus, String baseUrl, long readTimeoutMs,
+			long connectTimeoutMs, Instant timestamp) {
+
 	}
 
 }

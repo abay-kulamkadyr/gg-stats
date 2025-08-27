@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 public class TimeUnitParser {
 
 	private TimeUnitParser() {
-		// Private constructor for utility class - no exceptions thrown
+		throw new UnsupportedOperationException("Utility class cannot be instantiated");
 	}
 
 	private static final Pattern TIME_PATTERN = Pattern.compile("^(\\d+)(mo|[mhdw]|y)$");

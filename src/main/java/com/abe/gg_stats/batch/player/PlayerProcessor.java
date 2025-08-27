@@ -66,6 +66,7 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 		}
 
 		// Basic profile fields
+		player.setAccountId(getLongValue(profileData, "account_id"));
 		player.setSteamId(getTextValue(profileData, "steamid"));
 		player.setAvatar(getTextValue(profileData, "avatar"));
 		player.setAvatarMedium(getTextValue(profileData, "avatarmedium"));
@@ -88,6 +89,11 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 	}
 
 	private void processRootLevelData(Player player, JsonNode data) {
+		// Set the account ID from the root level
+		if (data.has("account_id") && !data.get("account_id").isNull()) {
+			player.setAccountId(data.get("account_id").asLong());
+		}
+
 		player.setRankTier(getIntValue(data, "rank_tier"));
 		player.setLeaderboardRank(getIntValue(data, "leaderboard_rank"));
 		log.debug("Processed root level data for player: {}", player.getPersonName());
@@ -103,6 +109,10 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 
 	private Integer getIntValue(JsonNode node, String fieldName) {
 		return node.has(fieldName) && !node.get(fieldName).isNull() ? node.get(fieldName).asInt() : null;
+	}
+
+	private Long getLongValue(JsonNode node, String fieldName) {
+		return node.has(fieldName) && !node.get(fieldName).isNull() ? node.get(fieldName).asLong() : null;
 	}
 
 	private Boolean getBooleanValue(JsonNode node, String fieldName) {

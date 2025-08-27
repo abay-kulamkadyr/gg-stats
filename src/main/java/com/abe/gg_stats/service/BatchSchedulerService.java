@@ -1,5 +1,8 @@
 package com.abe.gg_stats.service;
 
+import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.ServiceLogging;
+import com.abe.gg_stats.util.StructuredLoggingContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
@@ -8,14 +11,13 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import java.util.UUID;
 
 @Service
 @Slf4j
-public class BatchSchedulerService {
+public class BatchSchedulerService implements ServiceLogging {
 
 	private final JobLauncher jobLauncher;
-
-	private final OpenDotaApiService openDotaApiService;
 
 	private final Job heroesUpdateJob;
 
@@ -27,20 +29,23 @@ public class BatchSchedulerService {
 
 	private final Job playerUpdateJob;
 
+	private final RateLimitingService rateLimitingService;
+
 	// Constructor injection with qualifiers
-	public BatchSchedulerService(JobLauncher jobLauncher, OpenDotaApiService openDotaApiService,
+	public BatchSchedulerService(JobLauncher jobLauncher, RateLimitingService rateLimitingService,
 			@Qualifier("heroesUpdateJob") Job heroesUpdateJob,
 			@Qualifier("proPlayersUpdateJob") Job notablePlayersUpdateJob,
 			@Qualifier("teamsUpdateJob") Job teamsUpdateJob,
 			@Qualifier("heroRankingUpdateJob") Job heroRankingUpdateJob,
 			@Qualifier("playerUpdateJob") Job playerUpdateJob) {
+
 		this.jobLauncher = jobLauncher;
-		this.openDotaApiService = openDotaApiService;
 		this.heroesUpdateJob = heroesUpdateJob;
 		this.notablePlayersUpdateJob = notablePlayersUpdateJob;
 		this.teamsUpdateJob = teamsUpdateJob;
 		this.heroRankingUpdateJob = heroRankingUpdateJob;
 		this.playerUpdateJob = playerUpdateJob;
+		this.rateLimitingService = rateLimitingService;
 	}
 
 	/**
@@ -97,20 +102,24 @@ public class BatchSchedulerService {
 	 * Manual trigger for heroes job
 	 */
 	public boolean triggerHeroesUpdate() {
-		if (canRunJob()) {
+		return executeWithLogging("Manual Heroes Update", () -> {
+			if (!canRunJob()) {
+				return false;
+			}
 			return runJob(heroesUpdateJob, "Manual Heroes Update");
-		}
-		return false;
+		}, "jobType=heroes");
 	}
 
 	/**
-	 * Manual trigger for heroes job (can be called via REST endpoint)
+	 * Manual trigger for player job (can be called via REST endpoint)
 	 */
 	public boolean triggerPlayerUpdate() {
-		if (canRunJob()) {
+		return executeWithLogging("Manual Player Update", () -> {
+			if (!canRunJob()) {
+				return false;
+			}
 			return runJob(playerUpdateJob, "Manual Player Update");
-		}
-		return false;
+		}, "jobType=players");
 	}
 
 	/**
@@ -147,12 +156,13 @@ public class BatchSchedulerService {
 	 * Check if we have enough API requests remaining to run a job
 	 */
 	private boolean canRunJob() {
-		int remainingRequests = openDotaApiService.getRemainingDailyRequests();
-		log.debug("Remaining daily API requests: {}", remainingRequests);
+		int remainingRequests = rateLimitingService.getStatus().remainingDailyRequests();
+		LoggingUtils.logDebug("Remaining daily API requests: {}", remainingRequests);
 
 		// Ensure we have at least 50 requests remaining before running any job
 		if (remainingRequests < 50) {
-			log.warn("Insufficient API requests remaining ({}), skipping scheduled job", remainingRequests);
+			LoggingUtils.logWarning("Insufficient API requests remaining, skipping scheduled job", 
+				"remainingRequests=" + remainingRequests, "threshold=50");
 			return false;
 		}
 
@@ -164,18 +174,25 @@ public class BatchSchedulerService {
 	 */
 	private boolean runJob(Job job, String jobDescription) {
 		try {
-			log.info("Starting {}", jobDescription);
+			String correlationId = UUID.randomUUID().toString();
+			LoggingUtils.logOperationStart(jobDescription, 
+				"job=" + job.getName(), 
+				"correlationId=" + correlationId);
 
-			// Create unique parameters for each run
-			JobParameters jobParameters = new JobParametersBuilder().addLong("timestamp", System.currentTimeMillis())
+			// Create unique parameters for each run with correlation ID
+			JobParameters jobParameters = new JobParametersBuilder()
+				.addLong("timestamp", System.currentTimeMillis())
+				.addString("correlationId", correlationId)
 				.toJobParameters();
 
 			jobLauncher.run(job, jobParameters);
-			log.info("Successfully completed {}", jobDescription);
+			LoggingUtils.logOperationSuccess(jobDescription, 
+				"job=" + job.getName(), 
+				"correlationId=" + correlationId);
 			return true;
 		}
 		catch (Exception e) {
-			log.error("Error running {}: {}", jobDescription, e.getMessage(), e);
+			LoggingUtils.logOperationFailure(jobDescription, "Job execution failed", e);
 			return false;
 		}
 	}
@@ -184,7 +201,7 @@ public class BatchSchedulerService {
 	 * Get status information about API usage and job scheduling
 	 */
 	public String getSchedulerStatus() {
-		int remainingRequests = openDotaApiService.getRemainingDailyRequests();
+		int remainingRequests = rateLimitingService.getStatus().remainingDailyRequests();
 		return String.format("Scheduler Status - Remaining API requests: %d, Jobs enabled: %s", remainingRequests,
 				canRunJob());
 	}
