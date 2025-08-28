@@ -2,6 +2,7 @@ package com.abe.gg_stats.batch.heroRanking;
 
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
+import com.abe.gg_stats.util.LoggingUtils;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
@@ -24,46 +25,42 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 
 	private void writeItem(List<? extends HeroRanking> items) {
 		if (items.isEmpty()) {
-			log.debug("No hero ranking items to write.");
+			LoggingUtils.logWarning("HeroRankingWriter", "No hero ranking items to write.");
 			return;
 		}
-
-		log.info("Writing {} hero ranking items.", items.size());
-
-		// Use saveAll() for a single, efficient batch insert/update
+		LoggingUtils.logOperationStart("Writing " + items.size() + " hero ranking items");
 		heroRankingRepository.saveAll(items);
-
-		log.debug("Successfully saved {} hero ranking items.", items.size());
+		LoggingUtils.logOperationSuccess("Successfully saved " + items.size() + " hero ranking items");
 	}
 
 	@Override
-	public void write(Chunk<? extends List<HeroRanking>> chunk) throws Exception {
+	public void write(Chunk<? extends List<HeroRanking>> chunk) {
 		if (chunk.isEmpty()) {
-			log.debug("Empty chunk received, nothing to write");
+			LoggingUtils.logWarning("HeroRanking Writer", "Empty chunk received, nothing to write");
 			return;
 		}
 
-		log.info("Writing {} items to database", chunk.size());
+		LoggingUtils.logOperationStart("HeroRankingWriter", "Writing" + chunk.size() + " items to database");
 
 		int successCount = 0;
 		int errorCount = 0;
-
 		for (var item : chunk) {
 			try {
 				writeItem(item);
 				successCount++;
-				log.debug("Successfully wrote item: {}", item);
+				LoggingUtils.logDebug("Successfully wrote item: {}", () -> item.toString());
 			}
 			catch (Exception e) {
 				errorCount++;
-				log.error("Error writing item: {}", item != null ? item.toString() : "null", e);
+				LoggingUtils.logOperationFailure("hero ranking item write", "Error writing item", e);
 			}
 		}
 
-		log.info("Write operation completed: {} successful, {} errors", successCount, errorCount);
+		LoggingUtils.logOperationSuccess("HeroRankingWriter", "Write operation completed", "successful=" + successCount,
+				"errors=" + errorCount);
 
 		if (errorCount > 0) {
-			log.warn("Some items failed to write. Check logs for details.");
+			LoggingUtils.logWarning("HeroRankingWriter", "Some items failed to write. Check logs for details.");
 		}
 	}
 

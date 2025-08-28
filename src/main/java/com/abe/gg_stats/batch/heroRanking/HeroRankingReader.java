@@ -5,8 +5,8 @@ import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.abe.gg_stats.util.LoggingUtils;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,20 +40,17 @@ public class HeroRankingReader extends BaseApiReader<JsonNode> {
 		List<Integer> heroIds = heroRepository.findAllIds();
 		List<JsonNode> heroRankings = new ArrayList<>();
 		heroIds.forEach(heroId -> fetchDataFromApiIfNeeded(heroId).ifPresent(heroRankings::add));
-		log.info("Initialized hero ranking reader with {} heroes loaded", heroRankings.size());
+		LoggingUtils
+			.logOperationSuccess("Initialized hero ranking reader with " + heroRankings.size() + "heroes loaded");
 		this.dataIterator = heroRankings.iterator();
 	}
 
 	Optional<JsonNode> fetchDataFromApiIfNeeded(Integer heroId) {
 
-		log.info("Updating hero ranking info for hero_id: {}", heroId);
-
+		LoggingUtils.logMethodEntry("Updating hero ranking info for hero_id " + heroId);
 		Optional<LocalDateTime> latestUpdate = heroRankingRepository.findMaxUpdatedAt();
-
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
-			Duration expiration = super.getExpiration();
-			log.info("Heroes data is up to date (last update: {}), expires in: {}", latestUpdate.get(),
-					super.formatDuration(expiration));
+			LoggingUtils.logWarning("Heroes data is up to date (last update: " + latestUpdate + ")");
 			return Optional.empty();
 		}
 

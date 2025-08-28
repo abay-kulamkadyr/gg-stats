@@ -84,8 +84,8 @@ public class CircuitBreakerService {
 		}
 		catch (Exception e) {
 			circuitBreaker.recordFailure();
-			LoggingUtils.logOperationFailure("circuit_breaker_execution", "Operation failed for service: " + serviceName,
-					e);
+			LoggingUtils.logOperationFailure("circuit_breaker_execution",
+					"Operation failed for service: " + serviceName, e);
 			throw new CircuitBreakerException(serviceName, "Closed", "Operation failed for service");
 		}
 	}

@@ -2,14 +2,14 @@ package com.abe.gg_stats.batch.heroRanking;
 
 import com.abe.gg_stats.batch.BaseProcessor;
 import com.abe.gg_stats.entity.HeroRanking;
+import com.abe.gg_stats.util.LoggingUtils;
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
@@ -18,13 +18,16 @@ public class HeroRankingProcessor extends BaseProcessor<JsonNode, List<HeroRanki
 	@Override
 	protected boolean isValidInput(JsonNode item) {
 		// Check for required root fields
+		final String LOG_PARSING_ERROR = "HeroRanking Json Validation Error";
 		if (!item.has("hero_id") || item.get("hero_id").isNull()) {
-			log.debug("Hero ranking data missing or null 'hero_id' field in the root object.");
+			LoggingUtils.logWarning(LOG_PARSING_ERROR,
+					"Hero ranking data missing or null 'hero_id' field in the root object.");
 			return false;
 		}
 
 		if (!item.has("rankings") || !item.get("rankings").isArray()) {
-			log.debug("Hero ranking data missing or 'rankings' field is not an array.");
+			LoggingUtils.logWarning(LOG_PARSING_ERROR,
+					"Hero ranking data missing or 'rankings' field is not an array.");
 			return false;
 		}
 
@@ -44,12 +47,6 @@ public class HeroRankingProcessor extends BaseProcessor<JsonNode, List<HeroRanki
 				Long accountId = Optional.ofNullable(rankingNode.get("account_id")).map(JsonNode::asLong).orElse(null);
 				Double score = Optional.ofNullable(rankingNode.get("score")).map(JsonNode::asDouble).orElse(null);
 
-				// Validate individual ranking items
-				if (accountId == null || accountId <= 0) {
-					log.warn("Invalid account_id in ranking for hero {}: {}", heroId, rankingNode.get("account_id"));
-					return null;
-				}
-
 				// Create and return the HeroRanking entity
 				HeroRanking ranking = new HeroRanking();
 				ranking.setHeroId(heroId);
@@ -58,7 +55,8 @@ public class HeroRankingProcessor extends BaseProcessor<JsonNode, List<HeroRanki
 				return ranking;
 			}
 			catch (Exception e) {
-				log.error("Error processing a hero ranking item for hero {}: {}", heroId, rankingNode, e);
+				LoggingUtils.logOperationFailure("HeroRankingProcessor",
+						"Error processing a hero ranking item for hero " + heroId);
 				return null;
 			}
 		})

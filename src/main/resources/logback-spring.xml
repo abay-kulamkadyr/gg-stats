@@ -3,7 +3,7 @@
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     
     <!-- Define JSON encoder -->
-    <springProfile name="production,prod">
+    <springProfile name="production | prod">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <includeContext>true</includeContext>
@@ -43,7 +43,7 @@
     </springProfile>
     
     <!-- Standard logging for development -->
-    <springProfile name="!production,!prod">
+    <springProfile name="!production &amp; !prod">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
                 <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{operationType:-}] [%X{serviceName:-}] %logger{36} - %msg%n</pattern>

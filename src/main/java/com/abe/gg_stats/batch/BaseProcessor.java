@@ -14,7 +14,8 @@ public abstract class BaseProcessor<JsonNode, O> implements ItemProcessor<JsonNo
 
 		// Validate input
 		if (!isValidInput(item)) {
-			LoggingUtils.logWarning("Invalid input received", item);
+			LoggingUtils.logWarning("Invalid input received", "itemType=" + getItemTypeDescription(),
+					"item=" + (item != null ? item.toString() : "null"));
 			return null;
 		}
 
@@ -22,7 +23,8 @@ public abstract class BaseProcessor<JsonNode, O> implements ItemProcessor<JsonNo
 		O result = processItem(item);
 
 		if (result == null) {
-			LoggingUtils.logWarning("Processing returned null for item", item);
+			LoggingUtils.logWarning("Processing returned null for item", "itemType=" + getItemTypeDescription(),
+					"item=" + (item != null ? item.toString() : "null"));
 			return null;
 		}
 

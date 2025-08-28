@@ -6,15 +6,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.util.StopWatch;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.counting;
+import static java.util.stream.Collectors.groupingBy;
 
 /**
- * Logging utility providing consistent, structured logging patterns with
- * performance optimization and security considerations. Features: - Lazy evaluation of
- * log parameters - Structured logging with MDC context - Performance metrics collection -
- * Security-aware parameter sanitization - Thread-safe operation counters
+ * Logging utility providing consistent, structured logging patterns with performance
+ * optimization and security considerations. Features: - Lazy evaluation of log parameters
+ * - Structured logging with MDC context - Performance metrics collection - Security-aware
+ * parameter sanitization - Thread-safe operation counters
  */
 @Slf4j
 public final class LoggingUtils {
@@ -84,6 +89,11 @@ public final class LoggingUtils {
 
 	public static void logOperationFailure(String operation, String reason) {
 		log.error("❌ Failed to complete {} - Reason: {}", operation, reason);
+	}
+
+	public static void logOperationFailure(String operation, String reason, Throwable error, Object... context) {
+		String formattedContext = formatDetails(context);
+		log.error("❌ Failed to complete {} - Reason: {} - Context: {}", operation, reason, formattedContext, error);
 	}
 
 	public static void logWarning(String message, Map<String, Object> context) {
@@ -199,6 +209,65 @@ public final class LoggingUtils {
 	public static void resetMetrics() {
 		operationCounts.clear();
 		totalOperationTime.clear();
+	}
+
+	/**
+	 * Logs aggregated errors with categorization and counts
+	 */
+	public static void logAggregatedErrors(String operation, List<Exception> errors, Object... context) {
+		if (errors == null || errors.isEmpty()) {
+			return;
+		}
+
+		Map<String, Long> errorCounts = errors.stream()
+			.collect(groupingBy(e -> e.getClass().getSimpleName(), counting()));
+
+		List<String> errorMessages = errors.stream()
+			.map(Throwable::getMessage)
+			.filter(msg -> msg != null && !msg.isEmpty())
+			.distinct()
+			.limit(5) // Limit to first 5 unique messages to avoid log spam
+			.collect(Collectors.toList());
+
+		String formattedContext = formatDetails(context);
+
+		log.error("❌ Multiple errors in operation: {} - Total: {} - Types: {} - Sample messages: {} - Context: {}",
+				operation, errors.size(), errorCounts, errorMessages, formattedContext);
+
+		// Also update error metrics
+		errorCounts.forEach((errorType, count) -> updateOperationMetrics(operation + "_error_" + errorType, count));
+	}
+
+	/**
+	 * Logs business events for monitoring and alerting
+	 */
+	public static void logBusinessEvent(String eventName, String eventType, Object... details) {
+		log.info("📊 Business Event: {} [{}] - {}", eventName, eventType, formatDetails(details));
+		updateOperationMetrics("business_event_" + eventName, 1);
+	}
+
+	/**
+	 * Logs alertable events with severity levels
+	 */
+	public static void logAlertableEvent(String eventName, AlertLevel level, Object... details) {
+		String icon = switch (level) {
+			case LOW -> "🟡";
+			case MEDIUM -> "🟠";
+			case HIGH -> "🔴";
+			case CRITICAL -> "🚨";
+		};
+
+		log.warn("{} ALERT [{}]: {} - {}", icon, level, eventName, formatDetails(details));
+		updateOperationMetrics("alert_" + level.name().toLowerCase() + "_" + eventName, 1);
+	}
+
+	/**
+	 * Alert severity levels
+	 */
+	public enum AlertLevel {
+
+		LOW, MEDIUM, HIGH, CRITICAL
+
 	}
 
 	@SafeVarargs

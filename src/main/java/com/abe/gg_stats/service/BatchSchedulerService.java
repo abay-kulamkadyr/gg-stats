@@ -161,8 +161,8 @@ public class BatchSchedulerService implements ServiceLogging {
 
 		// Ensure we have at least 50 requests remaining before running any job
 		if (remainingRequests < 50) {
-			LoggingUtils.logWarning("Insufficient API requests remaining, skipping scheduled job", 
-				"remainingRequests=" + remainingRequests, "threshold=50");
+			LoggingUtils.logWarning("Insufficient API requests remaining, skipping scheduled job",
+					"remainingRequests=" + remainingRequests, "threshold=50");
 			return false;
 		}
 
@@ -175,20 +175,15 @@ public class BatchSchedulerService implements ServiceLogging {
 	private boolean runJob(Job job, String jobDescription) {
 		try {
 			String correlationId = UUID.randomUUID().toString();
-			LoggingUtils.logOperationStart(jobDescription, 
-				"job=" + job.getName(), 
-				"correlationId=" + correlationId);
+			LoggingUtils.logOperationStart(jobDescription, "job=" + job.getName(), "correlationId=" + correlationId);
 
 			// Create unique parameters for each run with correlation ID
-			JobParameters jobParameters = new JobParametersBuilder()
-				.addLong("timestamp", System.currentTimeMillis())
+			JobParameters jobParameters = new JobParametersBuilder().addLong("timestamp", System.currentTimeMillis())
 				.addString("correlationId", correlationId)
 				.toJobParameters();
 
 			jobLauncher.run(job, jobParameters);
-			LoggingUtils.logOperationSuccess(jobDescription, 
-				"job=" + job.getName(), 
-				"correlationId=" + correlationId);
+			LoggingUtils.logOperationSuccess(jobDescription, "job=" + job.getName(), "correlationId=" + correlationId);
 			return true;
 		}
 		catch (Exception e) {
