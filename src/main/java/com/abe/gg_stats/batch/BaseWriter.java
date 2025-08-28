@@ -29,7 +29,9 @@ public abstract class BaseWriter<T> implements ItemWriter<T> {
 			}
 			catch (Exception e) {
 				errorCount++;
-				LoggingUtils.logOperationFailure("item write", "Failed to write item", e);
+				LoggingUtils.logOperationFailure("item write", "Failed to write item", e,
+						"itemType=" + getItemTypeDescription(), "chunkIndex=" + chunk.size(),
+						"itemIndex=" + (successCount + errorCount), "errorType=" + e.getClass().getSimpleName());
 			}
 		}
 

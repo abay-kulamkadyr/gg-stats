@@ -32,7 +32,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Enterprise-grade OpenDota API client with comprehensive resilience patterns.
+ * OpenDota API client with comprehensive resilience patterns.
  * <p>
  * Features: - Rate limiting with token bucket algorithm - Circuit breaker pattern for
  * fault tolerance - Comprehensive monitoring and health checks - Async execution support
@@ -91,17 +91,15 @@ public class OpenDotaApiService implements HealthIndicator, ServiceLogging {
 	private Optional<JsonNode> performApiCall(String endpoint) {
 		// Set up API call context
 		String correlationId = StructuredLoggingContext.setApiContext(endpoint, "GET");
-		
+
 		try {
 			// Check rate limit first
 			RateLimitingService.RateLimitResult rateLimitResult = rateLimitingService.tryAcquirePermit(endpoint);
 
 			if (!rateLimitResult.allowed()) {
-				LoggingUtils.logWarning("Rate limit exceeded", 
-					"endpoint=" + endpoint, 
-					"reason=" + rateLimitResult.reason(),
-					"resetTime=" + rateLimitResult.resetTimeMs() + "ms",
-					"correlationId=" + correlationId);
+				LoggingUtils.logWarning("Rate limit exceeded", "endpoint=" + endpoint,
+						"reason=" + rateLimitResult.reason(), "resetTime=" + rateLimitResult.resetTimeMs() + "ms",
+						"correlationId=" + correlationId);
 				return Optional.empty();
 			}
 
@@ -155,7 +153,8 @@ public class OpenDotaApiService implements HealthIndicator, ServiceLogging {
 		catch (Exception e) {
 			LoggingUtils.logOperationFailure("opendota_api_call", "Unexpected error for endpoint: " + endpoint, e);
 			throw new RuntimeException("API call failed", e);
-		} finally {
+		}
+		finally {
 			// Clear API context
 			StructuredLoggingContext.clearContext();
 		}
@@ -276,7 +275,7 @@ public class OpenDotaApiService implements HealthIndicator, ServiceLogging {
 
 	private Optional<JsonNode> handleFallback(String endpoint) {
 		LoggingUtils.logWarning("Using fallback for API call", "endpoint=" + endpoint);
-		//TODO
+		// TODO
 		// Implement fallback logic here - could be:
 		// - Return cached data
 		// - Return default values

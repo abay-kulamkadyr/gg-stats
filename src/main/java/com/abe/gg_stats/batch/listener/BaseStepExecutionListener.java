@@ -19,27 +19,56 @@ public abstract class BaseStepExecutionListener implements StepExecutionListener
 	 */
 	protected abstract String getStepName();
 
+	/**
+	 * Get the batch type for enhanced context (optional override)
+	 */
+	protected String getBatchType() {
+		return getStepName();
+	}
+
+	/**
+	 * Calculate processing rate for performance monitoring (optional override)
+	 */
+	protected double calculateProcessingRate(StepExecution stepExecution) {
+		long duration = stepExecution.getEndTime() != null && stepExecution.getStartTime() != null
+				? java.time.Duration.between(stepExecution.getStartTime(), stepExecution.getEndTime()).toMillis()
+				: 1000; // fallback to 1 second if times not available
+
+		return duration > 0 ? (double) stepExecution.getReadCount() / (duration / 1000.0) : 0.0;
+	}
+
+	/**
+	 * Get expected item count for progress tracking (optional override)
+	 */
+	protected long getExpectedItemCount(StepExecution stepExecution) {
+		// Default implementation - subclasses can override with specific logic
+		return -1; // Unknown
+	}
+
 	@Override
 	public void beforeStep(StepExecution stepExecution) {
 		// Set up structured logging context for this batch step
 		String jobId = stepExecution.getJobExecution().getJobId().toString();
 		String stepName = stepExecution.getStepName();
-		
+
 		// Extract correlation ID from job parameters or create new one
 		String correlationId = stepExecution.getJobParameters().getString("correlationId");
 		if (correlationId != null) {
 			// Inherit correlation from job launcher
 			StructuredLoggingContext.updateContext(StructuredLoggingContext.CORRELATION_ID, correlationId);
 		}
-		
+
 		// Set up batch-specific context
 		String actualCorrelationId = StructuredLoggingContext.setBatchContext(getStepName(), jobId, stepName);
-		
-		LoggingUtils.logOperationStart(getStepName() + " batch step", 
-			"jobId=" + jobId,
-			"stepName=" + stepName,
-			"correlationId=" + actualCorrelationId,
-			"parameters=" + stepExecution.getJobParameters());
+
+		// Add additional structured context
+		StructuredLoggingContext.updateContext("batchType", getBatchType());
+		StructuredLoggingContext.updateContext("expectedItemCount",
+				String.valueOf(getExpectedItemCount(stepExecution)));
+
+		LoggingUtils.logOperationStart(getStepName() + " batch step", "jobId=" + jobId, "stepName=" + stepName,
+				"correlationId=" + actualCorrelationId, "batchType=" + getBatchType(),
+				"parameters=" + stepExecution.getJobParameters());
 	}
 
 	@Override
@@ -47,21 +76,25 @@ public abstract class BaseStepExecutionListener implements StepExecutionListener
 		try {
 			if (stepExecution.getStatus().isUnsuccessful()) {
 				LoggingUtils.logOperationFailure(getStepName() + " batch step", "Step execution failed",
-						stepExecution.getFailureExceptions().get(0));
+						stepExecution.getFailureExceptions().getFirst());
 				return ExitStatus.FAILED;
 			}
 
-			LoggingUtils.logOperationSuccess(getStepName() + " batch step", 
-				"stepName=" + stepExecution.getStepName(),
-				"read=" + stepExecution.getReadCount(), 
-				"write=" + stepExecution.getWriteCount(),
-				"skip=" + stepExecution.getSkipCount(), 
-				"commit=" + stepExecution.getCommitCount(),
-				"rollback=" + stepExecution.getRollbackCount(),
-				"correlationId=" + StructuredLoggingContext.getCurrentCorrelationId());
+			double processingRate = calculateProcessingRate(stepExecution);
+			long duration = stepExecution.getEndTime() != null && stepExecution.getStartTime() != null
+					? java.time.Duration.between(stepExecution.getStartTime(), stepExecution.getEndTime()).toMillis()
+					: 0;
+
+			LoggingUtils.logOperationSuccess(getStepName() + " batch step", "stepName=" + stepExecution.getStepName(),
+					"read=" + stepExecution.getReadCount(), "write=" + stepExecution.getWriteCount(),
+					"skip=" + stepExecution.getSkipCount(), "commit=" + stepExecution.getCommitCount(),
+					"rollback=" + stepExecution.getRollbackCount(), "duration=" + duration + "ms",
+					"processingRate=" + String.format("%.2f", processingRate) + " items/sec",
+					"correlationId=" + StructuredLoggingContext.getCurrentCorrelationId());
 
 			return ExitStatus.COMPLETED;
-		} finally {
+		}
+		finally {
 			// Clear structured logging context to prevent memory leaks
 			StructuredLoggingContext.clearContext();
 		}

@@ -1,1 +1,0 @@
-ALTER TABLE pro_player RENAME TO notable_player;
