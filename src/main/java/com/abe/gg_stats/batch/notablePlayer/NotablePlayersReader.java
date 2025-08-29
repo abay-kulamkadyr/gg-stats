@@ -4,9 +4,11 @@ import com.abe.gg_stats.batch.BaseApiReader;
 import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.abe.gg_stats.util.LoggingConstants;
+import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDateTime;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +16,6 @@ import java.time.Duration;
 import java.util.Optional;
 
 @Component
-@Slf4j
 public class NotablePlayersReader extends BaseApiReader<JsonNode> {
 
 	private final NotablePlayerRepository notablePlayerRepository;
@@ -28,20 +29,38 @@ public class NotablePlayersReader extends BaseApiReader<JsonNode> {
 
 	@Override
 	protected void initialize() {
+		// Set up reader context
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", "notableplayers");
+		
+		LoggingUtils.logOperationStart("Initializing notable players reader", 
+			"correlationId=" + correlationId);
+		
 		Optional<LocalDateTime> latestUpdate = notablePlayerRepository.findMaxUpdatedAt();
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();
-			log.info("Heroes data is up to date (last update: {}), expires in: {}", latestUpdate.get(),
-					super.formatDuration(expiration));
+			LoggingUtils.logOperationSuccess("Notable players data in cache is valid", 
+				"correlationId=" + correlationId,
+				"lastUpdate=" + latestUpdate.get(),
+				"expiresIn=" + super.formatDuration(expiration));
 			return;
 		}
 
+		// Fetch from API
+		LoggingUtils.logOperationStart("Fetching notable players data from API", 
+			"correlationId=" + correlationId);
+		
 		Optional<JsonNode> proPlayersData = openDotaApiService.getProPlayers();
 		if (proPlayersData.isPresent()) {
 			this.dataIterator = proPlayersData.get().elements();
+			LoggingUtils.logOperationSuccess("Successfully fetched notable players data from API", 
+				"correlationId=" + correlationId,
+				"dataSize=" + proPlayersData.get().size());
 		}
 		else {
-			log.warn("Failed to initialize notable players reader - no data from API");
+			LoggingUtils.logWarning("Failed to initialize notable players reader - no data from API", 
+				"correlationId=" + correlationId);
 		}
 	}
 

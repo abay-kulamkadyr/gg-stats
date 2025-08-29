@@ -5,13 +5,14 @@ import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +21,6 @@ import org.springframework.stereotype.Component;
  * hero rankings from the OpenDota API and provides them for processing.
  */
 @Component
-@Slf4j
 public class HeroRankingReader extends BaseApiReader<JsonNode> {
 
 	private final HeroRepository heroRepository;
@@ -37,20 +37,39 @@ public class HeroRankingReader extends BaseApiReader<JsonNode> {
 
 	@Override
 	protected void initialize() {
+		// Set up reader context
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", "herorankings");
+		
+		LoggingUtils.logOperationStart("Initializing hero ranking reader", 
+			"correlationId=" + correlationId);
+		
 		List<Integer> heroIds = heroRepository.findAllIds();
 		List<JsonNode> heroRankings = new ArrayList<>();
 		heroIds.forEach(heroId -> fetchDataFromApiIfNeeded(heroId).ifPresent(heroRankings::add));
-		LoggingUtils
-			.logOperationSuccess("Initialized hero ranking reader with " + heroRankings.size() + "heroes loaded");
+		
+		LoggingUtils.logOperationSuccess("Initialized hero ranking reader", 
+			"correlationId=" + correlationId,
+			"heroesLoaded=" + heroRankings.size());
 		this.dataIterator = heroRankings.iterator();
 	}
 
 	Optional<JsonNode> fetchDataFromApiIfNeeded(Integer heroId) {
-
-		LoggingUtils.logMethodEntry("Updating hero ranking info for hero_id " + heroId);
+		// Set up processing context
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", "herorankings");
+		
+		LoggingUtils.logMethodEntry("Updating hero ranking info for hero_id",
+				() -> "correlationId=" + correlationId,
+				() -> "heroId=" + heroId);
+		
 		Optional<LocalDateTime> latestUpdate = heroRankingRepository.findMaxUpdatedAt();
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
-			LoggingUtils.logWarning("Heroes data is up to date (last update: " + latestUpdate + ")");
+			LoggingUtils.logWarning("Hero ranking data is up to date", 
+				"correlationId=" + correlationId,
+				"lastUpdate=" + latestUpdate.get());
 			return Optional.empty();
 		}
 

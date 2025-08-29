@@ -2,6 +2,9 @@ package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.abe.gg_stats.util.LoggingConstants;
+import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemReader;
 
@@ -30,12 +33,18 @@ public abstract class BaseApiReader<JsonNode> implements ItemReader<JsonNode> {
 	@Override
 	public JsonNode read() {
 		if (!initialized) {
+			LoggingUtils.logOperationStart("Initializing " + getExpirationConfigName() + " reader");
 			initialize();
 			initialized = true;
+			LoggingUtils.logOperationSuccess("Initialized " + getExpirationConfigName() + " reader");
 		}
 
 		if (dataIterator != null && dataIterator.hasNext()) {
-			return dataIterator.next();
+			JsonNode item = dataIterator.next();
+			LoggingUtils.logDebug("Reading item from " + getExpirationConfigName() + " batch", 
+				"itemType=" + getExpirationConfigName(), 
+				"item=" + (item != null ? item.toString() : "null"));
+			return item;
 		}
 
 		return null;
@@ -48,12 +57,31 @@ public abstract class BaseApiReader<JsonNode> implements ItemReader<JsonNode> {
 	 */
 	protected boolean noRefreshNeeded(LocalDateTime lastUpdate) {
 		if (lastUpdate == null) {
+			LoggingUtils.logDebug("No refresh needed - no previous update timestamp", 
+				"dataType=" + getExpirationConfigName());
 			return false;
 		}
+		
 		Duration expiration = batchExpirationConfig.getDurationByConfigName(getExpirationConfigName());
 		LocalDateTime now = LocalDateTime.now();
 		LocalDateTime expirationTime = lastUpdate.plus(expiration);
-		return !now.isAfter(expirationTime);
+		boolean needsRefresh = now.isAfter(expirationTime);
+		
+		if (needsRefresh) {
+			LoggingUtils.logDebug("Data refresh needed", 
+				"dataType=" + getExpirationConfigName(),
+				"lastUpdate=" + lastUpdate,
+				"expiresAt=" + expirationTime,
+				"currentTime=" + now);
+		} else {
+			LoggingUtils.logDebug("Data refresh not needed", 
+				"dataType=" + getExpirationConfigName(),
+				"lastUpdate=" + lastUpdate,
+				"expiresAt=" + expirationTime,
+				"currentTime=" + now);
+		}
+		
+		return !needsRefresh;
 	}
 
 	/**

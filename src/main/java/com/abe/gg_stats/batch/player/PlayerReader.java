@@ -9,7 +9,9 @@ import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
 import com.abe.gg_stats.repository.PlayerRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
+import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
@@ -20,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -31,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
  * issues and API rate limiting.
  */
 @Component
-@Slf4j
 public class PlayerReader extends BaseApiReader<JsonNode> {
 
 	private final HeroRankingRepository heroRankingRepository;
@@ -65,6 +65,14 @@ public class PlayerReader extends BaseApiReader<JsonNode> {
 
 	@Override
 	protected void initialize() {
+		// Set up reader context
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", "players");
+		
+		LoggingUtils.logOperationStart("Initializing chunked player reader", 
+			"correlationId=" + correlationId);
+		
 		Set<Long> allAccountIds = collectAllAccountIds();
 		totalAccounts = allAccountIds.size();
 
@@ -77,8 +85,10 @@ public class PlayerReader extends BaseApiReader<JsonNode> {
 		currentChunkIndex = 0;
 		totalProcessed = 0;
 
-		LoggingUtils.logOperationStart("chunked player reader initialization", "totalAccounts=" + totalAccounts,
-				"chunkSize=" + chunkSize);
+		LoggingUtils.logOperationStart("chunked player reader initialization", 
+			"correlationId=" + correlationId,
+			"totalAccounts=" + totalAccounts,
+			"chunkSize=" + chunkSize);
 
 		// Pre-fetch first chunk
 		fetchNextChunk();

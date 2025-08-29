@@ -1,21 +1,34 @@
 package com.abe.gg_stats.batch;
 
+import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemProcessor;
 
-@Slf4j
 public abstract class BaseProcessor<JsonNode, O> implements ItemProcessor<JsonNode, O> {
 
 	@Override
 	public O process(@NonNull JsonNode item) {
-		LoggingUtils.logDebug("Processing item: {}", item);
+		// Set up processing context - inherit existing context if available
+		String existingCorrelationId = MDCLoggingContext.getCurrentCorrelationId();
+		String correlationId = existingCorrelationId != null ? existingCorrelationId : MDCLoggingContext.getOrCreateCorrelationId();
+		
+		// Update context with batch-specific information
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", getItemTypeDescription());
+		
+		LoggingUtils.logDebug("Processing " + getItemTypeDescription() + " item", 
+			"itemType=" + getItemTypeDescription(),
+			"correlationId=" + correlationId,
+			"item=" + (item != null ? item.toString() : "null"));
 
 		// Validate input
 		if (!isValidInput(item)) {
-			LoggingUtils.logWarning("Invalid input received", "itemType=" + getItemTypeDescription(),
-					"item=" + (item != null ? item.toString() : "null"));
+			LoggingUtils.logWarning("Invalid " + getItemTypeDescription() + " input received", 
+				"itemType=" + getItemTypeDescription(),
+				"correlationId=" + correlationId,
+				"item=" + (item != null ? item.toString() : "null"));
 			return null;
 		}
 
@@ -23,12 +36,17 @@ public abstract class BaseProcessor<JsonNode, O> implements ItemProcessor<JsonNo
 		O result = processItem(item);
 
 		if (result == null) {
-			LoggingUtils.logWarning("Processing returned null for item", "itemType=" + getItemTypeDescription(),
-					"item=" + (item != null ? item.toString() : "null"));
+			LoggingUtils.logWarning("Processing returned null for " + getItemTypeDescription(), 
+				"itemType=" + getItemTypeDescription(),
+				"correlationId=" + correlationId,
+				"item=" + (item != null ? item.toString() : "null"));
 			return null;
 		}
 
-		LoggingUtils.logDebug("Processing completed successfully", "result=" + result);
+		LoggingUtils.logDebug("Processing completed successfully", 
+			"itemType=" + getItemTypeDescription(),
+			"correlationId=" + correlationId,
+			"result=" + result);
 		return result;
 	}
 

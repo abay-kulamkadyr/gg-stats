@@ -3,6 +3,7 @@ package com.abe.gg_stats.config;
 import com.abe.gg_stats.batch.team.TeamProcessor;
 import com.abe.gg_stats.batch.team.TeamWriter;
 import com.abe.gg_stats.batch.team.TeamsReader;
+import com.abe.gg_stats.batch.listener.TeamsJobExecutionListener;
 import com.abe.gg_stats.batch.listener.TeamsStepExecutionListener;
 import com.abe.gg_stats.entity.Team;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,9 +39,10 @@ public class TeamsBatchConfig {
 	private int skipLimit;
 
 	@Bean("teamsUpdateJob")
-	public Job teamsUpdateJob(Step teamsStep) {
+	public Job teamsUpdateJob(Step teamsStep, TeamsJobExecutionListener teamsJobExecutionListener) {
 		return new JobBuilder("teamsUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
 			.start(teamsStep)
+			.listener(teamsJobExecutionListener)
 			.build();
 	}
 

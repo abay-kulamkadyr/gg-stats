@@ -2,7 +2,9 @@ package com.abe.gg_stats.batch.hero;
 
 import com.abe.gg_stats.batch.BaseProcessor;
 import com.abe.gg_stats.entity.Hero;
+import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Collections;
 import java.util.List;
@@ -17,21 +19,31 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 
 	@Override
 	protected boolean isValidInput(@NonNull JsonNode item) {
+		// Set up validation context
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", "heroes");
 
 		// Check for required fields
 		String LOG_PARSING_ERROR = "HeroProcessor Json validation error";
 		if (!item.has("id") || item.get("id").isNull()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, "Hero data is missing or null 'id' field");
+			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
+				"correlationId=" + correlationId,
+				"Hero data is missing or null 'id' field");
 			return false;
 		}
 
 		if (!item.has("name") || item.get("name").isNull()) {
-			LoggingUtils.logWarning("HeroProcessor", "Hero data missing or null 'name' field");
+			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
+				"correlationId=" + correlationId,
+				"Hero data missing or null 'name' field");
 			return false;
 		}
 
 		if (!item.has("localized_name") || item.get("localized_name").isNull()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, "Hero data missing or null 'localized_name' field");
+			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
+				"correlationId=" + correlationId,
+				"Hero data missing or null 'localized_name' field");
 			return false;
 		}
 
@@ -39,19 +51,25 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 		try {
 			int id = item.get("id").asInt();
 			if (id <= 0) {
-				LoggingUtils.logWarning(LOG_PARSING_ERROR, "Hero ID must be positive, got: " + id);
+				LoggingUtils.logWarning(LOG_PARSING_ERROR, 
+					"correlationId=" + correlationId,
+					"Hero ID must be positive, got: " + id);
 				return false;
 			}
 		}
 		catch (Exception e) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, "Hero ID is not a valid integer");
+			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
+				"correlationId=" + correlationId,
+				"Hero ID is not a valid integer");
 			return false;
 		}
 
 		// Validate name is not empty
 		String name = item.get("name").asText();
 		if (name == null || name.trim().isEmpty()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, "Hero name is empty or null 'name' field");
+			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
+				"correlationId=" + correlationId,
+				"Hero name is empty or null 'name' field");
 			return false;
 		}
 
@@ -60,6 +78,11 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 
 	@Override
 	protected Hero processItem(@NonNull JsonNode item) {
+		// Set up processing context
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", "heroes");
+		
 		Hero hero = new Hero();
 
 		// Required fields
@@ -75,7 +98,10 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 		List<String> roles = processRolesArray(item);
 		hero.setRoles(roles);
 
-		LoggingUtils.logOperationSuccess("HeroProcessor", hero.getName(), hero.getId());
+		LoggingUtils.logOperationSuccess("HeroProcessor", 
+			"correlationId=" + correlationId,
+			hero.getName(), 
+			hero.getId());
 		return hero;
 	}
 
