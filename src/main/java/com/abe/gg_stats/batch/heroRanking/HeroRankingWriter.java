@@ -2,9 +2,10 @@ package com.abe.gg_stats.batch.heroRanking;
 
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
+import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Component;
  * proper exception handling and batch processing.
  */
 @Component
-@Slf4j
 public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 
 	private final HeroRankingRepository heroRankingRepository;
@@ -24,23 +24,41 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 	}
 
 	private void writeItem(List<? extends HeroRanking> items) {
+		// Set up writing context
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", "herorankings");
+		
 		if (items.isEmpty()) {
-			LoggingUtils.logWarning("HeroRankingWriter", "No hero ranking items to write.");
+			LoggingUtils.logWarning("No hero ranking items to write", 
+				"correlationId=" + correlationId);
 			return;
 		}
-		LoggingUtils.logOperationStart("Writing " + items.size() + " hero ranking items");
+		LoggingUtils.logOperationStart("Writing hero ranking items", 
+			"correlationId=" + correlationId,
+			"itemsCount=" + items.size());
 		heroRankingRepository.saveAll(items);
-		LoggingUtils.logOperationSuccess("Successfully saved " + items.size() + " hero ranking items");
+		LoggingUtils.logOperationSuccess("Successfully saved hero ranking items", 
+			"correlationId=" + correlationId,
+			"itemsCount=" + items.size());
 	}
 
 	@Override
 	public void write(Chunk<? extends List<HeroRanking>> chunk) {
+		// Set up writing context
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
+		MDCLoggingContext.updateContext("batchType", "herorankings");
+		
 		if (chunk.isEmpty()) {
-			LoggingUtils.logWarning("HeroRanking Writer", "Empty chunk received, nothing to write");
+			LoggingUtils.logWarning("Empty chunk received, nothing to write", 
+				"correlationId=" + correlationId);
 			return;
 		}
 
-		LoggingUtils.logOperationStart("HeroRankingWriter", "Writing" + chunk.size() + " items to database");
+		LoggingUtils.logOperationStart("Writing hero ranking items to database", 
+			"correlationId=" + correlationId,
+			"chunkSize=" + chunk.size());
 
 		int successCount = 0;
 		int errorCount = 0;
@@ -48,19 +66,26 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 			try {
 				writeItem(item);
 				successCount++;
-				LoggingUtils.logDebug("Successfully wrote item: {}", () -> item.toString());
+				LoggingUtils.logDebug("Successfully wrote hero ranking item", 
+					"correlationId=" + correlationId,
+					"item=" + item.toString());
 			}
 			catch (Exception e) {
 				errorCount++;
-				LoggingUtils.logOperationFailure("hero ranking item write", "Error writing item", e);
+				LoggingUtils.logOperationFailure("hero ranking item write", "Error writing item", e,
+					"correlationId=" + correlationId);
 			}
 		}
 
-		LoggingUtils.logOperationSuccess("HeroRankingWriter", "Write operation completed", "successful=" + successCount,
-				"errors=" + errorCount);
+		LoggingUtils.logOperationSuccess("Hero ranking write operation completed", 
+			"correlationId=" + correlationId,
+			"successful=" + successCount,
+			"errors=" + errorCount);
 
 		if (errorCount > 0) {
-			LoggingUtils.logWarning("HeroRankingWriter", "Some items failed to write. Check logs for details.");
+			LoggingUtils.logWarning("Some hero ranking items failed to write", 
+				"correlationId=" + correlationId,
+				"errorCount=" + errorCount);
 		}
 	}
 

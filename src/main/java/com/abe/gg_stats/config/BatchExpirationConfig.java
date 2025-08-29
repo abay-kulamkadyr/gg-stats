@@ -1,11 +1,13 @@
 package com.abe.gg_stats.config;
 
+import com.abe.gg_stats.util.LoggingConstants;
+import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import com.abe.gg_stats.util.TimeUnitParser;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,7 +22,6 @@ import java.time.Duration;
  */
 @Configuration
 @Data
-@Slf4j
 public class BatchExpirationConfig {
 
 	private Map<String, String> durations = new HashMap<>();
@@ -48,7 +49,16 @@ public class BatchExpirationConfig {
 
 	@PostConstruct
 	public void validateAndParseConfigurations() {
-		log.info("Validating and parsing batch expiration configurations...");
+		// Set up MDC context for configuration logging
+		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_SERVICE);
+		MDCLoggingContext.updateContext("serviceName", "BatchExpirationConfig");
+		MDCLoggingContext.updateContext("operationName", LoggingConstants.OPERATION_CONFIGURATION_VALIDATION);
+
+		LoggingUtils.logOperationStart("Validating and parsing batch expiration configurations",
+			"correlationId=" + correlationId,
+			"operationType=" + LoggingConstants.OPERATION_TYPE_SERVICE,
+			"serviceName=BatchExpirationConfig");
 
 		// Use individual properties for better binding
 		durations.put("heroes", heroes != null ? heroes : "4mo");
@@ -58,27 +68,52 @@ public class BatchExpirationConfig {
 		durations.put("players", players != null ? players : "6h");
 		durations.put("default", defaultExpiration != null ? defaultExpiration : "3mo");
 
-		log.info("Using properties from configuration file");
-		log.info("Heroes expiration: {}", heroes != null ? heroes : "4mo (default)");
-		log.info("Teams expiration: {}", teams != null ? teams : "6mo (default)");
-		log.info("Notable players expiration: {}", notableplayers != null ? notableplayers : "3mo (default)");
-		log.info("Hero rankings expiration: {}", herorankings != null ? herorankings : "1mo (default)");
-		log.info("Players expiration: {}", players != null ? players : "6h (default)");
-		log.info("Default expiration: {}", defaultExpiration != null ? defaultExpiration : "3mo (default)");
+		LoggingUtils.logDebug("Using properties from configuration file",
+			"correlationId=" + correlationId,
+			"serviceName=BatchExpirationConfig");
+		LoggingUtils.logDebug("Heroes expiration: " + (heroes != null ? heroes : "4mo (default)"),
+			"correlationId=" + correlationId,
+			"serviceName=BatchExpirationConfig");
+		LoggingUtils.logDebug("Teams expiration: " + (teams != null ? teams : "6mo (default)"),
+			"correlationId=" + correlationId,
+			"serviceName=BatchExpirationConfig");
+		LoggingUtils.logDebug("Notable players expiration: " + (notableplayers != null ? notableplayers : "3mo (default)"),
+			"correlationId=" + correlationId,
+			"serviceName=BatchExpirationConfig");
+		LoggingUtils.logDebug("Hero rankings expiration: " + (herorankings != null ? herorankings : "1mo (default)"),
+			"correlationId=" + correlationId,
+			"serviceName=BatchExpirationConfig");
+		LoggingUtils.logDebug("Players expiration: " + (players != null ? players : "6h (default)"),
+			"correlationId=" + correlationId,
+			"serviceName=BatchExpirationConfig");
+		LoggingUtils.logDebug("Default expiration: " + (defaultExpiration != null ? defaultExpiration : "3mo (default)"),
+			"correlationId=" + correlationId,
+			"serviceName=BatchExpirationConfig");
 
 		durations.forEach((key, value) -> {
 			try {
 				Duration duration = TimeUnitParser.parse(value);
 				parsedDurations.put(key, duration);
-				log.info("{} expiration: {} (parsed to {})", key, value, formatDuration(duration));
+				LoggingUtils.logDebug(key + " expiration: " + value + " (parsed to " + formatDuration(duration) + ")",
+					"correlationId=" + correlationId,
+					"serviceName=BatchExpirationConfig",
+					"configKey=" + key,
+					"configValue=" + value);
 			}
 			catch (ParseException e) {
-				log.error("Invalid expiration configuration for {}: '{}'", key, value);
+				LoggingUtils.logOperationFailure("Configuration validation", "Invalid expiration configuration for " + key + ": " + value, e,
+					"correlationId=" + correlationId,
+					"serviceName=BatchExpirationConfig",
+					"configKey=" + key,
+					"configValue=" + value);
 				throw new IllegalArgumentException("Invalid expiration configuration for " + key + ": " + value, e);
 			}
 		});
 
-		log.info("Batch expiration configurations validated and parsed successfully.");
+		LoggingUtils.logOperationSuccess("Batch expiration configurations validation",
+			"correlationId=" + correlationId,
+			"serviceName=BatchExpirationConfig",
+			"totalConfigurations=" + durations.size());
 	}
 
 	private String formatDuration(Duration duration) {

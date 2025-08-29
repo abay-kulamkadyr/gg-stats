@@ -8,6 +8,7 @@
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <includeContext>true</includeContext>
                 <includeMdc>true</includeMdc>
+                <includeCallerData>false</includeCallerData>
                 <customFields>{"service":"gg-stats","version":"${BUILD_VERSION:-unknown}"}</customFields>
                 <fieldNames>
                     <timestamp>@timestamp</timestamp>
@@ -16,6 +17,15 @@
                     <thread>thread</thread>
                     <logger>logger</logger>
                 </fieldNames>
+                <!-- Explicitly include MDC fields -->
+                <includeMdcKeyName>correlationId</includeMdcKeyName>
+                <includeMdcKeyName>jobId</includeMdcKeyName>
+                <includeMdcKeyName>stepName</includeMdcKeyName>
+                <includeMdcKeyName>batchType</includeMdcKeyName>
+                <includeMdcKeyName>apiEndpoint</includeMdcKeyName>
+                <includeMdcKeyName>operationType</includeMdcKeyName>
+                <includeMdcKeyName>operationName</includeMdcKeyName>
+                <includeMdcKeyName>serviceName</includeMdcKeyName>
             </encoder>
         </appender>
         
@@ -24,6 +34,7 @@
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <includeContext>true</includeContext>
                 <includeMdc>true</includeMdc>
+                <includeCallerData>false</includeCallerData>
                 <customFields>{"service":"gg-stats","version":"${BUILD_VERSION:-unknown}"}</customFields>
                 <fieldNames>
                     <timestamp>@timestamp</timestamp>
@@ -32,6 +43,15 @@
                     <thread>thread</thread>
                     <logger>logger</logger>
                 </fieldNames>
+                <!-- Explicitly include MDC fields -->
+                <includeMdcKeyName>correlationId</includeMdcKeyName>
+                <includeMdcKeyName>jobId</includeMdcKeyName>
+                <includeMdcKeyName>stepName</includeMdcKeyName>
+                <includeMdcKeyName>batchType</includeMdcKeyName>
+                <includeMdcKeyName>apiEndpoint</includeMdcKeyName>
+                <includeMdcKeyName>operationType</includeMdcKeyName>
+                <includeMdcKeyName>operationName</includeMdcKeyName>
+                <includeMdcKeyName>serviceName</includeMdcKeyName>
             </encoder>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
                 <fileNamePattern>${logging.file.name:-./logs/gg-stats}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
@@ -46,14 +66,14 @@
     <springProfile name="!production &amp; !prod">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
-                <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{operationType:-}] [%X{serviceName:-}] %logger{36} - %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{jobId:-}] [%X{stepName:-}] [%X{batchType:-}] [%X{apiEndpoint:-}] [%X{operationType:-}] [%X{operationName:-}] %logger{36} - %msg%n</pattern>
             </encoder>
         </appender>
         
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${logging.file.name:-./gg-stats.log}</file>
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{jobId:-}] [%X{stepName:-}] [%X{batchType:-}] [%X{apiEndpoint:-}] %logger{36} - %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{jobId:-}] [%X{stepName:-}] [%X{batchType:-}] [%X{apiEndpoint:-}] [%X{operationType:-}] [%X{operationName:-}] %logger{36} - %msg%n</pattern>
             </encoder>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
                 <fileNamePattern>${logging.file.name:-./gg-stats}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>

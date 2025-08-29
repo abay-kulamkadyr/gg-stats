@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +39,8 @@ public class RateLimitingService {
 	private static final long DATABASE_SYNC_INTERVAL_MS = 30000; // 30 seconds
 
 	private final ApiRateLimitRepository rateLimitRepository;
+
+	private final ServiceLogger serviceLogger;
 
 	// Single global token bucket for rate limiting
 	private volatile TokenBucket globalTokenBucket;
@@ -68,7 +69,7 @@ public class RateLimitingService {
 
 	@PostConstruct
 	public void initialize() {
-		LoggingUtils.logOperationStart("Rate limiting service initialization");
+		serviceLogger.logServiceStart("RateLimitingService", "Rate limiting service initialization");
 
 		// Initialize scheduler for background tasks
 		scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -87,8 +88,8 @@ public class RateLimitingService {
 		scheduler.scheduleWithFixedDelay(this::saveToDatabaseAsync, DATABASE_SYNC_INTERVAL_MS,
 				DATABASE_SYNC_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
-		LoggingUtils.logOperationSuccess("Rate limiting service initialized", "requestsPerMinute=" + requestsPerMinute,
-				"requestsPerDay=" + requestsPerDay);
+		serviceLogger.logServiceSuccess("RateLimitingService", "Rate limiting service initialized", 
+			"requestsPerMinute=" + requestsPerMinute, "requestsPerDay=" + requestsPerDay);
 	}
 
 	@PreDestroy
@@ -191,7 +192,7 @@ public class RateLimitingService {
 			}
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("record_successful_request", "Error updating rate limit", e);
+			serviceLogger.logServiceFailure("record_successful_request", "Error updating rate limit", e);
 		}
 	}
 
@@ -217,7 +218,7 @@ public class RateLimitingService {
 				.orElseGet(this::createNewGlobalRateLimit);
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("initialize_global_rate_limit", "Database error", e);
+			serviceLogger.logServiceFailure("initialize_global_rate_limit", "Database error", e);
 			this.globalRateLimit = createNewGlobalRateLimit();
 		}
 	}
@@ -239,7 +240,7 @@ public class RateLimitingService {
 			}
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("save_to_database", "Database sync error", e);
+			serviceLogger.logServiceFailure("save_to_database", "Database sync error", e);
 		}
 	}
 
@@ -256,7 +257,7 @@ public class RateLimitingService {
 			return Math.max(0, requestsPerDay - current.getDailyRequests());
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("get_remaining_daily_requests", "Error getting remaining requests", e);
+			serviceLogger.logServiceFailure("get_remaining_daily_requests", "Error getting remaining requests", e);
 			return requestsPerDay; // Fail open
 		}
 	}

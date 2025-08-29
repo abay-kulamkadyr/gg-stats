@@ -3,6 +3,7 @@ package com.abe.gg_stats.config;
 import com.abe.gg_stats.batch.hero.HeroProcessor;
 import com.abe.gg_stats.batch.hero.HeroWriter;
 import com.abe.gg_stats.batch.hero.HeroesReader;
+import com.abe.gg_stats.batch.listener.HeroesJobExecutionListener;
 import com.abe.gg_stats.batch.listener.HeroesStepExecutionListener;
 import com.abe.gg_stats.entity.Hero;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,9 +39,10 @@ public class HeroesBatchConfig {
 	private int skipLimit;
 
 	@Bean("heroesUpdateJob")
-	public Job heroesUpdateJob(Step heroesStep) {
+	public Job heroesUpdateJob(Step heroesStep, HeroesJobExecutionListener heroesJobExecutionListener) {
 		return new JobBuilder("heroesUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
 			.start(heroesStep)
+			.listener(heroesJobExecutionListener)
 			.build();
 	}
 

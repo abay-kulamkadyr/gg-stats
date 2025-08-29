@@ -25,7 +25,7 @@ public class StartupJobRunner implements ApplicationRunner {
 	@Override
 	public void run(ApplicationArguments args) {
 		try (ExecutorService executor = Executors.newFixedThreadPool(5)) {
-			// executor.submit(batchSchedulerService::triggerHeroesUpdate);
+			 //executor.submit(batchSchedulerService::triggerHeroesUpdate);
 			// executor.submit(batchSchedulerService::triggerNotablePlayerUpdate);
 			// executor.submit(batchSchedulerService::triggerTeamsUpdate);
 			executor.submit(batchSchedulerService::triggerHeroRankingUpdate);

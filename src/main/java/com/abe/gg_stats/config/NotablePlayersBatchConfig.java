@@ -3,6 +3,7 @@ package com.abe.gg_stats.config;
 import com.abe.gg_stats.batch.notablePlayer.NotablePlayerProcessor;
 import com.abe.gg_stats.batch.notablePlayer.NotablePlayerWriter;
 import com.abe.gg_stats.batch.notablePlayer.NotablePlayersReader;
+import com.abe.gg_stats.batch.listener.NotablePlayersJobExecutionListener;
 import com.abe.gg_stats.batch.listener.NotablePlayersStepExecutionListener;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,10 +39,11 @@ public class NotablePlayersBatchConfig {
 	private int skipLimit;
 
 	@Bean("proPlayersUpdateJob")
-	public Job proPlayersUpdateJob(Step proPlayersStep) {
+	public Job proPlayersUpdateJob(Step proPlayersStep, NotablePlayersJobExecutionListener notablePlayersJobExecutionListener) {
 		return new JobBuilder("proPlayersUpdateJob", jobRepository)//
 			.incrementer(new RunIdIncrementer())
 			.start(proPlayersStep)
+			.listener(notablePlayersJobExecutionListener)
 			.build();
 	}
 

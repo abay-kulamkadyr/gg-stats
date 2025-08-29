@@ -3,10 +3,12 @@ package com.abe.gg_stats.controller;
 import com.abe.gg_stats.service.CircuitBreakerService;
 import com.abe.gg_stats.service.OpenDotaApiService;
 import com.abe.gg_stats.service.RateLimitingService;
+import com.abe.gg_stats.service.ServiceLogger;
 import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.service.MetricsService;
 import io.micrometer.core.annotation.Timed;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +27,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/monitoring")
 @RequiredArgsConstructor
-@Slf4j
 public class MonitoringController {
 
 	private final OpenDotaApiService openDotaApiService;
@@ -34,6 +35,9 @@ public class MonitoringController {
 
 	private final RateLimitingService rateLimitingService;
 
+	private final ServiceLogger serviceLogger;
+
+	private final MetricsService metricsService;
 	/**
 	 * Get comprehensive system health status
 	 */
@@ -51,10 +55,10 @@ public class MonitoringController {
 				.apiHealth(apiHealth)
 				.circuitBreakerStatus(stats.circuitBreakerStatus())
 				.rateLimitStatus(stats.rateLimitStatus())
-				.performanceMetrics(LoggingUtils.getPerformanceMetrics())
+				.performanceMetrics(metricsService.getPerformanceMetrics())
 				.build();
 
-			LoggingUtils.logOperationSuccess("System health check completed",
+			serviceLogger.logServiceSuccess("MonitoringController", "System health check completed",
 					"overallStatus=" + response.getOverallStatus());
 
 			return ResponseEntity.ok(response);
@@ -93,7 +97,7 @@ public class MonitoringController {
 	@GetMapping("/metrics")
 	@Timed(description = "Performance metrics retrieval")
 	public ResponseEntity<Map<String, Object>> getPerformanceMetrics() {
-		Map<String, Object> metrics = LoggingUtils.getPerformanceMetrics();
+		Map<String, Object> metrics = metricsService.getPerformanceMetrics();
 
 		LoggingUtils.logDebug("Retrieved performance metrics", () -> "metricCount=" + metrics.size());
 
@@ -108,7 +112,7 @@ public class MonitoringController {
 	public ResponseEntity<ActionResponse> openCircuitBreaker(@PathVariable String serviceName,
 			@RequestParam(defaultValue = "Manual override") String reason) {
 
-		LoggingUtils.logOperationStart("Force opening circuit breaker", "service=" + serviceName, "reason=" + reason);
+		serviceLogger.logServiceStart("MonitoringController", "Force opening circuit breaker", "service=" + serviceName, "reason=" + reason);
 
 		try {
 			circuitBreakerService.openCircuitBreaker(serviceName, reason);
@@ -116,13 +120,13 @@ public class MonitoringController {
 			ActionResponse response = ActionResponse.success("Circuit breaker opened for service: " + serviceName,
 					Map.of("service", serviceName, "reason", reason));
 
-			LoggingUtils.logOperationSuccess("Circuit breaker force opened", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker force opened", "service=" + serviceName);
 
 			return ResponseEntity.ok(response);
 
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("force_open_circuit_breaker", "Failed to open circuit breaker", e);
+			serviceLogger.logServiceFailure("force_open_circuit_breaker", "Failed to open circuit breaker", e);
 
 			return ResponseEntity.internalServerError()
 				.body(ActionResponse.error("Failed to open circuit breaker: " + e.getMessage()));
@@ -136,7 +140,7 @@ public class MonitoringController {
 	@Timed(description = "Force close circuit breaker")
 	public ResponseEntity<ActionResponse> closeCircuitBreaker(@PathVariable String serviceName) {
 
-		LoggingUtils.logOperationStart("Force closing circuit breaker", "service=" + serviceName);
+		serviceLogger.logServiceStart("MonitoringController", "Force closing circuit breaker", "service=" + serviceName);
 
 		try {
 			circuitBreakerService.closeCircuitBreaker(serviceName);
@@ -144,13 +148,13 @@ public class MonitoringController {
 			ActionResponse response = ActionResponse.success("Circuit breaker closed for service: " + serviceName,
 					Map.of("service", serviceName));
 
-			LoggingUtils.logOperationSuccess("Circuit breaker force closed", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker force closed", "service=" + serviceName);
 
 			return ResponseEntity.ok(response);
 
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("force_close_circuit_breaker", "Failed to close circuit breaker", e);
+			serviceLogger.logServiceFailure("force_close_circuit_breaker", "Failed to close circuit breaker", e);
 
 			return ResponseEntity.internalServerError()
 				.body(ActionResponse.error("Failed to close circuit breaker: " + e.getMessage()));
@@ -164,7 +168,7 @@ public class MonitoringController {
 	@Timed(description = "Reset circuit breaker metrics")
 	public ResponseEntity<ActionResponse> resetCircuitBreakerMetrics(@PathVariable String serviceName) {
 
-		LoggingUtils.logOperationStart("Resetting circuit breaker metrics", "service=" + serviceName);
+		serviceLogger.logServiceStart("MonitoringController", "Resetting circuit breaker metrics", "service=" + serviceName);
 
 		try {
 			circuitBreakerService.resetMetrics(serviceName);
@@ -173,13 +177,13 @@ public class MonitoringController {
 					"Circuit breaker metrics reset for service: " + serviceName,
 					Map.of("service", serviceName, "resetTime", Instant.now().toString()));
 
-			LoggingUtils.logOperationSuccess("Circuit breaker metrics reset", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker metrics reset", "service=" + serviceName);
 
 			return ResponseEntity.ok(response);
 
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("reset_circuit_breaker_metrics", "Failed to reset circuit breaker metrics",
+			serviceLogger.logServiceFailure( "reset_circuit_breaker_metrics", "Failed to reset circuit breaker metrics",
 					e);
 
 			return ResponseEntity.internalServerError()
@@ -194,21 +198,20 @@ public class MonitoringController {
 	@Timed(description = "Reset performance metrics")
 	public ResponseEntity<ActionResponse> resetPerformanceMetrics() {
 
-		LoggingUtils.logOperationStart("Resetting performance metrics");
+		serviceLogger.logServiceStart("MonitoringController", "Resetting performance metrics");
 
 		try {
-			LoggingUtils.resetMetrics();
-
+			metricsService.resetMetrics();
 			ActionResponse response = ActionResponse.success("Performance metrics reset successfully",
 					Map.of("resetTime", Instant.now().toString()));
 
-			LoggingUtils.logOperationSuccess("Performance metrics reset");
+			serviceLogger.logServiceSuccess("MonitoringController", "Performance metrics reset");
 
 			return ResponseEntity.ok(response);
 
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("reset_performance_metrics", "Failed to reset performance metrics", e);
+			serviceLogger.logServiceFailure("reset_performance_metrics", "Failed to reset performance metrics", e);
 
 			return ResponseEntity.internalServerError()
 				.body(ActionResponse.error("Failed to reset metrics: " + e.getMessage()));
@@ -222,7 +225,7 @@ public class MonitoringController {
 	@Timed(description = "Test API connectivity")
 	public ResponseEntity<ActionResponse> testApiConnectivity() {
 
-		LoggingUtils.logOperationStart("Testing API connectivity");
+		serviceLogger.logServiceStart("MonitoringController", "Testing API connectivity");
 
 		try {
 			// Test with a lightweight API call
@@ -232,20 +235,20 @@ public class MonitoringController {
 				ActionResponse response = ActionResponse.success("API connectivity test successful", Map.of("testTime",
 						Instant.now().toString(), "responseReceived", true, "heroesCount", result.get().size()));
 
-				LoggingUtils.logOperationSuccess("API connectivity test passed");
+				serviceLogger.logServiceSuccess("MonitoringController", "API connectivity test passed");
 				return ResponseEntity.ok(response);
 
 			}
 			else {
 				ActionResponse response = ActionResponse.error("API connectivity test failed - no response received");
 
-				LoggingUtils.logOperationFailure("api_connectivity_test", "No response received from API", null);
+				serviceLogger.logServiceFailure("api_connectivity_test", "No response received from API", null);
 				return ResponseEntity.status(503).body(response);
 			}
 
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("api_connectivity_test", "API connectivity test failed", e);
+			serviceLogger.logServiceFailure("api_connectivity_test", "API connectivity test failed", e);
 
 			ActionResponse response = ActionResponse.error("API connectivity test failed: " + e.getMessage());
 
@@ -269,9 +272,11 @@ public class MonitoringController {
 
 	// Response DTOs
 
-	public static class SystemHealthResponse {
+	@Getter
+  public static class SystemHealthResponse {
 
-		private final Instant timestamp;
+    // Getters
+    private final Instant timestamp;
 
 		private final String overallStatus;
 
@@ -296,32 +301,7 @@ public class MonitoringController {
 			return new Builder();
 		}
 
-		// Getters
-		public Instant getTimestamp() {
-			return timestamp;
-		}
-
-		public String getOverallStatus() {
-			return overallStatus;
-		}
-
-		public Health getApiHealth() {
-			return apiHealth;
-		}
-
-		public CircuitBreakerService.CircuitBreakerStatus getCircuitBreakerStatus() {
-			return circuitBreakerStatus;
-		}
-
-		public RateLimitingService.RateLimitStatus getRateLimitStatus() {
-			return rateLimitStatus;
-		}
-
-		public Map<String, Object> getPerformanceMetrics() {
-			return performanceMetrics;
-		}
-
-		public static class Builder {
+    public static class Builder {
 
 			private Instant timestamp;
 

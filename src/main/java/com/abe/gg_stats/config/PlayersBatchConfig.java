@@ -1,5 +1,6 @@
 package com.abe.gg_stats.config;
 
+import com.abe.gg_stats.batch.listener.PlayersJobExecutionListener;
 import com.abe.gg_stats.batch.listener.PlayersStepExecutionListener;
 import com.abe.gg_stats.batch.player.PlayerReader;
 import com.abe.gg_stats.batch.player.PlayerProcessor;
@@ -36,9 +37,10 @@ public class PlayersBatchConfig {
 	private int skipLimit;
 
 	@Bean("playerUpdateJob")
-	public Job playerUpdateJob(Step playerStep) {
+	public Job playerUpdateJob(Step playerStep, PlayersJobExecutionListener playersJobExecutionListener) {
 		return new JobBuilder("playerUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
 			.start(playerStep)
+			.listener(playersJobExecutionListener)
 			.build();
 	}
 

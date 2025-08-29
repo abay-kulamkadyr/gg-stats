@@ -2,6 +2,7 @@ package com.abe.gg_stats.service;
 
 import com.abe.gg_stats.exception.CircuitBreakerException;
 import com.abe.gg_stats.util.LoggingUtils;
+import com.abe.gg_stats.util.MDCLoggingContext;
 import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.time.Instant;
@@ -27,7 +28,10 @@ import org.springframework.stereotype.Service;
  * support
  */
 @Service
+@RequiredArgsConstructor
 public class CircuitBreakerService {
+
+	private final ServiceLogger serviceLogger;
 
 	private final Map<String, CircuitBreaker> circuitBreakers = new ConcurrentHashMap<>();
 
@@ -52,7 +56,7 @@ public class CircuitBreakerService {
 
 	@PostConstruct
 	public void initialize() {
-		LoggingUtils.logOperationSuccess("Circuit breaker service initialized",
+		serviceLogger.logServiceSuccess("CircuitBreakerService", "Circuit breaker service initialized",
 				"defaultFailureThreshold=" + defaultFailureThreshold,
 				"defaultTimeoutDurationMs=" + defaultTimeoutDurationMs,
 				"defaultSlidingWindowSize=" + defaultSlidingWindowSize);
@@ -69,6 +73,11 @@ public class CircuitBreakerService {
 			@NonNull Supplier<T> fallback) {
 		CircuitBreaker circuitBreaker = getOrCreateCircuitBreaker(serviceName);
 
+		// Preserve existing MDC context for circuit breaker operations
+		String existingCorrelationId = MDCLoggingContext.getCurrentCorrelationId();
+		String existingBatchType = MDCLoggingContext.getCurrentBatchType();
+		String existingOperationType = MDCLoggingContext.getCurrentOperationType();
+
 		if (!circuitBreaker.canExecute()) {
 			LoggingUtils.logWarning("Circuit breaker is open, using fallback", "service=" + serviceName,
 					"state=" + circuitBreaker.getState());
@@ -84,8 +93,8 @@ public class CircuitBreakerService {
 		}
 		catch (Exception e) {
 			circuitBreaker.recordFailure();
-			LoggingUtils.logOperationFailure("circuit_breaker_execution",
-					"Operation failed for service: " + serviceName, e);
+			serviceLogger.logServiceFailure("circuit_breaker_execution",
+					"Unexpected exception occurred ", e);
 			throw new CircuitBreakerException(serviceName, "Closed", "Operation failed for service");
 		}
 	}
@@ -106,7 +115,7 @@ public class CircuitBreakerService {
 		CircuitBreaker circuitBreaker = circuitBreakers.get(serviceName);
 		if (circuitBreaker != null) {
 			circuitBreaker.forceClose();
-			LoggingUtils.logOperationSuccess("Circuit breaker manually closed", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("CircuitBreakerService", "Circuit breaker manually closed", "service=" + serviceName);
 		}
 	}
 
@@ -146,7 +155,7 @@ public class CircuitBreakerService {
 		CircuitBreaker circuitBreaker = circuitBreakers.get(serviceName);
 		if (circuitBreaker != null) {
 			circuitBreaker.resetMetrics();
-			LoggingUtils.logOperationSuccess("Circuit breaker metrics reset", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("CircuitBreakerService", "Circuit breaker metrics reset", "service=" + serviceName);
 		}
 	}
 
@@ -340,9 +349,6 @@ public class CircuitBreakerService {
 		private void transitionToState(CircuitBreakerState newState, String reason) {
 			CircuitBreakerState oldState = state.getAndSet(newState);
 			lastStateChangeTime.set(System.currentTimeMillis());
-
-			LoggingUtils.logOperationSuccess("Circuit breaker state transition", "service=" + serviceName,
-					"oldState=" + oldState, "newState=" + newState, "reason=" + reason);
 		}
 
 	}
