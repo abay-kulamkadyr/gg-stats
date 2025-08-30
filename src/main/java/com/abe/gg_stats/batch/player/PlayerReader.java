@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
  * issues and API rate limiting.
  */
 @Component
-public class PlayerReader extends BaseApiReader<JsonNode> {
+public class PlayerReader extends BaseApiReader {
 
 	private final HeroRankingRepository heroRankingRepository;
 
@@ -53,7 +53,6 @@ public class PlayerReader extends BaseApiReader<JsonNode> {
 
 	private int totalAccounts = 0;
 
-	@Autowired
 	public PlayerReader(OpenDotaApiService openDotaApiService, BatchExpirationConfig batchExpirationConfig,
 			HeroRankingRepository heroRankingRepository, NotablePlayerRepository notablePlayerRepository,
 			PlayerRepository playerRepository) {
@@ -69,10 +68,9 @@ public class PlayerReader extends BaseApiReader<JsonNode> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "players");
-		
-		LoggingUtils.logOperationStart("Initializing chunked player reader", 
-			"correlationId=" + correlationId);
-		
+
+		LoggingUtils.logOperationStart("Initializing chunked player reader", "correlationId=" + correlationId);
+
 		Set<Long> allAccountIds = collectAllAccountIds();
 		totalAccounts = allAccountIds.size();
 
@@ -85,10 +83,8 @@ public class PlayerReader extends BaseApiReader<JsonNode> {
 		currentChunkIndex = 0;
 		totalProcessed = 0;
 
-		LoggingUtils.logOperationStart("chunked player reader initialization", 
-			"correlationId=" + correlationId,
-			"totalAccounts=" + totalAccounts,
-			"chunkSize=" + chunkSize);
+		LoggingUtils.logOperationStart("chunked player reader initialization", "correlationId=" + correlationId,
+				"totalAccounts=" + totalAccounts, "chunkSize=" + chunkSize);
 
 		// Pre-fetch first chunk
 		fetchNextChunk();

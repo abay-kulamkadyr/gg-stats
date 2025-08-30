@@ -518,4 +518,4 @@ For support and questions:
 
 ---
 
-**GG Stats** - Built with ❤️ using Spring Boot, Spring Batch, and modern resilience patterns.
+**GG Stats** - Built with using Spring Boot, Spring Batch, and modern resilience patterns.

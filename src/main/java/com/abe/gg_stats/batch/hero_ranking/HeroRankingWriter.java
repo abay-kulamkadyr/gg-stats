@@ -1,4 +1,4 @@
-package com.abe.gg_stats.batch.heroRanking;
+package com.abe.gg_stats.batch.hero_ranking;
 
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
@@ -28,19 +28,16 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "herorankings");
-		
+
 		if (items.isEmpty()) {
-			LoggingUtils.logWarning("No hero ranking items to write", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logWarning("No hero ranking items to write", "correlationId=" + correlationId);
 			return;
 		}
-		LoggingUtils.logOperationStart("Writing hero ranking items", 
-			"correlationId=" + correlationId,
-			"itemsCount=" + items.size());
+		LoggingUtils.logOperationStart("Writing hero ranking items", "correlationId=" + correlationId,
+				"itemsCount=" + items.size());
 		heroRankingRepository.saveAll(items);
-		LoggingUtils.logOperationSuccess("Successfully saved hero ranking items", 
-			"correlationId=" + correlationId,
-			"itemsCount=" + items.size());
+		LoggingUtils.logOperationSuccess("Successfully saved hero ranking items", "correlationId=" + correlationId,
+				"itemsCount=" + items.size());
 	}
 
 	@Override
@@ -49,16 +46,14 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "herorankings");
-		
+
 		if (chunk.isEmpty()) {
-			LoggingUtils.logWarning("Empty chunk received, nothing to write", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logWarning("Empty chunk received, nothing to write", "correlationId=" + correlationId);
 			return;
 		}
 
-		LoggingUtils.logOperationStart("Writing hero ranking items to database", 
-			"correlationId=" + correlationId,
-			"chunkSize=" + chunk.size());
+		LoggingUtils.logOperationStart("Writing hero ranking items to database", "correlationId=" + correlationId,
+				"chunkSize=" + chunk.size());
 
 		int successCount = 0;
 		int errorCount = 0;
@@ -66,26 +61,22 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 			try {
 				writeItem(item);
 				successCount++;
-				LoggingUtils.logDebug("Successfully wrote hero ranking item", 
-					"correlationId=" + correlationId,
-					"item=" + item.toString());
+				LoggingUtils.logDebug("Successfully wrote hero ranking item", "correlationId=" + correlationId,
+						"item=" + item.toString());
 			}
 			catch (Exception e) {
 				errorCount++;
 				LoggingUtils.logOperationFailure("hero ranking item write", "Error writing item", e,
-					"correlationId=" + correlationId);
+						"correlationId=" + correlationId);
 			}
 		}
 
-		LoggingUtils.logOperationSuccess("Hero ranking write operation completed", 
-			"correlationId=" + correlationId,
-			"successful=" + successCount,
-			"errors=" + errorCount);
+		LoggingUtils.logOperationSuccess("Hero ranking write operation completed", "correlationId=" + correlationId,
+				"successful=" + successCount, "errors=" + errorCount);
 
 		if (errorCount > 0) {
-			LoggingUtils.logWarning("Some hero ranking items failed to write", 
-				"correlationId=" + correlationId,
-				"errorCount=" + errorCount);
+			LoggingUtils.logWarning("Some hero ranking items failed to write", "correlationId=" + correlationId,
+					"errorCount=" + errorCount);
 		}
 	}
 

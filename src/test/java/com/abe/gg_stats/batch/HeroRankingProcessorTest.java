@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.abe.gg_stats.batch.heroRanking.HeroRankingProcessor;
+import com.abe.gg_stats.batch.hero_ranking.HeroRankingProcessor;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -58,7 +58,7 @@ class HeroRankingProcessorTest {
 		assertNotNull(result);
 		assertEquals(2, result.size());
 
-		HeroRanking firstRanking = result.get(0);
+		HeroRanking firstRanking = result.getFirst();
 		assertEquals(1, firstRanking.getHeroId());
 		assertEquals(12345L, firstRanking.getAccountId());
 		assertEquals(95.5, firstRanking.getScore());

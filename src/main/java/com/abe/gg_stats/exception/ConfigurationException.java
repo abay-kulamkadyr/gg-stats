@@ -9,6 +9,7 @@ import lombok.Getter;
 @Getter
 public class ConfigurationException extends RuntimeException {
 
+	// Getters
 	private final String configKey;
 
 	private final Object configValue;
@@ -23,23 +24,6 @@ public class ConfigurationException extends RuntimeException {
 		this.configValue = configValue;
 		this.validationRule = message;
 		this.timestamp = Instant.now();
-	}
-
-	// Getters
-	public String getConfigKey() {
-		return configKey;
-	}
-
-	public Object getConfigValue() {
-		return configValue;
-	}
-
-	public String getValidationRule() {
-		return validationRule;
-	}
-
-	public Instant getTimestamp() {
-		return timestamp;
 	}
 
 }

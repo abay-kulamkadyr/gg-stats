@@ -1,15 +1,14 @@
 package com.abe.gg_stats.config;
 
-import com.abe.gg_stats.batch.heroRanking.HeroRankingProcessor;
-import com.abe.gg_stats.batch.heroRanking.HeroRankingReader;
-import com.abe.gg_stats.batch.heroRanking.HeroRankingWriter;
+import com.abe.gg_stats.batch.hero_ranking.HeroRankingProcessor;
+import com.abe.gg_stats.batch.hero_ranking.HeroRankingReader;
+import com.abe.gg_stats.batch.hero_ranking.HeroRankingWriter;
 import com.abe.gg_stats.batch.listener.HeroRankingJobExecutionListener;
 import com.abe.gg_stats.batch.listener.HeroRankingsStepExecutionListener;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -23,7 +22,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
 @RequiredArgsConstructor
-@Slf4j
 public class HeroRankingsBatchConfig {
 
 	private final JobRepository jobRepository;
@@ -40,7 +38,8 @@ public class HeroRankingsBatchConfig {
 	private int skipLimit;
 
 	@Bean("heroRankingUpdateJob")
-	public Job heroRankingUpdateJob(Step heroRankingStep, HeroRankingJobExecutionListener heroRankingJobExecutionListener) {
+	public Job heroRankingUpdateJob(Step heroRankingStep,
+			HeroRankingJobExecutionListener heroRankingJobExecutionListener) {
 		return new JobBuilder("heroRankingUpdateJob", jobRepository)//
 			.incrementer(new RunIdIncrementer())
 			.start(heroRankingStep)

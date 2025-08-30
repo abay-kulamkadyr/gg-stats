@@ -1,4 +1,4 @@
-package com.abe.gg_stats.batch.heroRanking;
+package com.abe.gg_stats.batch.hero_ranking;
 
 import com.abe.gg_stats.batch.BaseApiReader;
 import com.abe.gg_stats.config.BatchExpirationConfig;
@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,13 +20,12 @@ import org.springframework.stereotype.Component;
  * hero rankings from the OpenDota API and provides them for processing.
  */
 @Component
-public class HeroRankingReader extends BaseApiReader<JsonNode> {
+public class HeroRankingReader extends BaseApiReader {
 
 	private final HeroRepository heroRepository;
 
 	private final HeroRankingRepository heroRankingRepository;
 
-	@Autowired
 	public HeroRankingReader(OpenDotaApiService openDotaApiService, HeroRepository heroRepository,
 			BatchExpirationConfig expirationConfig, HeroRankingRepository heroRankingRepository) {
 		super(openDotaApiService, expirationConfig);
@@ -41,17 +39,15 @@ public class HeroRankingReader extends BaseApiReader<JsonNode> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "herorankings");
-		
-		LoggingUtils.logOperationStart("Initializing hero ranking reader", 
-			"correlationId=" + correlationId);
-		
+
+		LoggingUtils.logOperationStart("Initializing hero ranking reader", "correlationId=" + correlationId);
+
 		List<Integer> heroIds = heroRepository.findAllIds();
 		List<JsonNode> heroRankings = new ArrayList<>();
 		heroIds.forEach(heroId -> fetchDataFromApiIfNeeded(heroId).ifPresent(heroRankings::add));
-		
-		LoggingUtils.logOperationSuccess("Initialized hero ranking reader", 
-			"correlationId=" + correlationId,
-			"heroesLoaded=" + heroRankings.size());
+
+		LoggingUtils.logOperationSuccess("Initialized hero ranking reader", "correlationId=" + correlationId,
+				"heroesLoaded=" + heroRankings.size());
 		this.dataIterator = heroRankings.iterator();
 	}
 
@@ -60,16 +56,14 @@ public class HeroRankingReader extends BaseApiReader<JsonNode> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "herorankings");
-		
-		LoggingUtils.logMethodEntry("Updating hero ranking info for hero_id",
-				() -> "correlationId=" + correlationId,
+
+		LoggingUtils.logMethodEntry("Updating hero ranking info for hero_id", () -> "correlationId=" + correlationId,
 				() -> "heroId=" + heroId);
-		
+
 		Optional<LocalDateTime> latestUpdate = heroRankingRepository.findMaxUpdatedAt();
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
-			LoggingUtils.logWarning("Hero ranking data is up to date", 
-				"correlationId=" + correlationId,
-				"lastUpdate=" + latestUpdate.get());
+			LoggingUtils.logWarning("Hero ranking data is up to date", "correlationId=" + correlationId,
+					"lastUpdate=" + latestUpdate.get());
 			return Optional.empty();
 		}
 

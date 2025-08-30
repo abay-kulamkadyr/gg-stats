@@ -88,8 +88,8 @@ public class RateLimitingService {
 		scheduler.scheduleWithFixedDelay(this::saveToDatabaseAsync, DATABASE_SYNC_INTERVAL_MS,
 				DATABASE_SYNC_INTERVAL_MS, TimeUnit.MILLISECONDS);
 
-		serviceLogger.logServiceSuccess("RateLimitingService", "Rate limiting service initialized", 
-			"requestsPerMinute=" + requestsPerMinute, "requestsPerDay=" + requestsPerDay);
+		serviceLogger.logServiceSuccess("RateLimitingService", "Rate limiting service initialized",
+				"requestsPerMinute=" + requestsPerMinute, "requestsPerDay=" + requestsPerDay);
 	}
 
 	@PreDestroy

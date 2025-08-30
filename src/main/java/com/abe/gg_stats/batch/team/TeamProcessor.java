@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * proper exception handling and input validation.
  */
 @Component
-public class TeamProcessor extends BaseProcessor<JsonNode, Team> {
+public class TeamProcessor extends BaseProcessor<Team> {
 
 	@Override
 	protected boolean isValidInput(JsonNode item) {
@@ -21,15 +21,14 @@ public class TeamProcessor extends BaseProcessor<JsonNode, Team> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "teams");
-		
+
 		if (item == null) {
 			return false;
 		}
 
 		// Check for required fields
 		if (!item.has("team_id") || item.get("team_id").isNull()) {
-			LoggingUtils.logDebug("Team data missing or null 'team_id' field", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logDebug("Team data missing or null 'team_id' field", "correlationId=" + correlationId);
 			return false;
 		}
 
@@ -37,16 +36,14 @@ public class TeamProcessor extends BaseProcessor<JsonNode, Team> {
 		try {
 			long teamId = item.get("team_id").asLong();
 			if (teamId <= 0) {
-				LoggingUtils.logDebug("Team team_id must be positive, got: {}", 
-					"correlationId=" + correlationId,
-					"teamId=" + teamId);
+				LoggingUtils.logDebug("Team team_id must be positive, got: {}", "correlationId=" + correlationId,
+						"teamId=" + teamId);
 				return false;
 			}
 		}
 		catch (Exception e) {
-			LoggingUtils.logDebug("Team team_id is not a valid long: {}", 
-				"correlationId=" + correlationId,
-				"teamId=" + item.get("team_id"));
+			LoggingUtils.logDebug("Team team_id is not a valid long: {}", "correlationId=" + correlationId,
+					"teamId=" + item.get("team_id"));
 			return false;
 		}
 
@@ -59,17 +56,15 @@ public class TeamProcessor extends BaseProcessor<JsonNode, Team> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "teams");
-		
+
 		Team team = new Team();
 		team.setTeamId(item.get("team_id").asLong());
 
 		JsonNode ratingNode = item.get("rating");
-		LoggingUtils.logDebug("Processing rating field", 
-			"correlationId=" + correlationId,
-			"hasRating=" + item.has("rating"), 
-			"ratingNode=" + ratingNode,
-			"isNull=" + (ratingNode != null ? ratingNode.isNull() : "N/A"), 
-			"isNumber=" + (ratingNode != null ? ratingNode.isNumber() : "N/A"));
+		LoggingUtils.logDebug("Processing rating field", "correlationId=" + correlationId,
+				"hasRating=" + item.has("rating"), "ratingNode=" + ratingNode,
+				"isNull=" + (ratingNode != null ? ratingNode.isNull() : "N/A"),
+				"isNumber=" + (ratingNode != null ? ratingNode.isNumber() : "N/A"));
 
 		if (item.has("rating") && ratingNode != null && !ratingNode.isNull() && ratingNode.isNumber()) {
 			team.setRating(ratingNode.asInt());

@@ -12,7 +12,7 @@ import java.time.format.DateTimeParseException;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
+public class PlayerProcessor extends BaseProcessor<Player> {
 
 	@Override
 	protected boolean isValidInput(JsonNode item) {
@@ -20,10 +20,9 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "players");
-		
+
 		if (item == null || item.isNull()) {
-			LoggingUtils.logWarning("Player JSON item is null", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logWarning("Player JSON item is null", "correlationId=" + correlationId);
 			return false;
 		}
 
@@ -32,9 +31,8 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 		boolean hasProfile = item.has("profile") && item.get("profile").isObject();
 
 		if (!hasAccountId && !hasProfile) {
-			LoggingUtils.logWarning("Player JSON item missing both account_id and profile", 
-				"correlationId=" + correlationId,
-				"item=" + item);
+			LoggingUtils.logWarning("Player JSON item missing both account_id and profile",
+					"correlationId=" + correlationId, "item=" + item);
 			return false;
 		}
 
@@ -46,9 +44,8 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 			String personName = getTextValue(profile, "personaname");
 
 			if (steamId == null || personName == null) {
-				LoggingUtils.logWarning("Invalid profile data, missing required fields", 
-					"correlationId=" + correlationId,
-					"profile=" + profile);
+				LoggingUtils.logWarning("Invalid profile data, missing required fields",
+						"correlationId=" + correlationId, "profile=" + profile);
 				return false;
 			}
 		}
@@ -74,11 +71,10 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "players");
-		
+
 		JsonNode profileData = data.get("profile");
 		if (profileData == null) {
-			LoggingUtils.logWarning("No profile data found in API response", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logWarning("No profile data found in API response", "correlationId=" + correlationId);
 			return;
 		}
 
@@ -102,9 +98,8 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 		player.setLocCountryCode(getTextValue(profileData, "loccountrycode"));
 		player.setPlus(getBooleanValue(profileData, "plus"));
 
-		LoggingUtils.logDebug("Processed profile data for player", 
-			"correlationId=" + correlationId,
-			"playerName=" + player.getPersonName());
+		LoggingUtils.logDebug("Processed profile data for player", "correlationId=" + correlationId,
+				"playerName=" + player.getPersonName());
 	}
 
 	private void processRootLevelData(Player player, JsonNode data) {
@@ -112,7 +107,7 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "players");
-		
+
 		// Set the account ID from the root level
 		if (data.has("account_id") && !data.get("account_id").isNull()) {
 			player.setAccountId(data.get("account_id").asLong());
@@ -120,9 +115,8 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 
 		player.setRankTier(getIntValue(data, "rank_tier"));
 		player.setLeaderboardRank(getIntValue(data, "leaderboard_rank"));
-		LoggingUtils.logDebug("Processed root level data for player", 
-			"correlationId=" + correlationId,
-			"playerName=" + player.getPersonName());
+		LoggingUtils.logDebug("Processed root level data for player", "correlationId=" + correlationId,
+				"playerName=" + player.getPersonName());
 	}
 
 	private String getTextValue(JsonNode node, String fieldName) {
@@ -167,10 +161,8 @@ public class PlayerProcessor extends BaseProcessor<JsonNode, Player> {
 			}
 			catch (DateTimeParseException e2) {
 				String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-				LoggingUtils.logWarning("Could not parse date time for field", 
-					"correlationId=" + correlationId,
-					"fieldName=" + fieldName, 
-					"dateTimeStr=" + dateTimeStr);
+				LoggingUtils.logWarning("Could not parse date time for field", "correlationId=" + correlationId,
+						"fieldName=" + fieldName, "dateTimeStr=" + dateTimeStr);
 				return null;
 			}
 		}

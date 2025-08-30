@@ -1,4 +1,4 @@
-package com.abe.gg_stats.batch.notablePlayer;
+package com.abe.gg_stats.batch.notable_player;
 
 import com.abe.gg_stats.batch.BaseWriter;
 import com.abe.gg_stats.entity.NotablePlayer;

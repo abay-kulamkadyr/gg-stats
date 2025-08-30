@@ -2,19 +2,14 @@ package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.service.OpenDotaApiService;
-import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
-import com.abe.gg_stats.util.MDCLoggingContext;
-import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Iterator;
 import org.springframework.batch.item.ItemReader;
 
-import java.time.LocalDateTime;
-import java.time.Duration;
-import java.util.Iterator;
-import org.springframework.beans.factory.annotation.Autowired;
-
-@Slf4j
-public abstract class BaseApiReader<JsonNode> implements ItemReader<JsonNode> {
+public abstract class BaseApiReader implements ItemReader<JsonNode> {
 
 	protected final OpenDotaApiService openDotaApiService;
 
@@ -24,7 +19,6 @@ public abstract class BaseApiReader<JsonNode> implements ItemReader<JsonNode> {
 
 	protected boolean initialized = false;
 
-	@Autowired
 	protected BaseApiReader(OpenDotaApiService openDotaApiService, BatchExpirationConfig batchExpirationConfig) {
 		this.openDotaApiService = openDotaApiService;
 		this.batchExpirationConfig = batchExpirationConfig;
@@ -41,9 +35,8 @@ public abstract class BaseApiReader<JsonNode> implements ItemReader<JsonNode> {
 
 		if (dataIterator != null && dataIterator.hasNext()) {
 			JsonNode item = dataIterator.next();
-			LoggingUtils.logDebug("Reading item from " + getExpirationConfigName() + " batch", 
-				"itemType=" + getExpirationConfigName(), 
-				"item=" + (item != null ? item.toString() : "null"));
+			LoggingUtils.logDebug("Reading item from " + getExpirationConfigName() + " batch",
+					"itemType=" + getExpirationConfigName(), "item=" + (item != null ? item.toString() : "null"));
 			return item;
 		}
 
@@ -56,31 +49,27 @@ public abstract class BaseApiReader<JsonNode> implements ItemReader<JsonNode> {
 	 * Check if data needs to be refreshed based on expiration
 	 */
 	protected boolean noRefreshNeeded(LocalDateTime lastUpdate) {
+		final String expirationConfigNameLabel = "dataType=";
+
 		if (lastUpdate == null) {
-			LoggingUtils.logDebug("No refresh needed - no previous update timestamp", 
-				"dataType=" + getExpirationConfigName());
+			LoggingUtils.logDebug("No refresh needed - no previous update timestamp",
+					expirationConfigNameLabel + getExpirationConfigName());
 			return false;
 		}
-		
+
 		Duration expiration = batchExpirationConfig.getDurationByConfigName(getExpirationConfigName());
 		LocalDateTime now = LocalDateTime.now();
 		LocalDateTime expirationTime = lastUpdate.plus(expiration);
 		boolean needsRefresh = now.isAfter(expirationTime);
-		
 		if (needsRefresh) {
-			LoggingUtils.logDebug("Data refresh needed", 
-				"dataType=" + getExpirationConfigName(),
-				"lastUpdate=" + lastUpdate,
-				"expiresAt=" + expirationTime,
-				"currentTime=" + now);
-		} else {
-			LoggingUtils.logDebug("Data refresh not needed", 
-				"dataType=" + getExpirationConfigName(),
-				"lastUpdate=" + lastUpdate,
-				"expiresAt=" + expirationTime,
-				"currentTime=" + now);
+			LoggingUtils.logDebug("Data refresh needed", expirationConfigNameLabel + getExpirationConfigName(),
+					"lastUpdate=" + lastUpdate, "expiresAt=" + expirationTime, "currentTime=" + now);
 		}
-		
+		else {
+			LoggingUtils.logDebug("Data refresh not needed", expirationConfigNameLabel + getExpirationConfigName(),
+					"lastUpdate=" + lastUpdate, "expiresAt=" + expirationTime, "currentTime=" + now);
+		}
+
 		return !needsRefresh;
 	}
 
