@@ -8,21 +8,18 @@ import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Duration;
 import java.time.LocalDateTime;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.util.Optional;
-
 @Component
-public class TeamsReader extends BaseApiReader<JsonNode> {
+public class TeamsReader extends BaseApiReader {
 
 	private final BatchExpirationConfig expirationConfig;
 
 	private final TeamRepository teamRepository;
 
-	@Autowired
 	public TeamsReader(OpenDotaApiService openDotaApiService, BatchExpirationConfig expirationConfig,
 			TeamRepository teamRepository) {
 		super(openDotaApiService, expirationConfig);
@@ -36,36 +33,31 @@ public class TeamsReader extends BaseApiReader<JsonNode> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "teams");
-		
-		LoggingUtils.logOperationStart("Initializing teams reader", 
-			"correlationId=" + correlationId);
-		
+
+		LoggingUtils.logOperationStart("Initializing teams reader", "correlationId=" + correlationId);
+
 		// Teams data doesn't have expiration logic - always fetch from API
 		Optional<LocalDateTime> latestUpdate = teamRepository.findMaxUpdatedAt();
 
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();
-			LoggingUtils.logOperationSuccess("Teams data in cache is valid", 
-				"correlationId=" + correlationId,
-				"lastUpdate=" + latestUpdate.get(),
-				"expiresIn=" + super.formatDuration(expiration));
+			LoggingUtils.logOperationSuccess("Teams data in cache is valid", "correlationId=" + correlationId,
+					"lastUpdate=" + latestUpdate.get(), "expiresIn=" + super.formatDuration(expiration));
 			return;
 		}
 
 		// Fetch from API
-		LoggingUtils.logOperationStart("Fetching teams data from API", 
-			"correlationId=" + correlationId);
-		
+		LoggingUtils.logOperationStart("Fetching teams data from API", "correlationId=" + correlationId);
+
 		Optional<JsonNode> teamsData = openDotaApiService.getTeams();
 		if (teamsData.isPresent()) {
 			this.dataIterator = teamsData.get().elements();
-			LoggingUtils.logOperationSuccess("Successfully fetched teams data from API", 
-				"correlationId=" + correlationId,
-				"dataSize=" + teamsData.get().size());
+			LoggingUtils.logOperationSuccess("Successfully fetched teams data from API",
+					"correlationId=" + correlationId, "dataSize=" + teamsData.get().size());
 		}
 		else {
-			LoggingUtils.logWarning("Failed to initialize teams reader - no data from API", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logWarning("Failed to initialize teams reader - no data from API",
+					"correlationId=" + correlationId);
 		}
 	}
 

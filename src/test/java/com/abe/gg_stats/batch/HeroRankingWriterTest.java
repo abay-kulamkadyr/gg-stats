@@ -1,6 +1,6 @@
 package com.abe.gg_stats.batch;
 
-import com.abe.gg_stats.batch.heroRanking.HeroRankingWriter;
+import com.abe.gg_stats.batch.hero_ranking.HeroRankingWriter;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,4 +1,4 @@
-package com.abe.gg_stats.batch.notablePlayer;
+package com.abe.gg_stats.batch.notable_player;
 
 import com.abe.gg_stats.batch.BaseApiReader;
 import com.abe.gg_stats.config.BatchExpirationConfig;
@@ -9,18 +9,15 @@ import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDateTime;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.time.Duration;
 import java.util.Optional;
+import org.springframework.stereotype.Component;
 
 @Component
-public class NotablePlayersReader extends BaseApiReader<JsonNode> {
+public class NotablePlayersReader extends BaseApiReader {
 
 	private final NotablePlayerRepository notablePlayerRepository;
 
-	@Autowired
 	public NotablePlayersReader(OpenDotaApiService openDotaApiService, BatchExpirationConfig expirationConfig,
 			NotablePlayerRepository notablePlayerRepository) {
 		super(openDotaApiService, expirationConfig);
@@ -33,34 +30,29 @@ public class NotablePlayersReader extends BaseApiReader<JsonNode> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "notableplayers");
-		
-		LoggingUtils.logOperationStart("Initializing notable players reader", 
-			"correlationId=" + correlationId);
-		
+
+		LoggingUtils.logOperationStart("Initializing notable players reader", "correlationId=" + correlationId);
+
 		Optional<LocalDateTime> latestUpdate = notablePlayerRepository.findMaxUpdatedAt();
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();
-			LoggingUtils.logOperationSuccess("Notable players data in cache is valid", 
-				"correlationId=" + correlationId,
-				"lastUpdate=" + latestUpdate.get(),
-				"expiresIn=" + super.formatDuration(expiration));
+			LoggingUtils.logOperationSuccess("Notable players data in cache is valid", "correlationId=" + correlationId,
+					"lastUpdate=" + latestUpdate.get(), "expiresIn=" + super.formatDuration(expiration));
 			return;
 		}
 
 		// Fetch from API
-		LoggingUtils.logOperationStart("Fetching notable players data from API", 
-			"correlationId=" + correlationId);
-		
+		LoggingUtils.logOperationStart("Fetching notable players data from API", "correlationId=" + correlationId);
+
 		Optional<JsonNode> proPlayersData = openDotaApiService.getProPlayers();
 		if (proPlayersData.isPresent()) {
 			this.dataIterator = proPlayersData.get().elements();
-			LoggingUtils.logOperationSuccess("Successfully fetched notable players data from API", 
-				"correlationId=" + correlationId,
-				"dataSize=" + proPlayersData.get().size());
+			LoggingUtils.logOperationSuccess("Successfully fetched notable players data from API",
+					"correlationId=" + correlationId, "dataSize=" + proPlayersData.get().size());
 		}
 		else {
-			LoggingUtils.logWarning("Failed to initialize notable players reader - no data from API", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logWarning("Failed to initialize notable players reader - no data from API",
+					"correlationId=" + correlationId);
 		}
 	}
 

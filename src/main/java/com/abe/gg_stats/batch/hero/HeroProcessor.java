@@ -15,7 +15,11 @@ import lombok.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
+public class HeroProcessor extends BaseProcessor<Hero> {
+
+	private static final String localizedNameLabel = "localized_name";
+
+	private static final String correlationIdLabel = "correlationId=";
 
 	@Override
 	protected boolean isValidInput(@NonNull JsonNode item) {
@@ -25,25 +29,21 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 		MDCLoggingContext.updateContext("batchType", "heroes");
 
 		// Check for required fields
-		String LOG_PARSING_ERROR = "HeroProcessor Json validation error";
 		if (!item.has("id") || item.get("id").isNull()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
-				"correlationId=" + correlationId,
-				"Hero data is missing or null 'id' field");
+			LoggingUtils.logWarning(LoggingConstants.JSON_PARSING_ERROR, correlationIdLabel + correlationId,
+					"Hero data is missing or null 'id' field");
 			return false;
 		}
 
 		if (!item.has("name") || item.get("name").isNull()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
-				"correlationId=" + correlationId,
-				"Hero data missing or null 'name' field");
+			LoggingUtils.logWarning(LoggingConstants.JSON_PARSING_ERROR, correlationIdLabel + correlationId,
+					"Hero data missing or null 'name' field");
 			return false;
 		}
 
-		if (!item.has("localized_name") || item.get("localized_name").isNull()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
-				"correlationId=" + correlationId,
-				"Hero data missing or null 'localized_name' field");
+		if (!item.has(localizedNameLabel) || item.get(localizedNameLabel).isNull()) {
+			LoggingUtils.logWarning(LoggingConstants.JSON_PARSING_ERROR, correlationIdLabel + correlationId,
+					"Hero data missing or null 'localized_name' field");
 			return false;
 		}
 
@@ -51,25 +51,22 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 		try {
 			int id = item.get("id").asInt();
 			if (id <= 0) {
-				LoggingUtils.logWarning(LOG_PARSING_ERROR, 
-					"correlationId=" + correlationId,
-					"Hero ID must be positive, got: " + id);
+				LoggingUtils.logWarning(LoggingConstants.JSON_PARSING_ERROR, correlationIdLabel + correlationId,
+						"Hero ID must be positive, got: " + id);
 				return false;
 			}
 		}
 		catch (Exception e) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
-				"correlationId=" + correlationId,
-				"Hero ID is not a valid integer");
+			LoggingUtils.logWarning(LoggingConstants.JSON_PARSING_ERROR, correlationIdLabel + correlationId,
+					"Hero ID is not a valid integer");
 			return false;
 		}
 
 		// Validate name is not empty
 		String name = item.get("name").asText();
 		if (name == null || name.trim().isEmpty()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, 
-				"correlationId=" + correlationId,
-				"Hero name is empty or null 'name' field");
+			LoggingUtils.logWarning(LoggingConstants.JSON_PARSING_ERROR, correlationIdLabel + correlationId,
+					"Hero name is empty or null 'name' field");
 			return false;
 		}
 
@@ -82,13 +79,13 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "heroes");
-		
+
 		Hero hero = new Hero();
 
 		// Required fields
 		hero.setId(item.get("id").asInt());
 		hero.setName(item.get("name").asText());
-		hero.setLocalizedName(item.get("localized_name").asText());
+		hero.setLocalizedName(item.get(localizedNameLabel).asText());
 
 		// Optional fields
 		hero.setPrimaryAttr(getTextValue(item, "primary_attr").orElse(null));
@@ -98,10 +95,8 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 		List<String> roles = processRolesArray(item);
 		hero.setRoles(roles);
 
-		LoggingUtils.logOperationSuccess("HeroProcessor", 
-			"correlationId=" + correlationId,
-			hero.getName(), 
-			hero.getId());
+		LoggingUtils.logOperationSuccess("HeroProcessor", "correlationId=" + correlationId, hero.getName(),
+				hero.getId());
 		return hero;
 	}
 
@@ -114,8 +109,9 @@ public class HeroProcessor extends BaseProcessor<JsonNode, Hero> {
 	 * Process roles array from JSON data
 	 */
 	private List<String> processRolesArray(JsonNode item) {
-		if (item.has("roles") && item.get("roles").isArray()) {
-			return StreamSupport.stream(item.get("roles").spliterator(), false)
+		final String rolesLabel = "roles";
+		if (item.has(rolesLabel) && item.get(rolesLabel).isArray()) {
+			return StreamSupport.stream(item.get(rolesLabel).spliterator(), false)
 				.filter(role -> role != null && !role.isNull())
 				.map(JsonNode::asText)
 				.map(String::trim)

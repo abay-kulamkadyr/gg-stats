@@ -1,4 +1,4 @@
-package com.abe.gg_stats.batch.notablePlayer;
+package com.abe.gg_stats.batch.notable_player;
 
 import com.abe.gg_stats.batch.BaseProcessor;
 import com.abe.gg_stats.entity.NotablePlayer;
@@ -18,7 +18,7 @@ import java.util.Optional;
  * Implements proper exception handling and input validation.
  */
 @Component
-public class NotablePlayerProcessor extends BaseProcessor<JsonNode, NotablePlayer> {
+public class NotablePlayerProcessor extends BaseProcessor<NotablePlayer> {
 
 	private final NotablePlayerRepository notablePlayerRepository;
 
@@ -35,15 +35,15 @@ public class NotablePlayerProcessor extends BaseProcessor<JsonNode, NotablePlaye
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "notableplayers");
-		
+
 		if (item == null) {
 			return false;
 		}
 
 		// Check for required fields
 		if (!item.has("account_id") || item.get("account_id").isNull()) {
-			LoggingUtils.logDebug("Notable player data missing or null 'account_id' field", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logDebug("Notable player data missing or null 'account_id' field",
+					"correlationId=" + correlationId);
 			return false;
 		}
 
@@ -51,16 +51,14 @@ public class NotablePlayerProcessor extends BaseProcessor<JsonNode, NotablePlaye
 		try {
 			long accountId = item.get("account_id").asLong();
 			if (accountId <= 0) {
-				LoggingUtils.logDebug("Notable player account_id must be positive, got: {}", 
-					"correlationId=" + correlationId,
-					"accountId=" + accountId);
+				LoggingUtils.logDebug("Notable player account_id must be positive, got: {}",
+						"correlationId=" + correlationId, "accountId=" + accountId);
 				return false;
 			}
 		}
 		catch (Exception e) {
-			LoggingUtils.logDebug("Notable player account_id is not a valid long: {}", 
-				"correlationId=" + correlationId,
-				"accountId=" + item.get("account_id"));
+			LoggingUtils.logDebug("Notable player account_id is not a valid long: {}", "correlationId=" + correlationId,
+					"accountId=" + item.get("account_id"));
 			return false;
 		}
 
@@ -102,7 +100,7 @@ public class NotablePlayerProcessor extends BaseProcessor<JsonNode, NotablePlaye
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "notableplayers");
-		
+
 		notablePlayer.setName(item.has("name") ? item.get("name").asText() : null);
 		notablePlayer.setCountryCode(item.has("country_code") ? item.get("country_code").asText() : null);
 		notablePlayer.setFantasyRole(item.has("fantasy_role") ? item.get("fantasy_role").asInt() : null);
@@ -119,9 +117,8 @@ public class NotablePlayerProcessor extends BaseProcessor<JsonNode, NotablePlaye
 				}
 			}
 			catch (Exception e) {
-				LoggingUtils.logWarning("Invalid team_id in notable player data", 
-					"correlationId=" + correlationId,
-					"teamId=" + item.get("team_id"));
+				LoggingUtils.logWarning("Invalid team_id in notable player data", "correlationId=" + correlationId,
+						"teamId=" + item.get("team_id"));
 			}
 		}
 	}

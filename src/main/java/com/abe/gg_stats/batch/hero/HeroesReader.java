@@ -11,15 +11,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HeroesReader extends BaseApiReader<JsonNode> {
+public class HeroesReader extends BaseApiReader {
 
 	private final HeroRepository heroRepository;
 
-	@Autowired
 	public HeroesReader(OpenDotaApiService openDotaApiService, HeroRepository heroRepository,
 			BatchExpirationConfig expirationConfig) {
 		super(openDotaApiService, expirationConfig);
@@ -32,36 +30,31 @@ public class HeroesReader extends BaseApiReader<JsonNode> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "heroes");
-		
-		LoggingUtils.logOperationStart("Initializing heroes reader", 
-			"correlationId=" + correlationId);
-		
+		final String correlationIdLabel = "correlationId=";
+		LoggingUtils.logOperationStart("InitrolesLabelializing heroes reader", correlationIdLabel + correlationId);
+
 		Optional<LocalDateTime> latestUpdate = heroRepository.findMaxUpdatedAt();
 
 		if (latestUpdate.isPresent() && noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();
-			LoggingUtils.logOperationSuccess("Heroes data in cache is valid", 
-				"correlationId=" + correlationId,
-				"lastUpdate=" + latestUpdate.get(),
-				"expiresIn=" + super.formatDuration(expiration));
+			LoggingUtils.logOperationSuccess("Heroes data in cache is valid", correlationIdLabel + correlationId,
+					"lastUpdate=" + latestUpdate.get(), "expiresIn=" + super.formatDuration(expiration));
 			return;
 		}
 
 		// Fetch from API
-		LoggingUtils.logOperationStart("Fetching heroes data from API", 
-			"correlationId=" + correlationId);
-		
+		LoggingUtils.logOperationStart("Fetching heroes data from API", correlationIdLabel + correlationId);
+
 		Optional<JsonNode> apiData = openDotaApiService.getHeroes();
 
 		if (apiData.isPresent()) {
 			this.dataIterator = apiData.get().elements();
-			LoggingUtils.logOperationSuccess("Successfully fetched heroes data from API", 
-				"correlationId=" + correlationId,
-				"dataSize=" + apiData.get().size());
+			LoggingUtils.logOperationSuccess("Successfully fetched heroes data from API",
+					correlationIdLabel + correlationId, "dataSize=" + apiData.get().size());
 		}
 		else {
-			LoggingUtils.logWarning("Failed to initialize heroes reader - no data from API", 
-				"correlationId=" + correlationId);
+			LoggingUtils.logWarning("Failed to initialize heroes reader - no data from API",
+					correlationIdLabel + correlationId);
 		}
 	}
 

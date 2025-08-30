@@ -17,18 +17,18 @@ public abstract class BaseWriter<T> implements ItemWriter<T> {
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", getItemTypeDescription());
-		
+
 		if (chunk.isEmpty()) {
-			LoggingUtils.logDebug("Empty chunk received, nothing to write", 
-				"itemType=" + getItemTypeDescription(),
-				"correlationId=" + correlationId);
+			LoggingUtils.logDebug("Empty chunk received, nothing to write", "itemType=" + getItemTypeDescription(),
+					"correlationId=" + correlationId);
 			return;
 		}
 
-		LoggingUtils.logOperationStart("batch write operation", 
-			"itemType=" + getItemTypeDescription(),
-			"correlationId=" + correlationId,
-			"items=" + chunk.size());
+		final String itemLabel = "items=";
+		final String itemTypeLabel = "itemType";
+		final String correlationIdLabel = "correlationId=";
+		LoggingUtils.logOperationStart("batch write operation", itemTypeLabel + getItemTypeDescription(),
+				correlationIdLabel + correlationId, itemLabel + chunk.size());
 
 		int successCount = 0;
 		int errorCount = 0;
@@ -37,33 +37,26 @@ public abstract class BaseWriter<T> implements ItemWriter<T> {
 			try {
 				writeItem(item);
 				successCount++;
-				LoggingUtils.logDebug("Successfully wrote " + getItemTypeDescription() + " item", 
-					"itemType=" + getItemTypeDescription(),
-					"correlationId=" + correlationId,
-					"item=" + item.toString());
+				LoggingUtils.logDebug("Successfully wrote " + getItemTypeDescription() + " item",
+						itemTypeLabel + getItemTypeDescription(), correlationIdLabel + correlationId,
+						itemLabel + item.toString());
 			}
 			catch (Exception e) {
 				errorCount++;
 				LoggingUtils.logOperationFailure("item write", "Failed to write " + getItemTypeDescription(), e,
-						"itemType=" + getItemTypeDescription(), 
-						"correlationId=" + correlationId,
-						"chunkSize=" + chunk.size(),
-						"itemIndex=" + (successCount + errorCount), 
+						itemTypeLabel + getItemTypeDescription(), correlationIdLabel + correlationId,
+						"chunkSize=" + chunk.size(), "itemIndex=" + (successCount + errorCount),
 						"errorType=" + e.getClass().getSimpleName());
 			}
 		}
 
-		LoggingUtils.logOperationSuccess("batch write operation", 
-			"itemType=" + getItemTypeDescription(),
-			"correlationId=" + correlationId,
-			"successful=" + successCount, 
-			"errors=" + errorCount);
+		LoggingUtils.logOperationSuccess("batch write operation", itemTypeLabel + getItemTypeDescription(),
+				correlationId + correlationId, "successful=" + successCount, "errors=" + errorCount);
 
 		if (errorCount > 0) {
-			LoggingUtils.logWarning("Some " + getItemTypeDescription() + " items failed to write", 
-				"itemType=" + getItemTypeDescription(),
-				"correlationId=" + correlationId,
-				"errorCount=" + errorCount);
+			LoggingUtils.logWarning("Some " + getItemTypeDescription() + " items failed to write",
+					itemTypeLabel + getItemTypeDescription(), correlationIdLabel + correlationId,
+					"errorCount=" + errorCount);
 		}
 	}
 

@@ -38,6 +38,7 @@ public class MonitoringController {
 	private final ServiceLogger serviceLogger;
 
 	private final MetricsService metricsService;
+
 	/**
 	 * Get comprehensive system health status
 	 */
@@ -112,7 +113,8 @@ public class MonitoringController {
 	public ResponseEntity<ActionResponse> openCircuitBreaker(@PathVariable String serviceName,
 			@RequestParam(defaultValue = "Manual override") String reason) {
 
-		serviceLogger.logServiceStart("MonitoringController", "Force opening circuit breaker", "service=" + serviceName, "reason=" + reason);
+		serviceLogger.logServiceStart("MonitoringController", "Force opening circuit breaker", "service=" + serviceName,
+				"reason=" + reason);
 
 		try {
 			circuitBreakerService.openCircuitBreaker(serviceName, reason);
@@ -120,7 +122,8 @@ public class MonitoringController {
 			ActionResponse response = ActionResponse.success("Circuit breaker opened for service: " + serviceName,
 					Map.of("service", serviceName, "reason", reason));
 
-			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker force opened", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker force opened",
+					"service=" + serviceName);
 
 			return ResponseEntity.ok(response);
 
@@ -140,7 +143,8 @@ public class MonitoringController {
 	@Timed(description = "Force close circuit breaker")
 	public ResponseEntity<ActionResponse> closeCircuitBreaker(@PathVariable String serviceName) {
 
-		serviceLogger.logServiceStart("MonitoringController", "Force closing circuit breaker", "service=" + serviceName);
+		serviceLogger.logServiceStart("MonitoringController", "Force closing circuit breaker",
+				"service=" + serviceName);
 
 		try {
 			circuitBreakerService.closeCircuitBreaker(serviceName);
@@ -148,7 +152,8 @@ public class MonitoringController {
 			ActionResponse response = ActionResponse.success("Circuit breaker closed for service: " + serviceName,
 					Map.of("service", serviceName));
 
-			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker force closed", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker force closed",
+					"service=" + serviceName);
 
 			return ResponseEntity.ok(response);
 
@@ -168,7 +173,8 @@ public class MonitoringController {
 	@Timed(description = "Reset circuit breaker metrics")
 	public ResponseEntity<ActionResponse> resetCircuitBreakerMetrics(@PathVariable String serviceName) {
 
-		serviceLogger.logServiceStart("MonitoringController", "Resetting circuit breaker metrics", "service=" + serviceName);
+		serviceLogger.logServiceStart("MonitoringController", "Resetting circuit breaker metrics",
+				"service=" + serviceName);
 
 		try {
 			circuitBreakerService.resetMetrics(serviceName);
@@ -177,13 +183,14 @@ public class MonitoringController {
 					"Circuit breaker metrics reset for service: " + serviceName,
 					Map.of("service", serviceName, "resetTime", Instant.now().toString()));
 
-			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker metrics reset", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("MonitoringController", "Circuit breaker metrics reset",
+					"service=" + serviceName);
 
 			return ResponseEntity.ok(response);
 
 		}
 		catch (Exception e) {
-			serviceLogger.logServiceFailure( "reset_circuit_breaker_metrics", "Failed to reset circuit breaker metrics",
+			serviceLogger.logServiceFailure("reset_circuit_breaker_metrics", "Failed to reset circuit breaker metrics",
 					e);
 
 			return ResponseEntity.internalServerError()
@@ -273,10 +280,10 @@ public class MonitoringController {
 	// Response DTOs
 
 	@Getter
-  public static class SystemHealthResponse {
+	public static class SystemHealthResponse {
 
-    // Getters
-    private final Instant timestamp;
+		// Getters
+		private final Instant timestamp;
 
 		private final String overallStatus;
 
@@ -301,7 +308,7 @@ public class MonitoringController {
 			return new Builder();
 		}
 
-    public static class Builder {
+		public static class Builder {
 
 			private Instant timestamp;
 

@@ -34,292 +34,290 @@ import org.springframework.web.client.RestTemplate;
 /**
  * OpenDota API client with comprehensive resilience patterns.
  * <p>
- * Features: - Rate limiting with token bucket algorithm - Circuit breaker pattern for fault
- * tolerance - Comprehensive monitoring and health checks - Async execution support - Enhanced error
- * handling with proper classification - Structured logging with performance metrics - Configuration
- * validation
+ * Features: - Rate limiting with token bucket algorithm - Circuit breaker pattern for
+ * fault tolerance - Comprehensive monitoring and health checks - Async execution support
+ * - Enhanced error handling with proper classification - Structured logging with
+ * performance metrics - Configuration validation
  */
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class OpenDotaApiService implements HealthIndicator {
 
-  private static final String SERVICE_NAME = "opendota_api";
+	private static final String SERVICE_NAME = "opendota_api";
 
-  private final RestTemplate restTemplate;
+	private final RestTemplate restTemplate;
 
-  private final RateLimitingService rateLimitingService;
+	private final RateLimitingService rateLimitingService;
 
-  private final CircuitBreakerService circuitBreakerService;
+	private final CircuitBreakerService circuitBreakerService;
 
-  private final ObjectMapper objectMapper;
+	private final ObjectMapper objectMapper;
 
-  private final ServiceLogger serviceLogger;
+	private final ServiceLogger serviceLogger;
 
-  @Value("${opendota.api.base-url:https://api.opendota.com/api}")
-  private String baseUrl;
+	@Value("${opendota.api.base-url:https://api.opendota.com/api}")
+	private String baseUrl;
 
-  @Value("${opendota.api.timeout.read:30000}")
-  private long readTimeoutMs;
+	@Value("${opendota.api.timeout.read:30000}")
+	private long readTimeoutMs;
 
-  @Value("${opendota.api.timeout.connect:10000}")
-  private long connectTimeoutMs;
+	@Value("${opendota.api.timeout.connect:10000}")
+	private long connectTimeoutMs;
 
-  @Value("${opendota.api.health-check.enabled:true}")
-  private boolean healthCheckEnabled;
+	@Value("${opendota.api.health-check.enabled:true}")
+	private boolean healthCheckEnabled;
 
-  @PostConstruct
-  public void initialize() {
-    serviceLogger.logServiceStart("OpenDotaApiService", "OpenDota API service initialization");
-    serviceLogger.logServiceSuccess("OpenDotaApiService", "OpenDota API service initialized",
-        "baseUrl=" + baseUrl, "readTimeout=" + readTimeoutMs + "ms",
-        "connectTimeout=" + connectTimeoutMs + "ms");
-  }
-  // ServiceLogger provides the service name automatically
+	@PostConstruct
+	public void initialize() {
+		serviceLogger.logServiceStart("OpenDotaApiService", "OpenDota API service initialization");
+		serviceLogger.logServiceSuccess("OpenDotaApiService", "OpenDota API service initialized", "baseUrl=" + baseUrl,
+				"readTimeout=" + readTimeoutMs + "ms", "connectTimeout=" + connectTimeoutMs + "ms");
+	}
+	// ServiceLogger provides the service name automatically
 
-  /**
-   * Makes a synchronous API call with custom timeout
-   */
-  public Optional<JsonNode> makeApiCall(String endpoint) {
-    try {
-      return circuitBreakerService.executeWithCircuitBreaker(SERVICE_NAME,
-          () -> performApiCall(endpoint),
-          () -> handleFallback(endpoint));
-    } catch (CircuitBreakerOpenException e) {
-      LoggingUtils.logWarning("Circuit breaker prevented API call", "endpoint=" + endpoint,
-          "reason=" + e.getMessage());
-      return Optional.empty();
-    }
-  }
+	/**
+	 * Makes a synchronous API call with custom timeout
+	 */
+	public Optional<JsonNode> makeApiCall(String endpoint) {
+		try {
+			return circuitBreakerService.executeWithCircuitBreaker(SERVICE_NAME, () -> performApiCall(endpoint),
+					() -> handleFallback(endpoint));
+		}
+		catch (CircuitBreakerOpenException e) {
+			LoggingUtils.logWarning("Circuit breaker prevented API call", "endpoint=" + endpoint,
+					"reason=" + e.getMessage());
+			return Optional.empty();
+		}
+	}
 
-  private Optional<JsonNode> performApiCall(String endpoint) {
-    // Set up API call context - inherit existing context if available
-    String existingCorrelationId = MDCLoggingContext.getCurrentCorrelationId();
-    String correlationId = existingCorrelationId != null ? existingCorrelationId : MDCLoggingContext.setApiContext(endpoint, "GET");
-    
-    // Update context with API-specific information
-    MDCLoggingContext.updateContext("apiEndpoint", endpoint);
-    MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_API_CALL);
+	private Optional<JsonNode> performApiCall(String endpoint) {
+		// Set up API call context - inherit existing context if available
+		String existingCorrelationId = MDCLoggingContext.getCurrentCorrelationId();
+		String correlationId = existingCorrelationId != null ? existingCorrelationId
+				: MDCLoggingContext.setApiContext(endpoint, "GET");
 
-    try {
-      // Check rate limit first
-      RateLimitingService.RateLimitResult rateLimitResult = rateLimitingService.tryAcquirePermit(
-          endpoint);
+		// Update context with API-specific information
+		MDCLoggingContext.updateContext("apiEndpoint", endpoint);
+		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_API_CALL);
 
-      if (!rateLimitResult.allowed()) {
-        LoggingUtils.logWarning("Rate limit exceeded", "endpoint=" + endpoint,
-            "reason=" + rateLimitResult.reason(),
-            "resetTime=" + rateLimitResult.resetTimeMs() + "ms",
-            "correlationId=" + correlationId);
-        return Optional.empty();
-      }
+		try {
+			// Check rate limit first
+			RateLimitingService.RateLimitResult rateLimitResult = rateLimitingService.tryAcquirePermit(endpoint);
 
-      try (LoggingUtils.AutoCloseableStopWatch _ = LoggingUtils
-          .createStopWatch("opendota_api_call_" + endpoint.replaceAll("/", "_"))) {
+			if (!rateLimitResult.allowed()) {
+				LoggingUtils.logWarning("Rate limit exceeded", "endpoint=" + endpoint,
+						"reason=" + rateLimitResult.reason(), "resetTime=" + rateLimitResult.resetTimeMs() + "ms",
+						"correlationId=" + correlationId);
+				return Optional.empty();
+			}
 
-        String url = baseUrl + endpoint;
-        LoggingUtils.logApiCall(endpoint, "GET");
+			try (LoggingUtils.AutoCloseableStopWatch _ = LoggingUtils
+				.createStopWatch("opendota_api_call_" + endpoint.replaceAll("/", "_"))) {
 
-        Instant startTime = Instant.now();
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        long responseTime = Duration.between(startTime, Instant.now()).toMillis();
+				String url = baseUrl + endpoint;
+				LoggingUtils.logApiCall(endpoint, "GET");
 
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-          LoggingUtils.logApiResponse(endpoint, response.getStatusCode().value(), responseTime,
-              response.getBody().length());
+				Instant startTime = Instant.now();
+				ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+				long responseTime = Duration.between(startTime, Instant.now()).toMillis();
 
-          return Optional.of(objectMapper.readTree(response.getBody()));
+				if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+					LoggingUtils.logApiResponse(endpoint, response.getStatusCode().value(), responseTime,
+							response.getBody().length());
 
-        } else if (response.getStatusCode() == HttpStatus.OK) {
-          LoggingUtils.logWarning("API call successful but response body is null",
-              "endpoint=" + endpoint);
-          return Optional.empty();
-        } else {
-          LoggingUtils.logWarning("API call returned non-200 status", "endpoint=" + endpoint,
-              "status=" + response.getStatusCode().value());
-          return Optional.empty();
-        }
+					return Optional.of(objectMapper.readTree(response.getBody()));
 
-      }
-    } catch (HttpClientErrorException e) {
-      handleHttpClientError(endpoint, e);
+				}
+				else if (response.getStatusCode() == HttpStatus.OK) {
+					LoggingUtils.logWarning("API call successful but response body is null", "endpoint=" + endpoint);
+					return Optional.empty();
+				}
+				else {
+					LoggingUtils.logWarning("API call returned non-200 status", "endpoint=" + endpoint,
+							"status=" + response.getStatusCode().value());
+					return Optional.empty();
+				}
 
-      // Don't treat rate limiting as a circuit breaker failure
-      if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-        LoggingUtils.logWarning("Rate limit hit - not counting as circuit breaker failure",
-            "endpoint=" + endpoint);
-        return Optional.empty(); // Return empty instead of throwing
-      }
+			}
+		}
+		catch (HttpClientErrorException e) {
+			handleHttpClientError(endpoint, e);
 
-      throw e; // Re-throw for circuit breaker to handle other errors
+			// Don't treat rate limiting as a circuit breaker failure
+			if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+				LoggingUtils.logWarning("Rate limit hit - not counting as circuit breaker failure",
+						"endpoint=" + endpoint);
+				return Optional.empty(); // Return empty instead of throwing
+			}
 
-    } catch (ResourceAccessException e) {
-      LoggingUtils.logOperationFailure("opendota_api_call",
-          "Network error for endpoint: " + endpoint, e);
-      throw e; // Re-throw for retry and circuit breaker
+			throw e; // Re-throw for circuit breaker to handle other errors
 
-    } catch (Exception e) {
-      LoggingUtils.logOperationFailure("opendota_api_call",
-          "Unexpected error for endpoint: " + endpoint, e);
-      throw new RuntimeException("API call failed", e);
-    } finally {
-      // Don't clear context here - let the job-level listener handle context clearing
-      // MDCLoggingContext.clearContext(); // REMOVED: This was causing context loss between heroes
-    }
-  }
+		}
+		catch (ResourceAccessException e) {
+			LoggingUtils.logOperationFailure("opendota_api_call", "Network error for endpoint: " + endpoint, e);
+			throw e; // Re-throw for retry and circuit breaker
 
-  public Optional<JsonNode> getHeroes() {
-    return makeApiCall("/heroes");
-  }
+		}
+		catch (Exception e) {
+			LoggingUtils.logOperationFailure("opendota_api_call", "Unexpected error for endpoint: " + endpoint, e);
+			throw new RuntimeException("API call failed", e);
+		}
+		finally {
+			// Don't clear context here - let the job-level listener handle context
+			// clearing
+			// MDCLoggingContext.clearContext(); // REMOVED: This was causing context loss
+			// between heroes
+		}
+	}
 
-  public Optional<JsonNode> getProPlayers() {
-    return makeApiCall("/proPlayers");
-  }
+	public Optional<JsonNode> getHeroes() {
+		return makeApiCall("/heroes");
+	}
 
-  public Optional<JsonNode> getTeams() {
-    return makeApiCall("/teams");
-  }
+	public Optional<JsonNode> getProPlayers() {
+		return makeApiCall("/proPlayers");
+	}
 
-  public Optional<JsonNode> getPlayer(Long accountId) {
-    if (accountId == null || accountId <= 0) {
-      LoggingUtils.logWarning("Invalid account ID provided", "accountId=" + accountId);
-      return Optional.empty();
-    }
-    return makeApiCall("/players/" + accountId);
-  }
+	public Optional<JsonNode> getTeams() {
+		return makeApiCall("/teams");
+	}
 
-  public Optional<JsonNode> getHeroRanking(Integer heroId) {
-    if (heroId == null || heroId <= 0) {
-      LoggingUtils.logWarning("Invalid hero ID provided", "heroId=" + heroId);
-      return Optional.empty();
-    }
-    return makeApiCall("/rankings?hero_id=" + heroId);
-  }
+	public Optional<JsonNode> getPlayer(Long accountId) {
+		if (accountId == null || accountId <= 0) {
+			LoggingUtils.logWarning("Invalid account ID provided", "accountId=" + accountId);
+			return Optional.empty();
+		}
+		return makeApiCall("/players/" + accountId);
+	}
 
-  @Override
-  public Health health() {
-    if (!healthCheckEnabled) {
-      return Health.up().withDetail("healthCheck", "disabled").build();
-    }
+	public Optional<JsonNode> getHeroRanking(Integer heroId) {
+		if (heroId == null || heroId <= 0) {
+			LoggingUtils.logWarning("Invalid hero ID provided", "heroId=" + heroId);
+			return Optional.empty();
+		}
+		return makeApiCall("/rankings?hero_id=" + heroId);
+	}
 
-    try {
-      Health.Builder healthBuilder = Health.up();
+	@Override
+	public Health health() {
+		if (!healthCheckEnabled) {
+			return Health.up().withDetail("healthCheck", "disabled").build();
+		}
 
-      // Check circuit breaker status
-      CircuitBreakerService.CircuitBreakerStatus cbStatus = circuitBreakerService.getStatus(
-          SERVICE_NAME);
-      healthBuilder.withDetail("circuitBreaker",
-          Map.of("state", cbStatus.state().toString(), "successRate",
-              cbStatus.successRate(), "totalCalls", cbStatus.totalCalls()));
+		try {
+			Health.Builder healthBuilder = Health.up();
 
-      // Check rate limiting status
-      RateLimitingService.RateLimitStatus rlStatus = rateLimitingService.getStatus();
-      healthBuilder.withDetail("rateLimiting",
-          Map.of("availableTokens", rlStatus.availableTokens(), "remainingDailyRequests",
-              rlStatus.remainingDailyRequests(), "successRate", rlStatus.successRate()));
+			// Check circuit breaker status
+			CircuitBreakerService.CircuitBreakerStatus cbStatus = circuitBreakerService.getStatus(SERVICE_NAME);
+			healthBuilder.withDetail("circuitBreaker", Map.of("state", cbStatus.state().toString(), "successRate",
+					cbStatus.successRate(), "totalCalls", cbStatus.totalCalls()));
 
-      // Perform a lightweight health check call
-      if (cbStatus.state() != CircuitBreakerService.CircuitBreakerState.OPEN) {
-        performHealthCheck(healthBuilder);
-      }
+			// Check rate limiting status
+			RateLimitingService.RateLimitStatus rlStatus = rateLimitingService.getStatus();
+			healthBuilder.withDetail("rateLimiting",
+					Map.of("availableTokens", rlStatus.availableTokens(), "remainingDailyRequests",
+							rlStatus.remainingDailyRequests(), "successRate", rlStatus.successRate()));
 
-      return healthBuilder.build();
+			// Perform a lightweight health check call
+			if (cbStatus.state() != CircuitBreakerService.CircuitBreakerState.OPEN) {
+				performHealthCheck(healthBuilder);
+			}
 
-    } catch (Exception e) {
-      LoggingUtils.logOperationFailure("health_check", "Health check failed", e);
-      return Health.down()
-          .withDetail("error", e.getMessage())
-          .withDetail("timestamp", Instant.now().toString())
-          .build();
-    }
-  }
+			return healthBuilder.build();
 
-  /**
-   * Gets comprehensive service statistics
-   */
-  public ApiServiceStatistics getStatistics() {
-    CircuitBreakerService.CircuitBreakerStatus cbStatus = circuitBreakerService.getStatus(
-        SERVICE_NAME);
-    RateLimitingService.RateLimitStatus rlStatus = rateLimitingService.getStatus();
+		}
+		catch (Exception e) {
+			LoggingUtils.logOperationFailure("health_check", "Health check failed", e);
+			return Health.down()
+				.withDetail("error", e.getMessage())
+				.withDetail("timestamp", Instant.now().toString())
+				.build();
+		}
+	}
 
-    return ApiServiceStatistics.builder()
-        .serviceName(SERVICE_NAME)
-        .circuitBreakerStatus(cbStatus)
-        .rateLimitStatus(rlStatus)
-        .baseUrl(baseUrl)
-        .readTimeoutMs(readTimeoutMs)
-        .connectTimeoutMs(connectTimeoutMs)
-        .timestamp(Instant.now())
-        .build();
-  }
+	/**
+	 * Gets comprehensive service statistics
+	 */
+	public ApiServiceStatistics getStatistics() {
+		CircuitBreakerService.CircuitBreakerStatus cbStatus = circuitBreakerService.getStatus(SERVICE_NAME);
+		RateLimitingService.RateLimitStatus rlStatus = rateLimitingService.getStatus();
 
-  private void handleHttpClientError(String endpoint, HttpClientErrorException e) {
-    HttpStatusCode status = e.getStatusCode();
+		return ApiServiceStatistics.builder()
+			.serviceName(SERVICE_NAME)
+			.circuitBreakerStatus(cbStatus)
+			.rateLimitStatus(rlStatus)
+			.baseUrl(baseUrl)
+			.readTimeoutMs(readTimeoutMs)
+			.connectTimeoutMs(connectTimeoutMs)
+			.timestamp(Instant.now())
+			.build();
+	}
 
-    switch (status) {
-      case TOO_MANY_REQUESTS:
-        if (e.getResponseHeaders() != null) {
-          LoggingUtils.logWarning("Rate limited by OpenDota API", "endpoint=" + endpoint,
-              "retryAfter=" + e.getResponseHeaders().getFirst("Retry-After"));
-        }
-        break;
+	private void handleHttpClientError(String endpoint, HttpClientErrorException e) {
+		HttpStatusCode status = e.getStatusCode();
 
-      case NOT_FOUND:
-        LoggingUtils.logWarning("Resource not found", "endpoint=" + endpoint);
-        break;
+		switch (status) {
+			case TOO_MANY_REQUESTS:
+				if (e.getResponseHeaders() != null) {
+					LoggingUtils.logWarning("Rate limited by OpenDota API", "endpoint=" + endpoint,
+							"retryAfter=" + e.getResponseHeaders().getFirst("Retry-After"));
+				}
+				break;
 
-      case BAD_REQUEST:
-        LoggingUtils.logWarning("Bad request to API", "endpoint=" + endpoint,
-            "response=" + e.getResponseBodyAsString());
-        break;
+			case NOT_FOUND:
+				LoggingUtils.logWarning("Resource not found", "endpoint=" + endpoint);
+				break;
 
-      case UNAUTHORIZED:
-      case FORBIDDEN:
-        LoggingUtils.logOperationFailure("opendota_api_call", "Authentication/authorization error",
-            e);
-        break;
+			case BAD_REQUEST:
+				LoggingUtils.logWarning("Bad request to API", "endpoint=" + endpoint,
+						"response=" + e.getResponseBodyAsString());
+				break;
 
-      default:
-        LoggingUtils.logOperationFailure("opendota_api_call", "HTTP error: " + status, e);
-    }
-  }
+			case UNAUTHORIZED:
+			case FORBIDDEN:
+				LoggingUtils.logOperationFailure("opendota_api_call", "Authentication/authorization error", e);
+				break;
 
-  private Optional<JsonNode> handleFallback(String endpoint) {
-    LoggingUtils.logWarning("Using fallback for API call", "endpoint=" + endpoint);
-    // TODO
-    // Implement fallback logic here - could be:
-    // - Return cached data
-    // - Return default values
-    // - Use alternative data source
-    // For now, just return empty
-    return Optional.empty();
-  }
+			default:
+				LoggingUtils.logOperationFailure("opendota_api_call", "HTTP error: " + status, e);
+		}
+	}
 
-  private void performHealthCheck(Health.Builder healthBuilder) {
-    try {
-      // Use a lightweight endpoint for health check
-      Optional<JsonNode> response = performApiCall("/constants/heroes");
+	private Optional<JsonNode> handleFallback(String endpoint) {
+		LoggingUtils.logWarning("Using fallback for API call", "endpoint=" + endpoint);
+		// TODO: Implement fallback logic - could be cached data, default values, or
+		// alternative data source
+		// For now, return empty as fallback is not yet implemented
+		return Optional.empty();
+	}
 
-      if (response.isPresent()) {
-        healthBuilder.withDetail("apiCheck", "successful");
-      } else {
-        healthBuilder.withDetail("apiCheck", "failed - no response");
-      }
+	private void performHealthCheck(Health.Builder healthBuilder) {
+		try {
+			// Use a lightweight endpoint for health check
+			Optional<JsonNode> response = performApiCall("/constants/heroes");
 
-    } catch (Exception e) {
-      healthBuilder.withDetail("apiCheck", "failed - " + e.getMessage());
-    }
-  }
+			if (response.isPresent()) {
+				healthBuilder.withDetail("apiCheck", "successful");
+			}
+			else {
+				healthBuilder.withDetail("apiCheck", "failed - no response");
+			}
 
-  /**
-   * Statistics container for monitoring
-   */
-  @Builder
-  public record ApiServiceStatistics(String serviceName,
-                                     CircuitBreakerService.CircuitBreakerStatus circuitBreakerStatus,
-                                     RateLimitingService.RateLimitStatus rateLimitStatus,
-                                     String baseUrl, long readTimeoutMs,
-                                     long connectTimeoutMs, Instant timestamp) {
+		}
+		catch (Exception e) {
+			healthBuilder.withDetail("apiCheck", "failed - " + e.getMessage());
+		}
+	}
 
-  }
+	/**
+	 * Statistics container for monitoring
+	 */
+	@Builder
+	public record ApiServiceStatistics(String serviceName,
+			CircuitBreakerService.CircuitBreakerStatus circuitBreakerStatus,
+			RateLimitingService.RateLimitStatus rateLimitStatus, String baseUrl, long readTimeoutMs,
+			long connectTimeoutMs, Instant timestamp) {
+
+	}
+
 }

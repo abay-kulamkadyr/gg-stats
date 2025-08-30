@@ -1,6 +1,6 @@
 package com.abe.gg_stats.batch;
 
-import com.abe.gg_stats.batch.heroRanking.HeroRankingReader;
+import com.abe.gg_stats.batch.hero_ranking.HeroRankingReader;
 import com.abe.gg_stats.config.BatchExpirationConfig;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.repository.HeroRankingRepository;

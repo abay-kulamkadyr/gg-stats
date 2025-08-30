@@ -1,28 +1,25 @@
 package com.abe.gg_stats.util;
 
 import java.text.ParseException;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
-
 import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.util.StringUtils;
 
 /**
  * Utility class to parse flexible time unit strings into Duration objects. Supports
  * various time units: minutes (m), hours (h), days (d), weeks (w), months (mo), years (y)
- *
+ * <p>
  * Examples: - "30m" = 30 minutes - "2h" = 2 hours - "1d" = 1 day - "1w" = 1 week - "3mo"
  * = 3 months - "1y" = 1 year
  */
-@Slf4j
 public class TimeUnitParser {
+
+	private static final Pattern TIME_PATTERN = Pattern.compile("^(\\d+)(mo|[mhdw]|y)$");
 
 	private TimeUnitParser() {
 		throw new UnsupportedOperationException("Utility class cannot be instantiated");
 	}
-
-	private static final Pattern TIME_PATTERN = Pattern.compile("^(\\d+)(mo|[mhdw]|y)$");
 
 	/**
 	 * Parse a time string into a Duration

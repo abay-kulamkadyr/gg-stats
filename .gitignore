@@ -39,3 +39,13 @@ build/
 *.md
 /logs/
 /bin/
+sonar-analysis.sh
+
+### SonarQube ###
+.sonar/
+sonar-report.json
+sonar-report.txt
+
+### Coverage Reports ###
+coverage/
+*.lcov

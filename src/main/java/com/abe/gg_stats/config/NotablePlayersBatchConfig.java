@@ -1,14 +1,13 @@
 package com.abe.gg_stats.config;
 
-import com.abe.gg_stats.batch.notablePlayer.NotablePlayerProcessor;
-import com.abe.gg_stats.batch.notablePlayer.NotablePlayerWriter;
-import com.abe.gg_stats.batch.notablePlayer.NotablePlayersReader;
+import com.abe.gg_stats.batch.notable_player.NotablePlayerProcessor;
+import com.abe.gg_stats.batch.notable_player.NotablePlayerWriter;
+import com.abe.gg_stats.batch.notable_player.NotablePlayersReader;
 import com.abe.gg_stats.batch.listener.NotablePlayersJobExecutionListener;
 import com.abe.gg_stats.batch.listener.NotablePlayersStepExecutionListener;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -22,7 +21,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
 @RequiredArgsConstructor
-@Slf4j
 public class NotablePlayersBatchConfig {
 
 	private final JobRepository jobRepository;
@@ -39,7 +37,8 @@ public class NotablePlayersBatchConfig {
 	private int skipLimit;
 
 	@Bean("proPlayersUpdateJob")
-	public Job proPlayersUpdateJob(Step proPlayersStep, NotablePlayersJobExecutionListener notablePlayersJobExecutionListener) {
+	public Job proPlayersUpdateJob(Step proPlayersStep,
+			NotablePlayersJobExecutionListener notablePlayersJobExecutionListener) {
 		return new JobBuilder("proPlayersUpdateJob", jobRepository)//
 			.incrementer(new RunIdIncrementer())
 			.start(proPlayersStep)

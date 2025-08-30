@@ -93,8 +93,7 @@ public class CircuitBreakerService {
 		}
 		catch (Exception e) {
 			circuitBreaker.recordFailure();
-			serviceLogger.logServiceFailure("circuit_breaker_execution",
-					"Unexpected exception occurred ", e);
+			serviceLogger.logServiceFailure("circuit_breaker_execution", "Unexpected exception occurred ", e);
 			throw new CircuitBreakerException(serviceName, "Closed", "Operation failed for service");
 		}
 	}
@@ -115,7 +114,8 @@ public class CircuitBreakerService {
 		CircuitBreaker circuitBreaker = circuitBreakers.get(serviceName);
 		if (circuitBreaker != null) {
 			circuitBreaker.forceClose();
-			serviceLogger.logServiceSuccess("CircuitBreakerService", "Circuit breaker manually closed", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("CircuitBreakerService", "Circuit breaker manually closed",
+					"service=" + serviceName);
 		}
 	}
 
@@ -155,7 +155,8 @@ public class CircuitBreakerService {
 		CircuitBreaker circuitBreaker = circuitBreakers.get(serviceName);
 		if (circuitBreaker != null) {
 			circuitBreaker.resetMetrics();
-			serviceLogger.logServiceSuccess("CircuitBreakerService", "Circuit breaker metrics reset", "service=" + serviceName);
+			serviceLogger.logServiceSuccess("CircuitBreakerService", "Circuit breaker metrics reset",
+					"service=" + serviceName);
 		}
 	}
 

@@ -11,6 +11,7 @@ import lombok.Getter;
 @Getter
 public class CircuitBreakerException extends RuntimeException {
 
+	// Getters
 	private final String serviceName;
 
 	private final String state;
@@ -34,23 +35,6 @@ public class CircuitBreakerException extends RuntimeException {
 		this.state = state;
 		this.timestamp = Instant.now();
 		this.additionalInfo = additionalInfo != null ? Map.copyOf(additionalInfo) : Map.of();
-	}
-
-	// Getters
-	public String getServiceName() {
-		return serviceName;
-	}
-
-	public String getState() {
-		return state;
-	}
-
-	public Instant getTimestamp() {
-		return timestamp;
-	}
-
-	public Map<String, Object> getAdditionalInfo() {
-		return additionalInfo;
 	}
 
 }
