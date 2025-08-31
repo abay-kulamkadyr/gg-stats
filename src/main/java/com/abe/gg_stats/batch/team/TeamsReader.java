@@ -42,7 +42,8 @@ public class TeamsReader extends BaseApiReader {
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();
 			LoggingUtils.logOperationSuccess("Teams data in cache is valid", "correlationId=" + correlationId,
-					"lastUpdate=" + latestUpdate.get(), "expiresIn=" + super.formatDuration(expiration));
+					"lastUpdate=" + latestUpdate.get(),
+					"expiresIn=" + super.getFormattedDurationUntilExpiration(expiration));
 			return;
 		}
 
@@ -59,11 +60,6 @@ public class TeamsReader extends BaseApiReader {
 			LoggingUtils.logWarning("Failed to initialize teams reader - no data from API",
 					"correlationId=" + correlationId);
 		}
-	}
-
-	@Override
-	protected Duration getExpiration() {
-		return expirationConfig.getTeamsDuration();
 	}
 
 	@Override

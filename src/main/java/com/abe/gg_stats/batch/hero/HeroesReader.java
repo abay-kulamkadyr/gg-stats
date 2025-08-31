@@ -35,10 +35,11 @@ public class HeroesReader extends BaseApiReader {
 
 		Optional<LocalDateTime> latestUpdate = heroRepository.findMaxUpdatedAt();
 
-		if (latestUpdate.isPresent() && noRefreshNeeded(latestUpdate.get())) {
+		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();
 			LoggingUtils.logOperationSuccess("Heroes data in cache is valid", correlationIdLabel + correlationId,
-					"lastUpdate=" + latestUpdate.get(), "expiresIn=" + super.formatDuration(expiration));
+					"lastUpdate=" + latestUpdate.get(),
+					"expiresIn=" + super.getFormattedDurationUntilExpiration(expiration));
 			return;
 		}
 

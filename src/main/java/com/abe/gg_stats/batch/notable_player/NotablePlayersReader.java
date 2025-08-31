@@ -37,7 +37,8 @@ public class NotablePlayersReader extends BaseApiReader {
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();
 			LoggingUtils.logOperationSuccess("Notable players data in cache is valid", "correlationId=" + correlationId,
-					"lastUpdate=" + latestUpdate.get(), "expiresIn=" + super.formatDuration(expiration));
+					"lastUpdate=" + latestUpdate.get(),
+					"expiresIn=" + super.getFormattedDurationUntilExpiration(expiration));
 			return;
 		}
 
