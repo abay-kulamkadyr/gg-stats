@@ -1,8 +1,8 @@
-# 🚀 GG Stats - Dota 2 Statistics Batch Processing System
+# GG Stats - Dota 2 Statistics Batch Processing System
 
 A robust Spring Boot application for collecting, processing, and storing Dota 2 statistics from the OpenDota API using Spring Batch with comprehensive resilience patterns.
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
@@ -15,7 +15,7 @@ A robust Spring Boot application for collecting, processing, and storing Dota 2 
 - [Monitoring](#monitoring)
 - [Troubleshooting](#troubleshooting)
 
-## 🎯 Overview
+## Overview
 
 GG Stats is a production-ready batch processing system that:
 - **Collects data** from OpenDota API with rate limiting and circuit breaker protection
@@ -24,7 +24,7 @@ GG Stats is a production-ready batch processing system that:
 - **Provides monitoring** through structured logging and metrics collection
 - **Ensures resilience** through comprehensive error handling and recovery mechanisms
 
-## 🏗️ Architecture
+## Architecture
 
 ### High-Level System Architecture
 
@@ -186,7 +186,7 @@ GG Stats is a production-ready batch processing system that:
 └─────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 🔄 System Components
+## System Components
 
 ### Data Flow Diagram
 
@@ -250,7 +250,7 @@ GG Stats is a production-ready batch processing system that:
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## ⚙️ Batch Processing
+## Batch Processing
 
 ### Batch Job Execution Flow
 
@@ -350,24 +350,11 @@ GG Stats is a production-ready batch processing system that:
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Java 17+
-- PostgreSQL 12+
-- Maven 3.6+
-- OpenDota API access
+## Getting Started
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/gg-stats.git
-   cd gg-stats
-   ```
-
-2. **Configure database**
+1. **Configure database**
    ```bash
    # Update application.properties with your database credentials
    spring.datasource.url=jdbc:postgresql://localhost:5432/dota_stats
@@ -375,35 +362,13 @@ GG Stats is a production-ready batch processing system that:
    spring.datasource.password=your_password
    ```
 
-3. **Run database migrations**
+2. **Run***
    ```bash
    # Flyway will automatically run migrations on startup
    mvn spring-boot:run
    ```
 
-4. **Start the application**
-   ```bash
-   mvn spring-boot:run
-   ```
-
 ### Configuration
-
-#### Environment Variables
-
-```bash
-# Database
-export DB_URL=jdbc:postgresql://localhost:5432/dota_stats
-export DB_USERNAME=your_username
-export DB_PASSWORD=your_password
-
-# API Configuration
-export OPENDOTA_API_KEY=your_api_key
-export OPENDOTA_RATE_LIMIT_PER_MINUTE=60
-
-# Batch Configuration
-export BATCH_CHUNK_SIZE=60
-export BATCH_RETRY_LIMIT=3
-```
 
 #### Profile-Specific Configuration
 
@@ -411,7 +376,7 @@ export BATCH_RETRY_LIMIT=3
 - **Production**: `spring.profiles.active=prod`
 - **Test**: `spring.profiles.active=test`
 
-## 📊 Monitoring
+## Monitoring
 
 ### Logging
 
@@ -444,7 +409,7 @@ The application uses structured logging with MDC context:
 - **Batch Job Status**: Job execution history
 - **System Resources**: Memory, CPU usage
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -482,7 +447,7 @@ logging.level.org.springframework.batch=DEBUG
 3. **Tune rate limiting** based on API quotas
 4. **Optimize batch job scheduling** for your use case
 
-## 📚 API Documentation
+## API Documentation
 
 ### Batch Job Endpoints
 
@@ -497,25 +462,8 @@ logging.level.org.springframework.batch=DEBUG
 - `GET /actuator/metrics` - Application metrics
 - `GET /actuator/batch-jobs` - Batch job execution history
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-For support and questions:
-- Create an issue in the GitHub repository
-- Check the troubleshooting section
-- Review the application logs for detailed error information
-
----
 
 **GG Stats** - Built with using Spring Boot, Spring Batch, and modern resilience patterns.
