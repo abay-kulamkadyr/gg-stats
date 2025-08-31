@@ -88,7 +88,7 @@ public abstract class BaseApiReader implements ItemReader<JsonNode> {
 	/**
 	 * Format duration for logging
 	 */
-	protected String formatDuration(Duration duration) {
+	protected String getFormattedDurationUntilExpiration(Duration duration) {
 		long days = duration.toDays();
 		long hours = duration.toHoursPart();
 		long minutes = duration.toMinutesPart();
