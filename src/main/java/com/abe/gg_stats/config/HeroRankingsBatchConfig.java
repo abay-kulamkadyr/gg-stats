@@ -5,7 +5,7 @@ import com.abe.gg_stats.batch.hero_ranking.HeroRankingReader;
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingWriter;
 import com.abe.gg_stats.batch.listener.HeroRankingJobExecutionListener;
 import com.abe.gg_stats.batch.listener.HeroRankingsStepExecutionListener;
-import com.abe.gg_stats.entity.HeroRanking;
+import com.abe.gg_stats.dto.HeroRankingDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +51,7 @@ public class HeroRankingsBatchConfig {
 	public Step heroRankingStep(HeroRankingReader heroRankingReader, HeroRankingProcessor heroRankingProcessor,
 			HeroRankingWriter heroRankingWriter) {
 		return new StepBuilder("heroRankingStep", jobRepository)
-			.<JsonNode, List<HeroRanking>>chunk(chunkSize, transactionManager)
+			.<JsonNode, List<HeroRankingDto>>chunk(chunkSize, transactionManager)
 			.reader(heroRankingReader)
 			.processor(heroRankingProcessor)
 			.writer(heroRankingWriter)

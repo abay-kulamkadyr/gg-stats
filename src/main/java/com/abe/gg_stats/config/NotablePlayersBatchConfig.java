@@ -5,7 +5,7 @@ import com.abe.gg_stats.batch.notable_player.NotablePlayerWriter;
 import com.abe.gg_stats.batch.notable_player.NotablePlayersReader;
 import com.abe.gg_stats.batch.listener.NotablePlayersJobExecutionListener;
 import com.abe.gg_stats.batch.listener.NotablePlayersStepExecutionListener;
-import com.abe.gg_stats.entity.NotablePlayer;
+import com.abe.gg_stats.dto.NotablePlayerDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -50,7 +50,7 @@ public class NotablePlayersBatchConfig {
 	public Step proPlayersStep(NotablePlayersReader proPlayersReader, NotablePlayerProcessor notablePlayerProcessor,
 			NotablePlayerWriter notablePlayerWriter) {
 		return new StepBuilder("proPlayersStep", jobRepository)
-			.<JsonNode, NotablePlayer>chunk(chunkSize, transactionManager)
+			.<JsonNode, NotablePlayerDto>chunk(chunkSize, transactionManager)
 			.reader(proPlayersReader)
 			.processor(notablePlayerProcessor)
 			.writer(notablePlayerWriter)

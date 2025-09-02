@@ -1,19 +1,17 @@
 package com.abe.gg_stats.batch.player;
 
 import com.abe.gg_stats.batch.BaseProcessor;
-import com.abe.gg_stats.entity.Player;
+import com.abe.gg_stats.dto.PlayerDto;
 import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PlayerProcessor extends BaseProcessor<Player> {
+public class PlayerProcessor extends BaseProcessor<PlayerDto> {
 
 	@Override
 	protected boolean isValidInput(JsonNode item) {
@@ -55,69 +53,44 @@ public class PlayerProcessor extends BaseProcessor<Player> {
 	}
 
 	@Override
-	protected Player processItem(JsonNode item) {
-		Player player = new Player();
-		processProfileData(player, item);
-		processRootLevelData(player, item);
-		return player;
+	protected PlayerDto processItem(JsonNode item) {
+		Long accountId = null;
+		if (item.has("account_id") && !item.get("account_id").isNull()) {
+			accountId = item.get("account_id").asLong();
+		}
+
+		JsonNode profileData = item.get("profile");
+		// Fallback: some payloads include account_id under profile
+		if (accountId == null && profileData != null && profileData.has("account_id")
+				&& !profileData.get("account_id").isNull()) {
+			accountId = profileData.get("account_id").asLong();
+		}
+
+		String steamId = profileData != null ? getTextValue(profileData, "steamid") : null;
+		String avatar = profileData != null ? getTextValue(profileData, "avatar") : null;
+		String avatarMedium = profileData != null ? getTextValue(profileData, "avatarmedium") : null;
+		String avatarFull = profileData != null ? getTextValue(profileData, "avatarfull") : null;
+		String profileUrl = profileData != null ? getTextValue(profileData, "profileurl") : null;
+		String personName = profileData != null ? getTextValue(profileData, "personaname") : null;
+		Instant lastLogin = profileData != null ? parseDateTime(profileData, "last_login") : null;
+		Instant fullHistoryTime = profileData != null ? parseDateTime(profileData, "full_history_time") : null;
+		Instant lastMatchTime = profileData != null ? parseDateTime(profileData, "last_match_time") : null;
+		Integer cheese = profileData != null ? getIntValue(profileData, "cheese") : null;
+		Boolean fhUnavailable = profileData != null ? getBooleanValue(profileData, "fh_unavailable") : null;
+		String locCountryCode = profileData != null ? getTextValue(profileData, "loccountrycode") : null;
+		Boolean plus = profileData != null ? getBooleanValue(profileData, "plus") : null;
+
+		Integer rankTier = getIntValue(item, "rank_tier");
+		Integer leaderboardRank = getIntValue(item, "leaderboard_rank");
+
+		return new PlayerDto(accountId, steamId, avatar, avatarMedium, avatarFull, profileUrl, personName, lastLogin,
+				fullHistoryTime, cheese, fhUnavailable, locCountryCode, lastMatchTime, plus, rankTier,
+				leaderboardRank);
 	}
 
 	@Override
 	protected String getItemTypeDescription() {
 		return "player account ID";
-	}
-
-	private void processProfileData(Player player, JsonNode data) {
-		// Set up processing context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "players");
-
-		JsonNode profileData = data.get("profile");
-		if (profileData == null) {
-			LoggingUtils.logWarning("No profile data found in API response", "correlationId=" + correlationId);
-			return;
-		}
-
-		// Basic profile fields
-		player.setAccountId(getLongValue(profileData));
-		player.setSteamId(getTextValue(profileData, "steamid"));
-		player.setAvatar(getTextValue(profileData, "avatar"));
-		player.setAvatarMedium(getTextValue(profileData, "avatarmedium"));
-		player.setAvatarFull(getTextValue(profileData, "avatarfull"));
-		player.setProfileUrl(getTextValue(profileData, "profileurl"));
-		player.setPersonName(getTextValue(profileData, "personaname"));
-
-		// Date fields
-		player.setLastLogin(parseDateTime(profileData, "last_login"));
-		player.setFullHistoryTime(parseDateTime(profileData, "full_history_time"));
-		player.setLastMatchTime(parseDateTime(profileData, "last_match_time"));
-
-		// Numeric and boolean fields
-		player.setCheese(getIntValue(profileData, "cheese"));
-		player.setFhUnavailable(getBooleanValue(profileData, "fh_unavailable"));
-		player.setLocCountryCode(getTextValue(profileData, "loccountrycode"));
-		player.setPlus(getBooleanValue(profileData, "plus"));
-
-		LoggingUtils.logDebug("Processed profile data for player", "correlationId=" + correlationId,
-				"playerName=" + player.getPersonName());
-	}
-
-	private void processRootLevelData(Player player, JsonNode data) {
-		// Set up processing context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "players");
-
-		// Set the account ID from the root level
-		if (data.has("account_id") && !data.get("account_id").isNull()) {
-			player.setAccountId(data.get("account_id").asLong());
-		}
-
-		player.setRankTier(getIntValue(data, "rank_tier"));
-		player.setLeaderboardRank(getIntValue(data, "leaderboard_rank"));
-		LoggingUtils.logDebug("Processed root level data for player", "correlationId=" + correlationId,
-				"playerName=" + player.getPersonName());
 	}
 
 	private String getTextValue(JsonNode node, String fieldName) {
@@ -154,7 +127,7 @@ public class PlayerProcessor extends BaseProcessor<Player> {
 			// Try parsing as ISO 8601 string first, as it's more specific.
 			return Instant.parse(dateTimeStr);
 		}
-		catch (DateTimeParseException e) {
+		catch (java.time.format.DateTimeParseException e) {
 			try {
 				// Fallback to parsing as a Unix epoch timestamp (number).
 				long timestamp = Long.parseLong(dateTimeStr);
@@ -162,7 +135,6 @@ public class PlayerProcessor extends BaseProcessor<Player> {
 			}
 			catch (NumberFormatException e2) {
 				// All parsing attempts failed.
-				// Replace with your actual logging method
 				System.err.println("Could not parse date time for field: " + fieldName + ", value: " + dateTimeStr);
 				return null;
 			}

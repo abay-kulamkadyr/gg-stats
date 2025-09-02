@@ -1,13 +1,12 @@
 package com.abe.gg_stats.batch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingProcessor;
-import com.abe.gg_stats.entity.HeroRanking;
+import com.abe.gg_stats.dto.HeroRankingDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +32,6 @@ class HeroRankingProcessorTest {
 
 	@Test
 	void testProcess_ValidHeroRankingData_ShouldCreateList() throws JsonProcessingException {
-		// Given
 		String validJson = """
 				{
 					"hero_id": 1,
@@ -51,27 +49,24 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNotNull(result);
 		assertEquals(2, result.size());
 
-		HeroRanking firstRanking = result.getFirst();
-		assertEquals(1, firstRanking.getHeroId());
-		assertEquals(12345L, firstRanking.getAccountId());
-		assertEquals(95.5, firstRanking.getScore());
+		HeroRankingDto firstRanking = result.getFirst();
+		assertEquals(1, firstRanking.heroId());
+		assertEquals(12345L, firstRanking.accountId());
+		assertEquals(95.5, firstRanking.score());
 
-		HeroRanking secondRanking = result.get(1);
-		assertEquals(1, secondRanking.getHeroId());
-		assertEquals(67890L, secondRanking.getAccountId());
-		assertEquals(88.0, secondRanking.getScore());
+		HeroRankingDto secondRanking = result.get(1);
+		assertEquals(1, secondRanking.heroId());
+		assertEquals(67890L, secondRanking.accountId());
+		assertEquals(88.0, secondRanking.score());
 	}
 
 	@Test
 	void testProcess_ValidDataWithoutScore_ShouldHandleGracefully() throws JsonProcessingException {
-		// Given
 		String validJson = """
 				{
 					"hero_id": 2,
@@ -84,22 +79,19 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNotNull(result);
 		assertEquals(1, result.size());
 
-		HeroRanking ranking = result.get(0);
-		assertEquals(2, ranking.getHeroId());
-		assertEquals(12345L, ranking.getAccountId());
-		assertNull(ranking.getScore());
+		HeroRankingDto ranking = result.get(0);
+		assertEquals(2, ranking.heroId());
+		assertEquals(12345L, ranking.accountId());
+		assertNull(ranking.score());
 	}
 
 	@Test
 	void testProcess_EmptyRankingsArray_ShouldReturnEmptyList() throws JsonProcessingException {
-		// Given
 		String validJson = """
 				{
 					"hero_id": 3,
@@ -108,17 +100,14 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNotNull(result);
 		assertTrue(result.isEmpty());
 	}
 
 	@Test
 	void testProcess_MissingHeroId_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidJson = """
 				{
 					"rankings": [
@@ -131,16 +120,13 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_MissingRankings_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidJson = """
 				{
 					"hero_id": 1
@@ -148,16 +134,13 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_NullHeroId_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidJson = """
 				{
 					"hero_id": null,
@@ -171,16 +154,13 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_RankingsNotArray_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidJson = """
 				{
 					"hero_id": 1,
@@ -189,16 +169,13 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_WithMaxValues_ShouldHandleCorrectly() throws JsonProcessingException {
-		// Given
 		String validJson = """
 				{
 					"hero_id": 2147483647,
@@ -212,22 +189,19 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNotNull(result);
 		assertEquals(1, result.size());
 
-		HeroRanking ranking = result.get(0);
-		assertEquals(2147483647, ranking.getHeroId());
-		assertEquals(9223372036854775807L, ranking.getAccountId());
-		assertEquals(100.0, ranking.getScore());
+		HeroRankingDto ranking = result.get(0);
+		assertEquals(2147483647, ranking.heroId());
+		assertEquals(9223372036854775807L, ranking.accountId());
+		assertEquals(100.0, ranking.score());
 	}
 
 	@Test
 	void testProcess_WithDifferentScoreTypes_ShouldHandleCorrectly() throws JsonProcessingException {
-		// Given
 		String validJson = """
 				{
 					"hero_id": 1,
@@ -241,13 +215,11 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		// When
-		List<HeroRanking> result = processor.process(item);
+		List<HeroRankingDto> result = processor.process(item);
 
-		// Then
 		assertNotNull(result);
 		assertEquals(1, result.size());
-		assertEquals(100.0, result.get(0).getScore());
+		assertEquals(100.0, result.get(0).score());
 	}
 
 }

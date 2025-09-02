@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.player.PlayerProcessor;
-import com.abe.gg_stats.entity.Player;
+import com.abe.gg_stats.dto.PlayerDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,22 +60,22 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
-		assertEquals("76561198012345678", result.getSteamId());
-		assertEquals("TestPlayer", result.getPersonName());
-		assertEquals("http://example.com/avatar.jpg", result.getAvatar());
-		assertEquals("http://example.com/avatar_medium.jpg", result.getAvatarMedium());
-		assertEquals("http://example.com/avatar_full.jpg", result.getAvatarFull());
-		assertEquals("http://steamcommunity.com/id/testplayer", result.getProfileUrl());
-		assertEquals(100, result.getCheese());
-		assertFalse(result.getFhUnavailable());
-		assertEquals("US", result.getLocCountryCode());
-		assertTrue(result.getPlus());
-		assertEquals(80, result.getRankTier());
-		assertEquals(150, result.getLeaderboardRank());
+		assertEquals("76561198012345678", result.steamId());
+		assertEquals("TestPlayer", result.personName());
+		assertEquals("http://example.com/avatar.jpg", result.avatar());
+		assertEquals("http://example.com/avatar_medium.jpg", result.avatarMedium());
+		assertEquals("http://example.com/avatar_full.jpg", result.avatarFull());
+		assertEquals("http://steamcommunity.com/id/testplayer", result.profileUrl());
+		assertEquals(100, result.cheese());
+		assertFalse(result.fhUnavailable());
+		assertEquals("US", result.locCountryCode());
+		assertTrue(result.plus());
+		assertEquals(80, result.rankTier());
+		assertEquals(150, result.leaderboardRank());
 	}
 
 	@Test
@@ -92,22 +92,22 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
-		assertEquals("76561198012345678", result.getSteamId());
-		assertEquals("TestPlayer", result.getPersonName());
-		assertNull(result.getAvatar());
-		assertNull(result.getAvatarMedium());
-		assertNull(result.getAvatarFull());
-		assertNull(result.getProfileUrl());
-		assertNull(result.getCheese());
-		assertNull(result.getFhUnavailable());
-		assertNull(result.getLocCountryCode());
-		assertNull(result.getPlus());
-		assertNull(result.getRankTier());
-		assertNull(result.getLeaderboardRank());
+		assertEquals("76561198012345678", result.steamId());
+		assertEquals("TestPlayer", result.personName());
+		assertNull(result.avatar());
+		assertNull(result.avatarMedium());
+		assertNull(result.avatarFull());
+		assertNull(result.profileUrl());
+		assertNull(result.cheese());
+		assertNull(result.fhUnavailable());
+		assertNull(result.locCountryCode());
+		assertNull(result.plus());
+		assertNull(result.rankTier());
+		assertNull(result.leaderboardRank());
 	}
 
 	@Test
@@ -125,12 +125,12 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
-		assertEquals("76561198012345678", result.getSteamId());
-		assertEquals("TestPlayer", result.getPersonName());
+		assertEquals("76561198012345678", result.steamId());
+		assertEquals("TestPlayer", result.personName());
 	}
 
 	@Test
@@ -151,17 +151,17 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
-		// Then - Processor creates a Player object even when profile data is missing
+		// Then - Processor creates a DTO even when profile data is missing
 		assertNotNull(result);
-		assertNull(result.getSteamId());
-		assertNull(result.getPersonName());
+		assertNull(result.steamId());
+		assertNull(result.personName());
 		// Other profile fields should also be null
-		assertNull(result.getAvatar());
-		assertNull(result.getAvatarMedium());
-		assertNull(result.getAvatarFull());
-		assertNull(result.getProfileUrl());
+		assertNull(result.avatar());
+		assertNull(result.avatarMedium());
+		assertNull(result.avatarFull());
+		assertNull(result.profileUrl());
 	}
 
 	@Test
@@ -177,7 +177,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor rejects invalid input (missing steamid) and returns null
 		assertNull(result);
@@ -196,7 +196,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor rejects invalid input (missing personaname) and returns null
 		assertNull(result);
@@ -216,7 +216,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor rejects invalid input (empty steamid) and returns null
 		assertNull(result);
@@ -236,7 +236,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor rejects invalid input (empty personaname) and returns null
 		assertNull(result);
@@ -257,15 +257,15 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
-		ZonedDateTime zonedDateTime = result.getLastLogin().atZone(ZoneId.of("UTC"));
+		ZonedDateTime zonedDateTime = result.lastLogin().atZone(ZoneId.of("UTC"));
 		int year = zonedDateTime.getYear();
 		int month = zonedDateTime.getMonthValue();
 		int day = zonedDateTime.getDayOfMonth();
-		assertNotNull(result.getLastLogin());
+		assertNotNull(result.lastLogin());
 		assertEquals(2022, year);
 		assertEquals(1, month);
 		assertEquals(1, day);
@@ -286,11 +286,11 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
-		assertNull(result.getLastLogin());
+		assertNull(result.lastLogin());
 	}
 
 	@Test
@@ -313,18 +313,18 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
-		assertEquals("76561198012345678", result.getSteamId());
-		assertEquals("TestPlayer", result.getPersonName());
-		assertNull(result.getAvatar());
-		assertNull(result.getCheese());
-		assertNull(result.getFhUnavailable());
-		assertNull(result.getPlus());
-		assertNull(result.getRankTier());
-		assertNull(result.getLeaderboardRank());
+		assertEquals("76561198012345678", result.steamId());
+		assertEquals("TestPlayer", result.personName());
+		assertNull(result.avatar());
+		assertNull(result.cheese());
+		assertNull(result.fhUnavailable());
+		assertNull(result.plus());
+		assertNull(result.rankTier());
+		assertNull(result.leaderboardRank());
 	}
 
 	@Test
@@ -342,13 +342,13 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor preserves whitespace, doesn't trim
 		assertNotNull(result);
-		assertEquals("  76561198012345678  ", result.getSteamId());
-		assertEquals("  TestPlayer  ", result.getPersonName());
-		assertEquals("  US  ", result.getLocCountryCode());
+		assertEquals("  76561198012345678  ", result.steamId());
+		assertEquals("  TestPlayer  ", result.personName());
+		assertEquals("  US  ", result.locCountryCode());
 	}
 
 	@Test
@@ -367,14 +367,14 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		Player result = playerProcessor.process(playerData);
+		PlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
-		assertEquals("76561198012345678", result.getSteamId());
-		assertEquals("TestPlayer", result.getPersonName());
-		assertNull(result.getAvatar());
-		assertNull(result.getLocCountryCode());
+		assertEquals("76561198012345678", result.steamId());
+		assertEquals("TestPlayer", result.personName());
+		assertNull(result.avatar());
+		assertNull(result.locCountryCode());
 	}
 
 }
