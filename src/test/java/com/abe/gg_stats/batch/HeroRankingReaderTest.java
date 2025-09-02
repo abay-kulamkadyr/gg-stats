@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -131,8 +132,8 @@ class HeroRankingReaderTest {
 	void testRead_WithFreshData_ShouldSkipApiCall() {
 		// Given
 		when(heroRepository.findAllIds()).thenReturn(List.of(1));
-		when(heroRankingRepository.findMaxUpdatedAt()).thenReturn(Optional.of(LocalDateTime.now())); // Fresh
-																										// data
+		when(heroRankingRepository.findMaxUpdatedAt()).thenReturn(Optional.of(Instant.now())); // Fresh
+																								// data
 		when(batchExpirationConfig.getDurationByConfigName("herorankings")).thenReturn(Duration.ofDays(1));
 
 		// When
@@ -147,8 +148,8 @@ class HeroRankingReaderTest {
 	void testRead_WithExpiredData_ShouldFetchFromApi() {
 		// Given
 		when(heroRepository.findAllIds()).thenReturn(List.of(1));
-		when(heroRankingRepository.findMaxUpdatedAt()).thenReturn(Optional.of(LocalDateTime.now().minusDays(2))); // Expired
-																													// data
+		when(heroRankingRepository.findMaxUpdatedAt()).thenReturn(Optional.of(Instant.now().minus(Duration.ofDays(2)))); // Expired
+		// data
 		when(batchExpirationConfig.getDurationByConfigName("herorankings")).thenReturn(Duration.ofDays(1));
 
 		// Mock API response for expired data

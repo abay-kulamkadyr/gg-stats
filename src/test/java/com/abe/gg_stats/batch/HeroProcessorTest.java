@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.hero.HeroProcessor;
-import com.abe.gg_stats.entity.Hero;
+import com.abe.gg_stats.dto.HeroDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,13 +24,12 @@ class HeroProcessorTest {
 
 	@BeforeEach
 	void setUp() {
-		heroProcessor = new HeroProcessor();
+		heroProcessor = new HeroProcessor(); // no HeroMapper needed here anymore
 		objectMapper = new ObjectMapper();
 	}
 
 	@Test
 	void testProcess_ValidData_ShouldSucceed() throws JsonProcessingException {
-		// Given
 		String validHeroJson = """
 				{
 				    "id": 1,
@@ -43,26 +42,23 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNotNull(result);
-		assertEquals(1, result.getId());
-		assertEquals("antimage", result.getName());
-		assertEquals("Anti-Mage", result.getLocalizedName());
-		assertEquals("agi", result.getPrimaryAttr());
-		assertEquals("Melee", result.getAttackType());
-		assertNotNull(result.getRoles());
-		assertEquals(3, result.getRoles().size());
-		assertTrue(result.getRoles().contains("Carry"));
-		assertTrue(result.getRoles().contains("Escape"));
-		assertTrue(result.getRoles().contains("Nuker"));
+		assertEquals(1, result.id());
+		assertEquals("antimage", result.name());
+		assertEquals("Anti-Mage", result.localizedName());
+		assertEquals("agi", result.primaryAttr());
+		assertEquals("Melee", result.attackType());
+		assertNotNull(result.roles());
+		assertEquals(3, result.roles().size());
+		assertTrue(result.roles().contains("Carry"));
+		assertTrue(result.roles().contains("Escape"));
+		assertTrue(result.roles().contains("Nuker"));
 	}
 
 	@Test
 	void testProcess_ValidDataWithoutOptionalFields_ShouldSucceed() throws JsonProcessingException {
-		// Given
 		String validHeroJson = """
 				{
 				    "id": 2,
@@ -72,23 +68,20 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNotNull(result);
-		assertEquals(2, result.getId());
-		assertEquals("axe", result.getName());
-		assertEquals("Axe", result.getLocalizedName());
-		assertNull(result.getPrimaryAttr());
-		assertNull(result.getAttackType());
-		assertNotNull(result.getRoles());
-		assertTrue(result.getRoles().isEmpty());
+		assertEquals(2, result.id());
+		assertEquals("axe", result.name());
+		assertEquals("Axe", result.localizedName());
+		assertNull(result.primaryAttr());
+		assertNull(result.attackType());
+		assertNotNull(result.roles());
+		assertTrue(result.roles().isEmpty());
 	}
 
 	@Test
 	void testProcess_ValidDataWithEmptyRoles_ShouldSucceed() throws JsonProcessingException {
-		// Given
 		String validHeroJson = """
 				{
 				    "id": 3,
@@ -99,21 +92,18 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNotNull(result);
-		assertEquals(3, result.getId());
-		assertEquals("crystal_maiden", result.getName());
-		assertEquals("Crystal Maiden", result.getLocalizedName());
-		assertNotNull(result.getRoles());
-		assertTrue(result.getRoles().isEmpty());
+		assertEquals(3, result.id());
+		assertEquals("crystal_maiden", result.name());
+		assertEquals("Crystal Maiden", result.localizedName());
+		assertNotNull(result.roles());
+		assertTrue(result.roles().isEmpty());
 	}
 
 	@Test
 	void testProcess_MissingId_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidHeroJson = """
 				{
 				    "name": "antimage",
@@ -122,16 +112,13 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_MissingName_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidHeroJson = """
 				{
 				    "id": 1,
@@ -140,16 +127,13 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_MissingLocalizedName_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidHeroJson = """
 				{
 				    "id": 1,
@@ -158,16 +142,13 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_EmptyName_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidHeroJson = """
 				{
 				    "id": 1,
@@ -177,16 +158,13 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_InvalidId_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidHeroJson = """
 				{
 				    "id": -1,
@@ -196,16 +174,13 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_ZeroId_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidHeroJson = """
 				{
 				    "id": 0,
@@ -215,16 +190,13 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_NonNumericId_ShouldReturnNull() throws JsonProcessingException {
-		// Given
 		String invalidHeroJson = """
 				{
 				    "id": "invalid",
@@ -234,16 +206,13 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNull(result);
 	}
 
 	@Test
 	void testProcess_RolesWithNullValues_ShouldFilterOutNulls() throws JsonProcessingException {
-		// Given
 		String validHeroJson = """
 				{
 				    "id": 4,
@@ -254,18 +223,15 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		// When
-		Hero result = heroProcessor.process(heroData);
+		HeroDto result = heroProcessor.process(heroData);
 
-		// Then
 		assertNotNull(result);
-		assertEquals(4, result.getId());
-		assertNotNull(result.getRoles());
-		assertEquals(3, result.getRoles().size());
-		assertTrue(result.getRoles().contains("Carry"));
-		assertTrue(result.getRoles().contains("Support"));
-		assertTrue(result.getRoles().contains("Nuker")); // Valid role should be included
-		// null and empty string should be filtered out
+		assertEquals(4, result.id());
+		assertNotNull(result.roles());
+		assertEquals(3, result.roles().size());
+		assertTrue(result.roles().contains("Carry"));
+		assertTrue(result.roles().contains("Support"));
+		assertTrue(result.roles().contains("Nuker"));
 	}
 
 }

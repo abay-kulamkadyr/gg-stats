@@ -1,7 +1,7 @@
 package com.abe.gg_stats.repository;
 
 import com.abe.gg_stats.entity.HeroRanking;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +19,6 @@ public interface HeroRankingRepository extends JpaRepository<HeroRanking, Long> 
 	List<HeroRanking> findByAccountId(Long accountId);
 
 	@Query("SELECT MAX(hr.updatedAt) FROM HeroRanking hr")
-	Optional<LocalDateTime> findMaxUpdatedAt();
+	Optional<Instant> findMaxUpdatedAt();
 
 }

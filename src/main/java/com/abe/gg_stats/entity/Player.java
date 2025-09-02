@@ -2,17 +2,14 @@ package com.abe.gg_stats.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "player")
@@ -44,10 +41,10 @@ public class Player {
 	private String personName;
 
 	@Column(name = "last_login")
-	private LocalDateTime lastLogin;
+	private Instant lastLogin;
 
 	@Column(name = "full_history_time")
-	private LocalDateTime fullHistoryTime;
+	private Instant fullHistoryTime;
 
 	@Column(name = "cheese")
 	private Integer cheese;
@@ -59,7 +56,7 @@ public class Player {
 	private String locCountryCode;
 
 	@Column(name = "last_match_time")
-	private LocalDateTime lastMatchTime;
+	private Instant lastMatchTime;
 
 	@Column(name = "plus")
 	private Boolean plus;
@@ -71,11 +68,10 @@ public class Player {
 	private Integer leaderboardRank;
 
 	@CreationTimestamp
-	@Column(name = "created_at")
-	private LocalDateTime createdAt;
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private Instant createdAt;
 
-	@UpdateTimestamp
-	@Column(name = "updated_at")
-	private LocalDateTime updatedAt;
+	@Column(name = "updated_at", insertable = false)
+	private Instant updatedAt;
 
 }

@@ -5,7 +5,7 @@ import com.abe.gg_stats.service.OpenDotaApiService;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Iterator;
 import org.springframework.batch.item.ItemReader;
 
@@ -48,7 +48,7 @@ public abstract class BaseApiReader implements ItemReader<JsonNode> {
 	/**
 	 * Check if data needs to be refreshed based on expiration
 	 */
-	protected boolean noRefreshNeeded(LocalDateTime lastUpdate) {
+	protected boolean noRefreshNeeded(Instant lastUpdate) {
 		final String expirationConfigNameLabel = "dataType=";
 
 		if (lastUpdate == null) {
@@ -58,8 +58,8 @@ public abstract class BaseApiReader implements ItemReader<JsonNode> {
 		}
 
 		Duration expiration = batchExpirationConfig.getDurationByConfigName(getExpirationConfigName());
-		LocalDateTime now = LocalDateTime.now();
-		LocalDateTime expirationTime = lastUpdate.plus(expiration);
+		Instant now = Instant.now();
+		Instant expirationTime = lastUpdate.plus(expiration);
 		boolean needsRefresh = now.isAfter(expirationTime);
 		if (needsRefresh) {
 			LoggingUtils.logDebug("Data refresh needed", expirationConfigNameLabel + getExpirationConfigName(),

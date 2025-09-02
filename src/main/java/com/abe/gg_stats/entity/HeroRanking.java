@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,10 +31,10 @@ public class HeroRanking {
 	private Double score;
 
 	@CreationTimestamp
-	@Column(name = "created_at")
-	private LocalDateTime createdAt;
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private Instant createdAt;
 
-	@Column(name = "updated_at", insertable = false, updatable = false)
-	private LocalDateTime updatedAt;
+	@Column(name = "updated_at", insertable = false)
+	private Instant updatedAt;
 
 }

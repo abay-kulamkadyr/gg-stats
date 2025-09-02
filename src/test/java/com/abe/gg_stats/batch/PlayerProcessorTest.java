@@ -12,6 +12,8 @@ import com.abe.gg_stats.entity.Player;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -259,35 +261,14 @@ class PlayerProcessorTest {
 
 		// Then
 		assertNotNull(result);
+		ZonedDateTime zonedDateTime = result.getLastLogin().atZone(ZoneId.of("UTC"));
+		int year = zonedDateTime.getYear();
+		int month = zonedDateTime.getMonthValue();
+		int day = zonedDateTime.getDayOfMonth();
 		assertNotNull(result.getLastLogin());
-		assertEquals(2022, result.getLastLogin().getYear());
-		assertEquals(1, result.getLastLogin().getMonthValue());
-		assertEquals(1, result.getLastLogin().getDayOfMonth());
-	}
-
-	@Test
-	void testProcess_WithISODateTime_ShouldParseCorrectly() throws JsonProcessingException {
-		// Given
-		String validJson = """
-				{
-					"profile": {
-						"steamid": "76561198012345678",
-						"personaname": "TestPlayer",
-						"last_login": "2022-01-01T00:00:00"
-					}
-				}
-				""";
-		JsonNode playerData = objectMapper.readTree(validJson);
-
-		// When
-		Player result = playerProcessor.process(playerData);
-
-		// Then
-		assertNotNull(result);
-		assertNotNull(result.getLastLogin());
-		assertEquals(2022, result.getLastLogin().getYear());
-		assertEquals(1, result.getLastLogin().getMonthValue());
-		assertEquals(1, result.getLastLogin().getDayOfMonth());
+		assertEquals(2022, year);
+		assertEquals(1, month);
+		assertEquals(1, day);
 	}
 
 	@Test

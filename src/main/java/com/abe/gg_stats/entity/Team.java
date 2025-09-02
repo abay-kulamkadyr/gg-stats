@@ -4,12 +4,11 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "team")
@@ -41,10 +40,10 @@ public class Team {
 	private String logoUrl;
 
 	@CreationTimestamp
-	@Column(name = "created_at")
-	private LocalDateTime createdAt;
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private Instant createdAt;
 
-	@Column(name = "updated_at", insertable = false, updatable = false)
-	private LocalDateTime updatedAt;
+	@Column(name = "updated_at", insertable = false)
+	private Instant updatedAt;
 
 }

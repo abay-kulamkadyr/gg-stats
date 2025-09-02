@@ -9,7 +9,7 @@ import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -31,9 +31,9 @@ public class HeroesReader extends BaseApiReader {
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "heroes");
 		final String correlationIdLabel = "correlationId=";
-		LoggingUtils.logOperationStart("InitrolesLabelializing heroes reader", correlationIdLabel + correlationId);
+		LoggingUtils.logOperationStart("Initializing heroes reader", correlationIdLabel + correlationId);
 
-		Optional<LocalDateTime> latestUpdate = heroRepository.findMaxUpdatedAt();
+		Optional<Instant> latestUpdate = heroRepository.findMaxUpdatedAt();
 
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();

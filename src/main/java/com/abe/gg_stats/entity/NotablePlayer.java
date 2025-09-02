@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -43,10 +44,10 @@ public class NotablePlayer {
 	private Boolean isPro;
 
 	@CreationTimestamp
-	@Column(name = "created_at")
-	private LocalDateTime createdAt;
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private Instant createdAt;
 
-	@Column(name = "updated_at", insertable = false, updatable = false)
-	private LocalDateTime updatedAt;
+	@Column(name = "updated_at", insertable = false)
+	private Instant updatedAt;
 
 }
