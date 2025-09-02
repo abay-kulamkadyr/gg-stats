@@ -1,11 +1,11 @@
 package com.abe.gg_stats.config;
 
+import com.abe.gg_stats.batch.listener.TeamsJobExecutionListener;
+import com.abe.gg_stats.batch.listener.TeamsStepExecutionListener;
 import com.abe.gg_stats.batch.team.TeamProcessor;
 import com.abe.gg_stats.batch.team.TeamWriter;
 import com.abe.gg_stats.batch.team.TeamsReader;
-import com.abe.gg_stats.batch.listener.TeamsJobExecutionListener;
-import com.abe.gg_stats.batch.listener.TeamsStepExecutionListener;
-import com.abe.gg_stats.entity.Team;
+import com.abe.gg_stats.dto.TeamDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -46,7 +46,7 @@ public class TeamsBatchConfig {
 
 	@Bean("teamsStep")
 	public Step teamsStep(TeamsReader teamsReader, TeamProcessor teamProcessor, TeamWriter teamWriter) {
-		return new StepBuilder("teamsStep", jobRepository).<JsonNode, Team>chunk(chunkSize, transactionManager)
+		return new StepBuilder("teamsStep", jobRepository).<JsonNode, TeamDto>chunk(chunkSize, transactionManager)
 			.reader(teamsReader)
 			.processor(teamProcessor)
 			.writer(teamWriter)

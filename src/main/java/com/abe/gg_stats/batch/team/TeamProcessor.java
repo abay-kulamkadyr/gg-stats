@@ -1,6 +1,7 @@
 package com.abe.gg_stats.batch.team;
 
 import com.abe.gg_stats.batch.BaseProcessor;
+import com.abe.gg_stats.dto.TeamDto;
 import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Component;
  * proper exception handling and input validation.
  */
 @Component
-public class TeamProcessor extends BaseProcessor<Team> {
+public class TeamProcessor extends BaseProcessor<TeamDto> {
 
 	@Override
 	protected boolean isValidInput(JsonNode item) {
@@ -51,36 +52,21 @@ public class TeamProcessor extends BaseProcessor<Team> {
 	}
 
 	@Override
-	protected Team processItem(JsonNode item) {
+	protected TeamDto processItem(JsonNode item) {
 		// Set up processing context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "teams");
 
-		Team team = new Team();
-		team.setTeamId(item.get("team_id").asLong());
+		int rating = (item.has("rating") && !item.get("rating").isNull() && item.get("rating").isNumber())
+				? item.get("rating").asInt() : -1;
 
-		JsonNode ratingNode = item.get("rating");
-		LoggingUtils.logDebug("Processing rating field", "correlationId=" + correlationId,
-				"hasRating=" + item.has("rating"), "ratingNode=" + ratingNode,
-				"isNull=" + (ratingNode != null ? ratingNode.isNull() : "N/A"),
-				"isNumber=" + (ratingNode != null ? ratingNode.isNumber() : "N/A"));
-
-		if (item.has("rating") && ratingNode != null && !ratingNode.isNull() && ratingNode.isNumber()) {
-			team.setRating(ratingNode.asInt());
-		}
-		else {
-			team.setRating(null);
-		}
-
-		team.setWins(item.has("wins") && !item.get("wins").isNull() ? item.get("wins").asInt() : 0);
-		team.setLosses(item.has("losses") && !item.get("losses").isNull() ? item.get("losses").asInt() : 0);
-		team.setLastMatchTime(item.has("last_match_time") ? item.get("last_match_time").asLong() : null);
-		team.setName(item.has("name") ? item.get("name").asText() : null);
-		team.setTag(item.has("tag") ? item.get("tag").asText() : null);
-		team.setLogoUrl(item.has("logo_url") ? item.get("logo_url").asText() : null);
-
-		return team;
+		return new TeamDto(item.get("team_id").asLong(), rating,
+				item.has("wins") && !item.get("wins").isNull() ? item.get("wins").asInt() : 0,
+				item.has("losses") && !item.get("losses").isNull() ? item.get("losses").asInt() : 0,
+				item.has("last_match_time") && !item.get("last_match_time").isNull()
+						? item.get("last_match_time").asLong() : -1,
+				item.has("name") ? item.get("name").asText() : null, item.has("tag") ? item.get("tag").asText() : null,
+				item.has("logo_url") ? item.get("logo_url").asText() : null);
 	}
 
 	@Override

@@ -1,5 +1,6 @@
-package com.abe.gg_stats.dto;
+package com.abe.gg_stats.dto.mapper;
 
+import com.abe.gg_stats.dto.HeroDto;
 import com.abe.gg_stats.entity.Hero;
 import java.util.List;
 import org.mapstruct.Mapper;

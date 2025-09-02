@@ -7,7 +7,7 @@ import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.abe.gg_stats.dto.HeroDto;
-import com.abe.gg_stats.dto.HeroMapper;
+import com.abe.gg_stats.dto.mapper.HeroMapper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
