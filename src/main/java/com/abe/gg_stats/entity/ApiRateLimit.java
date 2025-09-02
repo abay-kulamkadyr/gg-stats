@@ -2,18 +2,14 @@ package com.abe.gg_stats.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.ZonedDateTime;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.time.Instant;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "api_rate_limit")
@@ -34,7 +30,7 @@ public class ApiRateLimit {
 	private Integer requestsCount = 0;
 
 	@Column(name = "window_start", nullable = false)
-	private ZonedDateTime windowStart;
+	private Instant windowStart;
 
 	@Column(name = "daily_requests", nullable = false)
 	@Builder.Default
@@ -43,7 +39,7 @@ public class ApiRateLimit {
 	@Column(name = "daily_window_start", nullable = false)
 	private LocalDate dailyWindowStart;
 
-	@Column(name = "updated_at", insertable = false, updatable = false)
-	private LocalDateTime updatedAt;
+	@Column(name = "updated_at", insertable = false)
+	private Instant updatedAt;
 
 }

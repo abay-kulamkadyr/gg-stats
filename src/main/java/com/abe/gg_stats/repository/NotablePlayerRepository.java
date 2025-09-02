@@ -1,7 +1,7 @@
 package com.abe.gg_stats.repository;
 
 import com.abe.gg_stats.entity.NotablePlayer;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,6 +22,6 @@ public interface NotablePlayerRepository extends JpaRepository<NotablePlayer, Lo
 	List<NotablePlayer> findActivePros();
 
 	@Query("SELECT MAX(np.updatedAt) FROM NotablePlayer np")
-	Optional<LocalDateTime> findMaxUpdatedAt();
+	Optional<Instant> findMaxUpdatedAt();
 
 }

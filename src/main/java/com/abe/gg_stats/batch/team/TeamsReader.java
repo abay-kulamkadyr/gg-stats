@@ -9,21 +9,18 @@ import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TeamsReader extends BaseApiReader {
 
-	private final BatchExpirationConfig expirationConfig;
-
 	private final TeamRepository teamRepository;
 
 	public TeamsReader(OpenDotaApiService openDotaApiService, BatchExpirationConfig expirationConfig,
 			TeamRepository teamRepository) {
 		super(openDotaApiService, expirationConfig);
-		this.expirationConfig = expirationConfig;
 		this.teamRepository = teamRepository;
 	}
 
@@ -37,7 +34,7 @@ public class TeamsReader extends BaseApiReader {
 		LoggingUtils.logOperationStart("Initializing teams reader", "correlationId=" + correlationId);
 
 		// Teams data doesn't have expiration logic - always fetch from API
-		Optional<LocalDateTime> latestUpdate = teamRepository.findMaxUpdatedAt();
+		Optional<Instant> latestUpdate = teamRepository.findMaxUpdatedAt();
 
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();

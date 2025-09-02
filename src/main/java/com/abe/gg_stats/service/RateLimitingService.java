@@ -8,8 +8,7 @@ import jakarta.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -181,7 +180,7 @@ public class RateLimitingService {
 				return;
 
 			// Update in-memory state
-			LocalDate today = getCurrentLocalDateUTC();
+			LocalDate today = LocalDate.ofInstant(Instant.now(), ZoneOffset.UTC);
 			if (!current.getDailyWindowStart().equals(today)) {
 				// New day - reset counter
 				current.setDailyWindowStart(today);
@@ -190,6 +189,7 @@ public class RateLimitingService {
 			else {
 				current.setDailyRequests(current.getDailyRequests() + 1);
 			}
+
 		}
 		catch (Exception e) {
 			serviceLogger.logServiceFailure("record_successful_request", "Error updating rate limit", e);
@@ -233,7 +233,7 @@ public class RateLimitingService {
 
 				managed.setDailyRequests(current.getDailyRequests());
 				managed.setDailyWindowStart(current.getDailyWindowStart());
-				managed.setWindowStart(getCurrentDateTimeUTC());
+				managed.setWindowStart(Instant.now());
 
 				rateLimitRepository.save(managed);
 				LoggingUtils.logDebug("Rate limit state saved to database");
@@ -263,8 +263,8 @@ public class RateLimitingService {
 	}
 
 	private long getTimeUntilDailyReset() {
-		ZonedDateTime now = getCurrentDateTimeUTC();
-		ZonedDateTime nextDay = now.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+		Instant now = Instant.now();
+		Instant nextDay = now.plus(Duration.ofDays(1));
 		return Duration.between(now, nextDay).toMillis();
 	}
 
@@ -278,8 +278,8 @@ public class RateLimitingService {
 	}
 
 	private ApiRateLimit createNewGlobalRateLimit() {
-		ZonedDateTime now = getCurrentDateTimeUTC();
-		LocalDate today = now.toLocalDate();
+		Instant now = Instant.now();
+		LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
 		return ApiRateLimit.builder()
 			.endpoint(GLOBAL_TRACKING_ENDPOINT)
 			.requestsCount(0)
@@ -287,14 +287,6 @@ public class RateLimitingService {
 			.dailyRequests(0)
 			.dailyWindowStart(today)
 			.build();
-	}
-
-	private ZonedDateTime getCurrentDateTimeUTC() {
-		return ZonedDateTime.ofInstant(Instant.now(), ZoneId.of("UTC"));
-	}
-
-	private LocalDate getCurrentLocalDateUTC() {
-		return getCurrentDateTimeUTC().toLocalDate();
 	}
 
 	/**
@@ -307,7 +299,7 @@ public class RateLimitingService {
 
 		private final AtomicInteger currentTokens;
 
-		private final AtomicLong lastRefillTime;
+		private final AtomicLong lastTokenAcquisitionTime;
 
 		private final int maxTokens;
 
@@ -318,7 +310,7 @@ public class RateLimitingService {
 			this.maxTokens = maxTokens;
 			this.refillIntervalMs = refillIntervalMs;
 			long now = System.currentTimeMillis();
-			this.lastRefillTime = new AtomicLong(now);
+			this.lastTokenAcquisitionTime = new AtomicLong(now);
 			this.currentTokens = new AtomicInteger(maxTokens);
 		}
 
@@ -343,6 +335,7 @@ public class RateLimitingService {
 				}
 
 				if (currentTokens.compareAndSet(current, current - 1)) {
+					lastTokenAcquisitionTime.set(System.currentTimeMillis());
 					return true;
 				}
 				// CAS failed, retry
@@ -358,8 +351,8 @@ public class RateLimitingService {
 			if (getAvailableTokens() > 0) {
 				return 0;
 			}
-			long timeSinceLastRefill = System.currentTimeMillis() - lastRefillTime.get();
-			long timeUntilNext = Math.max(0, refillIntervalMs - timeSinceLastRefill);
+			long timeSinceLastAcquisition = System.currentTimeMillis() - lastTokenAcquisitionTime.get();
+			long timeUntilNext = Math.max(0, refillIntervalMs - timeSinceLastAcquisition);
 
 			LoggingUtils.logDebug("Time until next token available", () -> "endpoint=" + endpoint,
 					() -> "waitTime=" + timeUntilNext + "ms");
@@ -369,11 +362,11 @@ public class RateLimitingService {
 
 		private void refillTokens() {
 			long now = System.currentTimeMillis();
-			long lastRefill = lastRefillTime.get();
+			long lastRefill = lastTokenAcquisitionTime.get();
 			long timeSinceLastRefill = now - lastRefill;
 
 			if (timeSinceLastRefill >= refillIntervalMs) {
-				if (lastRefillTime.compareAndSet(lastRefill, now)) {
+				if (lastTokenAcquisitionTime.compareAndSet(lastRefill, now)) {
 					currentTokens.set(maxTokens);
 					LoggingUtils.logDebug("Token bucket refilled", () -> "endpoint=" + endpoint,
 							() -> "maxTokens=" + maxTokens);

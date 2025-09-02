@@ -8,6 +8,7 @@ import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.Optional;
@@ -33,7 +34,7 @@ public class NotablePlayersReader extends BaseApiReader {
 
 		LoggingUtils.logOperationStart("Initializing notable players reader", "correlationId=" + correlationId);
 
-		Optional<LocalDateTime> latestUpdate = notablePlayerRepository.findMaxUpdatedAt();
+		Optional<Instant> latestUpdate = notablePlayerRepository.findMaxUpdatedAt();
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			Duration expiration = super.getExpiration();
 			LoggingUtils.logOperationSuccess("Notable players data in cache is valid", "correlationId=" + correlationId,

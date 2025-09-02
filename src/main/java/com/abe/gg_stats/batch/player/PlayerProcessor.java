@@ -6,6 +6,7 @@ import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -139,7 +140,7 @@ public class PlayerProcessor extends BaseProcessor<Player> {
 		return node.has(fieldName) && !node.get(fieldName).isNull() ? node.get(fieldName).asBoolean() : null;
 	}
 
-	private LocalDateTime parseDateTime(JsonNode data, String fieldName) {
+	private Instant parseDateTime(JsonNode data, String fieldName) {
 		if (!data.has(fieldName) || data.get(fieldName).isNull()) {
 			return null;
 		}
@@ -150,19 +151,19 @@ public class PlayerProcessor extends BaseProcessor<Player> {
 		}
 
 		try {
-			// Try parsing as Unix timestamp first
-			long timestamp = Long.parseLong(dateTimeStr);
-			return LocalDateTime.ofEpochSecond(timestamp, 0, java.time.ZoneOffset.UTC);
+			// Try parsing as ISO 8601 string first, as it's more specific.
+			return Instant.parse(dateTimeStr);
 		}
-		catch (NumberFormatException e) {
-			// Try parsing as ISO date time string
+		catch (DateTimeParseException e) {
 			try {
-				return LocalDateTime.parse(dateTimeStr, DateTimeFormatter.ISO_DATE_TIME);
+				// Fallback to parsing as a Unix epoch timestamp (number).
+				long timestamp = Long.parseLong(dateTimeStr);
+				return Instant.ofEpochSecond(timestamp);
 			}
-			catch (DateTimeParseException e2) {
-				String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-				LoggingUtils.logWarning("Could not parse date time for field", "correlationId=" + correlationId,
-						"fieldName=" + fieldName, "dateTimeStr=" + dateTimeStr);
+			catch (NumberFormatException e2) {
+				// All parsing attempts failed.
+				// Replace with your actual logging method
+				System.err.println("Could not parse date time for field: " + fieldName + ", value: " + dateTimeStr);
 				return null;
 			}
 		}

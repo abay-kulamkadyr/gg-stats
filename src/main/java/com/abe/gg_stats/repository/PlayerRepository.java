@@ -1,6 +1,7 @@
 package com.abe.gg_stats.repository;
 
 import com.abe.gg_stats.entity.Player;
+import java.time.Instant;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,6 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
 	Optional<List<Player>> findDotaPlusSubscribers();
 
 	@Query("SELECT MAX(p.updatedAt) FROM Player p")
-	LocalDateTime findMaxUpdatedAt();
+	Optional<Instant> findMaxUpdatedAt();
 
 }

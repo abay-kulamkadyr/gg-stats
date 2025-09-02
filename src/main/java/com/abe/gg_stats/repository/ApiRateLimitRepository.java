@@ -1,6 +1,7 @@
 package com.abe.gg_stats.repository;
 
 import com.abe.gg_stats.entity.ApiRateLimit;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -20,6 +21,6 @@ public interface ApiRateLimitRepository extends JpaRepository<ApiRateLimit, Long
 	Optional<Long> getMinuteRequestWindowCount(ZonedDateTime startTime, ZonedDateTime endTime);
 
 	@Query("SELECT MAX(arl.windowStart) FROM ApiRateLimit arl")
-	Optional<ZonedDateTime> getLatestWindowStart();
+	Optional<Instant> getLatestWindowStart();
 
 }

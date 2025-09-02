@@ -9,7 +9,7 @@ import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,7 +60,7 @@ public class HeroRankingReader extends BaseApiReader {
 		LoggingUtils.logMethodEntry("Updating hero ranking info for hero_id", () -> "correlationId=" + correlationId,
 				() -> "heroId=" + heroId);
 
-		Optional<LocalDateTime> latestUpdate = heroRankingRepository.findMaxUpdatedAt();
+		Optional<Instant> latestUpdate = heroRankingRepository.findMaxUpdatedAt();
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			LoggingUtils.logWarning("Hero ranking data is up to date", "correlationId=" + correlationId,
 					"lastUpdate=" + latestUpdate.get());

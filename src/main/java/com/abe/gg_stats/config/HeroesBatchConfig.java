@@ -5,8 +5,8 @@ import com.abe.gg_stats.batch.hero.HeroWriter;
 import com.abe.gg_stats.batch.hero.HeroesReader;
 import com.abe.gg_stats.batch.listener.HeroesJobExecutionListener;
 import com.abe.gg_stats.batch.listener.HeroesStepExecutionListener;
-import com.abe.gg_stats.entity.Hero;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.abe.gg_stats.dto.HeroDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -46,7 +46,7 @@ public class HeroesBatchConfig {
 
 	@Bean("heroesStep")
 	public Step heroesStep(HeroesReader heroesReader, HeroProcessor heroProcessor, HeroWriter heroWriter) {
-		return new StepBuilder("heroesStep", jobRepository).<JsonNode, Hero>chunk(chunkSize, transactionManager)
+		return new StepBuilder("heroesStep", jobRepository).<JsonNode, HeroDto>chunk(chunkSize, transactionManager)
 			.reader(heroesReader)
 			.processor(heroProcessor)
 			.writer(heroWriter)

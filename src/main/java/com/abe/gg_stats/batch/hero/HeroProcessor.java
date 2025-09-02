@@ -1,21 +1,23 @@
 package com.abe.gg_stats.batch.hero;
 
 import com.abe.gg_stats.batch.BaseProcessor;
-import com.abe.gg_stats.entity.Hero;
 import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.abe.gg_stats.dto.HeroDto;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HeroProcessor extends BaseProcessor<Hero> {
+@AllArgsConstructor
+public class HeroProcessor extends BaseProcessor<HeroDto> {
 
 	private static final String localizedNameLabel = "localized_name";
 
@@ -74,30 +76,15 @@ public class HeroProcessor extends BaseProcessor<Hero> {
 	}
 
 	@Override
-	protected Hero processItem(@NonNull JsonNode item) {
-		// Set up processing context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "heroes");
+	protected HeroDto processItem(@NonNull JsonNode item) {
+		HeroDto dto = new HeroDto(item.get("id").asInt(), item.get("name").asText(),
+				item.get("localized_name").asText(), getTextValue(item, "primary_attr").orElse(null),
+				getTextValue(item, "attack_type").orElse(null), processRolesArray(item));
 
-		Hero hero = new Hero();
+		LoggingUtils.logOperationSuccess("HeroProcessor",
+				"correlationId=" + MDCLoggingContext.getOrCreateCorrelationId(), dto.name(), String.valueOf(dto.id()));
 
-		// Required fields
-		hero.setId(item.get("id").asInt());
-		hero.setName(item.get("name").asText());
-		hero.setLocalizedName(item.get(localizedNameLabel).asText());
-
-		// Optional fields
-		hero.setPrimaryAttr(getTextValue(item, "primary_attr").orElse(null));
-		hero.setAttackType(getTextValue(item, "attack_type").orElse(null));
-
-		// Roles array
-		List<String> roles = processRolesArray(item);
-		hero.setRoles(roles);
-
-		LoggingUtils.logOperationSuccess("HeroProcessor", "correlationId=" + correlationId, hero.getName(),
-				hero.getId());
-		return hero;
+		return dto;
 	}
 
 	@Override
