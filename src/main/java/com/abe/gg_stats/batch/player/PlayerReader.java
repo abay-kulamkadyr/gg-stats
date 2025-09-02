@@ -14,14 +14,18 @@ import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,7 +74,7 @@ public class PlayerReader extends BaseApiReader {
 
 		LoggingUtils.logOperationStart("Initializing chunked player reader", "correlationId=" + correlationId);
 
-		Set<Long> allAccountIds = collectAllAccountIds();
+		Set<Long> allAccountIds = collectAllAccountIdsNeedingUpdate();
 		totalAccounts = allAccountIds.size();
 
 		// Convert to list and create iterator
@@ -166,50 +170,47 @@ public class PlayerReader extends BaseApiReader {
 	/**
 	 * Collect all unique account IDs from various sources
 	 */
-	private Set<Long> collectAllAccountIds() {
-		Set<Long> accountIds = new HashSet<>();
-		Set<Long> filteredAccountIds = new HashSet<>();
-		try {
-			// Collect from HeroRanking (most recent data)
-			List<HeroRanking> heroRankings = heroRankingRepository.findAll();
-			heroRankings.stream()
-				.filter(ranking -> ranking != null && ranking.getAccountId() != null)
-				.forEach(ranking -> accountIds.add(ranking.getAccountId()));
+	private Set<Long> collectAllAccountIdsNeedingUpdate() {
+		Set<Long> allIds = new HashSet<>();
 
-			LoggingUtils.logDebug("Collected account IDs from HeroRanking", "count=" + heroRankings.size());
+		// 1) Collect ALL ids (union)
+		heroRankingRepository.findAll().stream()
+				.map(HeroRanking::getAccountId).filter(Objects::nonNull).forEach(allIds::add);
 
-			// Collect from NotablePlayer
-			List<NotablePlayer> notablePlayers = notablePlayerRepository.findAll();
-			notablePlayers.stream()
-				.filter(player -> player != null && player.getAccountId() != null)
-				.forEach(player -> accountIds.add(player.getAccountId()));
+		notablePlayerRepository.findAll().stream()
+				.map(NotablePlayer::getAccountId).filter(Objects::nonNull).forEach(allIds::add);
 
-			LoggingUtils.logDebug("Collected account IDs from NotablePlayer", "count=" + notablePlayers.size());
+		playerRepository.findAll().stream()
+				.map(Player::getAccountId).filter(Objects::nonNull).forEach(allIds::add);
 
-			accountIds.stream()
-				.map(playerRepository::findById)
-				.filter(Optional::isPresent)
-				.map(Optional::get)
-				.filter(player -> !super.noRefreshNeeded(player.getUpdatedAt()) || player.getSteamId() == null)
-				.map(Player::getAccountId)
-				.forEach(filteredAccountIds::add);
+		// 2) Fetch existing players once
+		Map<Long, Player> playersById = playerRepository.findAllById(allIds).stream()
+				.filter(Objects::nonNull)
+				.collect(Collectors.toMap(Player::getAccountId, Function.identity()));
 
-			// Collect from existing Players
-			List<Player> players = playerRepository.findAll();
-			players.stream()
-				.filter(player -> player != null && player.getAccountId() != null
-						&& (!super.noRefreshNeeded(player.getUpdatedAt()) || player.getSteamId() == null))
-				.forEach(player -> filteredAccountIds.add(player.getAccountId()));
-
-			LoggingUtils.logDebug("Collected account IDs from Player", "count=" + players.size());
-
-		}
-		catch (Exception e) {
-			LoggingUtils.logOperationFailure("account ID collection", "Failed to collect account IDs", e);
+		// 3) Decide which ids need update
+		Set<Long> needingUpdate = new HashSet<>();
+		for (Long id : allIds) {
+			Player p = playersById.get(id);
+			if (p == null) { // player record missing -> needs update
+				needingUpdate.add(id);
+				continue;
+			}
+			boolean missingSteam = p.getSteamId() == null;
+			boolean stale = !noRefreshNeededSafe(p.getUpdatedAt()); // wrap to handle nulls
+			if (missingSteam || stale) {
+				needingUpdate.add(id);
+			}
 		}
 
-		LoggingUtils.logOperationSuccess("account ID collection", "totalUnique=" + filteredAccountIds.size());
-		return filteredAccountIds;
+		LoggingUtils.logOperationSuccess("account ID collection",
+				"totalUnique=" + needingUpdate.size(), "unionIds=" + allIds.size());
+
+		return needingUpdate;
+	}
+
+	private boolean noRefreshNeededSafe(Instant updatedAt) {
+		return updatedAt != null && super.noRefreshNeeded(updatedAt);
 	}
 
 	@Transactional

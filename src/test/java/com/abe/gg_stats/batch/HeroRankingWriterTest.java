@@ -1,6 +1,8 @@
 package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingWriter;
+import com.abe.gg_stats.dto.HeroRankingDto;
+import com.abe.gg_stats.dto.mapper.HeroRankingMapper;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,231 +29,161 @@ class HeroRankingWriterTest {
 	@Mock
 	private HeroRankingRepository heroRankingRepository;
 
+	@Mock
+	private HeroRankingMapper heroRankingMapper;
+
 	private HeroRankingWriter writer;
 
 	@BeforeEach
 	void setUp() {
-		writer = new HeroRankingWriter(heroRankingRepository);
+		writer = new HeroRankingWriter(heroRankingRepository, heroRankingMapper);
 	}
 
 	@Test
 	void testWrite_ValidChunk_ShouldSaveAll() throws Exception {
-		// Given
-		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
+		List<HeroRankingDto> rankings1 = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5),
+				new HeroRankingDto(67890L, 1, 88.0));
+		List<HeroRanking> rankings1Entities = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
 				createHeroRanking(1, 67890L, 88.0));
 
-		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 11111L, 92.0));
+		List<HeroRankingDto> rankings2 = Arrays.asList(new HeroRankingDto(11111L, 2, 92.0));
+		List<HeroRanking> rankings2Entities = Arrays.asList(createHeroRanking(2, 11111L, 92.0));
 
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
+		when(heroRankingMapper.dtoToEntity(rankings1)).thenReturn(rankings1Entities);
+		when(heroRankingMapper.dtoToEntity(rankings2)).thenReturn(rankings2Entities);
 
-		// When
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
+
 		writer.write(chunk);
 
-		// Then
 		verify(heroRankingRepository, times(2)).saveAll(any(List.class));
-		verify(heroRankingRepository).saveAll(rankings1);
-		verify(heroRankingRepository).saveAll(rankings2);
+		verify(heroRankingRepository).saveAll(rankings1Entities);
+		verify(heroRankingRepository).saveAll(rankings2Entities);
 	}
 
 	@Test
 	void testWrite_EmptyChunk_ShouldHandleGracefully() throws Exception {
-		// Given
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.emptyList());
-
-		// When
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.emptyList());
 		writer.write(chunk);
-
-		// Then
 		verify(heroRankingRepository, never()).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_NullChunk_ShouldHandleGracefully() {
-		// When & Then - Should throw NullPointerException since the method doesn't handle
-		// null chunks
 		assertThrows(NullPointerException.class, () -> writer.write(null));
 		verify(heroRankingRepository, never()).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithNullItems_ShouldHandleGracefully() throws Exception {
-		// Given
-		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
+		List<HeroRankingDto> rankings1 = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5),
+				new HeroRankingDto(67890L, 1, 88.0));
+		List<HeroRanking> rankings1Entities = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
 				createHeroRanking(1, 67890L, 88.0));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, null));
-
-		// When - Should handle null item gracefully by catching the exception and
-		// continuing
+		when(heroRankingMapper.dtoToEntity(rankings1)).thenReturn(rankings1Entities);
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, null));
 		writer.write(chunk);
-
-		// Then - Should process the valid item and log error for null item
-		verify(heroRankingRepository, times(1)).saveAll(rankings1);
+		verify(heroRankingRepository, times(1)).saveAll(rankings1Entities);
 	}
 
 	@Test
 	void testWrite_SingleItem_ShouldSaveSuccessfully() throws Exception {
-		// Given
-		List<HeroRanking> rankings = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
-
-		// When
+		List<HeroRankingDto> rankings = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5));
+		List<HeroRanking> entities = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
+		when(heroRankingMapper.dtoToEntity(rankings)).thenReturn(entities);
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
 		writer.write(chunk);
-
-		// Then
-		verify(heroRankingRepository, times(1)).saveAll(rankings);
+		verify(heroRankingRepository, times(1)).saveAll(entities);
 	}
 
 	@Test
 	void testWrite_DatabaseError_ShouldContinueProcessing() throws Exception {
-		// Given
-		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
-
-		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 67890L, 88.0));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
-
-		when(heroRankingRepository.saveAll(rankings1)).thenReturn(rankings1);
-		when(heroRankingRepository.saveAll(rankings2)).thenThrow(new RuntimeException("Database error"));
-
-		// When - Should not throw exception, just log error
+		List<HeroRankingDto> rankings1 = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5));
+		List<HeroRanking> entities1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
+		List<HeroRankingDto> rankings2 = Arrays.asList(new HeroRankingDto(67890L, 2, 88.0));
+		List<HeroRanking> entities2 = Arrays.asList(createHeroRanking(2, 67890L, 88.0));
+		when(heroRankingMapper.dtoToEntity(rankings1)).thenReturn(entities1);
+		when(heroRankingMapper.dtoToEntity(rankings2)).thenReturn(entities2);
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
+		when(heroRankingRepository.saveAll(entities1)).thenReturn(entities1);
+		when(heroRankingRepository.saveAll(entities2)).thenThrow(new RuntimeException("Database error"));
 		writer.write(chunk);
-
-		// Then - Should attempt to save both items
-		verify(heroRankingRepository).saveAll(rankings1);
-		verify(heroRankingRepository).saveAll(rankings2);
-	}
-
-	@Test
-	void testWrite_PartialFailure_ShouldContinueProcessing() throws Exception {
-		// Given
-		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
-
-		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 67890L, 88.0));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
-
-		when(heroRankingRepository.saveAll(rankings1)).thenReturn(rankings1);
-		when(heroRankingRepository.saveAll(rankings2)).thenThrow(new RuntimeException("Database error"));
-
-		// When - Should not throw exception, just log error for failed item
-		writer.write(chunk);
-
-		// Then - Should attempt to save both items
-		verify(heroRankingRepository).saveAll(rankings1);
-		verify(heroRankingRepository).saveAll(rankings2);
+		verify(heroRankingRepository).saveAll(entities1);
+		verify(heroRankingRepository).saveAll(entities2);
 	}
 
 	@Test
 	void testWrite_LargeChunk_ShouldHandleCorrectly() throws Exception {
-		// Given
-		Chunk<List<HeroRanking>> chunk = new Chunk<>();
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>();
 		for (int i = 0; i < 100; i++) {
-			List<HeroRanking> rankings = Arrays.asList(createHeroRanking(i, (long) i, 50.0 + i));
+			List<HeroRankingDto> rankings = Arrays.asList(new HeroRankingDto((long) i, i, 50.0 + i));
 			chunk.add(rankings);
 		}
-
-		// When
+		// Mock mapper to return non-null for all calls
+		when(heroRankingMapper.dtoToEntity(any(Iterable.class))).thenAnswer(invocation -> Collections.emptyList());
 		writer.write(chunk);
-
-		// Then
 		verify(heroRankingRepository, times(100)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithMixedData_ShouldHandleCorrectly() throws Exception {
-		// Given
-		List<HeroRanking> rankings1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
-
-		List<HeroRanking> rankings2 = Arrays.asList(createHeroRanking(2, 67890L, null)); // Null
-																							// score
-
-		List<HeroRanking> rankings3 = Arrays.asList(createHeroRanking(3, 11111L, 100.0));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2, rankings3));
-
-		// When
+		List<HeroRankingDto> rankings1 = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5));
+		List<HeroRankingDto> rankings2 = Arrays.asList(new HeroRankingDto(67890L, 2, null));
+		List<HeroRankingDto> rankings3 = Arrays.asList(new HeroRankingDto(11111L, 3, 100.0));
+		when(heroRankingMapper.dtoToEntity(rankings1)).thenReturn(Collections.emptyList());
+		when(heroRankingMapper.dtoToEntity(rankings2)).thenReturn(Collections.emptyList());
+		when(heroRankingMapper.dtoToEntity(rankings3)).thenReturn(Collections.emptyList());
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2, rankings3));
 		writer.write(chunk);
-
-		// Then
 		verify(heroRankingRepository, times(3)).saveAll(any(List.class));
-		verify(heroRankingRepository).saveAll(rankings1);
-		verify(heroRankingRepository).saveAll(rankings2);
-		verify(heroRankingRepository).saveAll(rankings3);
 	}
 
 	@Test
 	void testWrite_ChunkWithZeroValues_ShouldHandleCorrectly() throws Exception {
-		// Given
-		List<HeroRanking> rankings = Arrays.asList(createHeroRanking(0, 0L, 0.0));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
-
-		// When
+		List<HeroRankingDto> rankings = Arrays.asList(new HeroRankingDto(0L, 0, 0.0));
+		when(heroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
 		writer.write(chunk);
-
-		// Then
-		verify(heroRankingRepository, times(1)).saveAll(rankings);
+		verify(heroRankingRepository, times(1)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithMaxValues_ShouldHandleCorrectly() throws Exception {
-		// Given
-		List<HeroRanking> rankings = List.of(createHeroRanking(Integer.MAX_VALUE, Long.MAX_VALUE, Double.MAX_VALUE));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
-
-		// When
+		List<HeroRankingDto> rankings = List
+			.of(new HeroRankingDto(Long.MAX_VALUE, Integer.MAX_VALUE, Double.MAX_VALUE));
+		when(heroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
 		writer.write(chunk);
-
-		// Then
-		verify(heroRankingRepository, times(1)).saveAll(rankings);
+		verify(heroRankingRepository, times(1)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithNegativeValues_ShouldHandleCorrectly() throws Exception {
-		// Given
-		List<HeroRanking> rankings = Arrays.asList(createHeroRanking(-1, -12345L, -50.0));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(rankings));
-
-		// When
+		List<HeroRankingDto> rankings = Arrays.asList(new HeroRankingDto(-12345L, -1, -50.0));
+		when(heroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
 		writer.write(chunk);
-
-		// Then
-		verify(heroRankingRepository, times(1)).saveAll(rankings);
+		verify(heroRankingRepository, times(1)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_EmptyRankingsList_ShouldHandleCorrectly() throws Exception {
-		// Given
-		List<HeroRanking> emptyRankings = Collections.emptyList();
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(emptyRankings));
-
-		// When
+		List<HeroRankingDto> emptyRankings = Collections.emptyList();
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(emptyRankings));
 		writer.write(chunk);
-
-		// Then
-		verify(heroRankingRepository, never()).saveAll(any(List.class)); // Should not
-																			// call
-																			// saveAll for
-																			// empty list
+		verify(heroRankingRepository, never()).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_MultipleRankingsInSingleList_ShouldSaveAll() throws Exception {
-		// Given
-		List<HeroRanking> multipleRankings = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
+		List<HeroRankingDto> multipleRankings = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5),
+				new HeroRankingDto(67890L, 1, 88.0), new HeroRankingDto(11111L, 1, 92.0));
+		List<HeroRanking> entities = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
 				createHeroRanking(1, 67890L, 88.0), createHeroRanking(1, 11111L, 92.0));
-
-		Chunk<List<HeroRanking>> chunk = new Chunk<>(Collections.singletonList(multipleRankings));
-
-		// When
+		when(heroRankingMapper.dtoToEntity(multipleRankings)).thenReturn(entities);
+		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(multipleRankings));
 		writer.write(chunk);
-
-		// Then
-		verify(heroRankingRepository, times(1)).saveAll(multipleRankings);
+		verify(heroRankingRepository, times(1)).saveAll(entities);
 	}
 
 	private HeroRanking createHeroRanking(Integer heroId, Long accountId, Double score) {

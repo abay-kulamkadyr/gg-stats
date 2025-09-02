@@ -1,7 +1,7 @@
 package com.abe.gg_stats.batch.hero_ranking;
 
 import com.abe.gg_stats.batch.BaseProcessor;
-import com.abe.gg_stats.entity.HeroRanking;
+import com.abe.gg_stats.dto.HeroRankingDto;
 import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
@@ -13,7 +13,7 @@ import java.util.stream.StreamSupport;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HeroRankingProcessor extends BaseProcessor<List<HeroRanking>> {
+public class HeroRankingProcessor extends BaseProcessor<List<HeroRankingDto>> {
 
 	@Override
 	protected boolean isValidInput(JsonNode item) {
@@ -40,7 +40,7 @@ public class HeroRankingProcessor extends BaseProcessor<List<HeroRanking>> {
 	}
 
 	@Override
-	protected List<HeroRanking> processItem(JsonNode item) {
+	protected List<HeroRankingDto> processItem(JsonNode item) {
 		// Set up processing context
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
@@ -57,12 +57,7 @@ public class HeroRankingProcessor extends BaseProcessor<List<HeroRanking>> {
 				Long accountId = Optional.ofNullable(rankingNode.get("account_id")).map(JsonNode::asLong).orElse(null);
 				Double score = Optional.ofNullable(rankingNode.get("score")).map(JsonNode::asDouble).orElse(null);
 
-				// Create and return the HeroRanking entity
-				HeroRanking ranking = new HeroRanking();
-				ranking.setHeroId(heroId);
-				ranking.setAccountId(accountId);
-				ranking.setScore(score);
-				return ranking;
+				return new HeroRankingDto(accountId, heroId, score);
 			}
 			catch (Exception e) {
 				LoggingUtils.logOperationFailure("HeroRankingProcessor",

@@ -1,29 +1,34 @@
 package com.abe.gg_stats.batch.hero_ranking;
 
+import com.abe.gg_stats.dto.HeroRankingDto;
+import com.abe.gg_stats.dto.mapper.HeroRankingMapper;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import java.util.List;
+import java.util.ArrayList;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
 
 /**
- * Writer for HeroRanking entities with improved error handling and logging. Implements
- * proper exception handling and batch processing.
+ * Writer for HeroRanking items with improved error handling and logging.
  */
 @Component
-public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
+public class HeroRankingWriter implements ItemWriter<List<HeroRankingDto>> {
 
 	private final HeroRankingRepository heroRankingRepository;
 
-	public HeroRankingWriter(HeroRankingRepository heroRankingRepository) {
+	private final HeroRankingMapper heroRankingMapper;
+
+	public HeroRankingWriter(HeroRankingRepository heroRankingRepository, HeroRankingMapper heroRankingMapper) {
 		this.heroRankingRepository = heroRankingRepository;
+		this.heroRankingMapper = heroRankingMapper;
 	}
 
-	private void writeItem(List<? extends HeroRanking> items) {
+	private void writeItem(List<? extends HeroRankingDto> items) {
 		// Set up writing context
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
@@ -35,13 +40,15 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRanking>> {
 		}
 		LoggingUtils.logOperationStart("Writing hero ranking items", "correlationId=" + correlationId,
 				"itemsCount=" + items.size());
-		heroRankingRepository.saveAll(items);
+		List<HeroRankingDto> copy = new ArrayList<>(items);
+		List<HeroRanking> entities = heroRankingMapper.dtoToEntity(copy);
+		heroRankingRepository.saveAll(entities);
 		LoggingUtils.logOperationSuccess("Successfully saved hero ranking items", "correlationId=" + correlationId,
 				"itemsCount=" + items.size());
 	}
 
 	@Override
-	public void write(Chunk<? extends List<HeroRanking>> chunk) {
+	public void write(Chunk<? extends List<HeroRankingDto>> chunk) {
 		// Set up writing context
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);

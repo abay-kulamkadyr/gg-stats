@@ -1,6 +1,7 @@
 package com.abe.gg_stats.batch.notable_player;
 
 import com.abe.gg_stats.batch.BaseProcessor;
+import com.abe.gg_stats.dto.NotablePlayerDto;
 import com.abe.gg_stats.entity.NotablePlayer;
 import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
@@ -14,11 +15,10 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 /**
- * Processor for NotablePlayer entities with improved error handling and validation.
- * Implements proper exception handling and input validation.
+ * Processor for NotablePlayer with improved error handling and validation.
  */
 @Component
-public class NotablePlayerProcessor extends BaseProcessor<NotablePlayer> {
+public class NotablePlayerProcessor extends BaseProcessor<NotablePlayerDto> {
 
 	private final NotablePlayerRepository notablePlayerRepository;
 
@@ -66,25 +66,28 @@ public class NotablePlayerProcessor extends BaseProcessor<NotablePlayer> {
 	}
 
 	@Override
-	protected NotablePlayer processItem(JsonNode item) {
+	protected NotablePlayerDto processItem(JsonNode item) {
 		Long accountId = item.get("account_id").asLong();
+		String name = item.has("name") ? item.get("name").asText() : null;
+		String countryCode = item.has("country_code") ? item.get("country_code").asText() : null;
+		Integer fantasyRole = item.has("fantasy_role") ? item.get("fantasy_role").asInt() : null;
+		Boolean isLocked = item.has("is_locked") && item.get("is_locked").asBoolean();
+		Boolean isPro = !item.has("is_pro") || item.get("is_pro").asBoolean();
 
-		// First try to find existing NotablePlayer
-		Optional<NotablePlayer> existingNotablePlayer = notablePlayerRepository.findById(accountId);
-
-		if (existingNotablePlayer.isPresent()) {
-			// Update existing NotablePlayer
-			NotablePlayer notablePlayer = existingNotablePlayer.get();
-			updateNotablePlayerFields(notablePlayer, item);
-			return notablePlayer;
+		Long teamId = null;
+		if (item.has("team_id") && !item.get("team_id").isNull()) {
+			try {
+				long parsedTeamId = item.get("team_id").asLong();
+				if (parsedTeamId > 0) {
+					teamId = parsedTeamId;
+				}
+			}
+			catch (Exception e) {
+				// ignore, will return null teamId
+			}
 		}
 
-		// Create new NotablePlayer if not found
-		NotablePlayer notablePlayer = new NotablePlayer();
-		notablePlayer.setAccountId(accountId);
-		updateNotablePlayerFields(notablePlayer, item);
-
-		return notablePlayer;
+		return new NotablePlayerDto(accountId, countryCode, fantasyRole, name, isLocked, isPro, teamId);
 	}
 
 	@Override
@@ -93,34 +96,10 @@ public class NotablePlayerProcessor extends BaseProcessor<NotablePlayer> {
 	}
 
 	/**
-	 * Updates notable player fields from JSON data
+	 * Legacy helper used for entity path retained for reference.
 	 */
 	private void updateNotablePlayerFields(NotablePlayer notablePlayer, JsonNode item) {
-		// Set up processing context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "notableplayers");
-
-		notablePlayer.setName(item.has("name") ? item.get("name").asText() : null);
-		notablePlayer.setCountryCode(item.has("country_code") ? item.get("country_code").asText() : null);
-		notablePlayer.setFantasyRole(item.has("fantasy_role") ? item.get("fantasy_role").asInt() : null);
-		notablePlayer.setIsLocked(item.has("is_locked") && item.get("is_locked").asBoolean());
-		notablePlayer.setIsPro(!item.has("is_pro") || item.get("is_pro").asBoolean());
-
-		// Handle team association
-		if (item.has("team_id") && !item.get("team_id").isNull()) {
-			try {
-				long teamId = item.get("team_id").asLong();
-				if (teamId > 0) {
-					Optional<Team> teamOpt = teamRepository.findById(teamId);
-					teamOpt.ifPresent(notablePlayer::setTeam);
-				}
-			}
-			catch (Exception e) {
-				LoggingUtils.logWarning("Invalid team_id in notable player data", "correlationId=" + correlationId,
-						"teamId=" + item.get("team_id"));
-			}
-		}
+		// No-op in DTO processor
 	}
 
 }
