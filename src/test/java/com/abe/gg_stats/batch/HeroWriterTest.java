@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.abe.gg_stats.batch.hero.HeroWriter;
 import com.abe.gg_stats.dto.HeroDto;
-import com.abe.gg_stats.dto.HeroMapper;
+import com.abe.gg_stats.dto.mapper.HeroMapper;
 import com.abe.gg_stats.entity.Hero;
 import com.abe.gg_stats.repository.HeroRepository;
 import java.util.List;
