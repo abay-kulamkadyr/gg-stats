@@ -33,8 +33,8 @@ public class PlayerWriter extends BaseWriter<PlayerDto> {
 		// This writer just logs completion for consistency with other batch jobs
 		try {
 			if (playerDto.accountId() == null) {
-				LoggingUtils.logWarning("Skipping player save due to missing accountId", "correlationId=" + correlationId,
-						"playerName=" + playerDto.personName());
+				LoggingUtils.logWarning("Skipping player save due to missing accountId",
+						"correlationId=" + correlationId, "playerName=" + playerDto.personName());
 				return;
 			}
 			Player player = playerMapper.dtoToEntity(playerDto);

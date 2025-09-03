@@ -2,6 +2,7 @@ package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingReader;
 import com.abe.gg_stats.config.BatchExpirationConfig;
+import com.abe.gg_stats.config.JacksonConfig;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
@@ -56,7 +57,7 @@ class HeroRankingReaderTest {
 	void setUp() {
 		reader = new HeroRankingReader(openDotaApiService, heroRepository, batchExpirationConfig,
 				heroRankingRepository);
-		objectMapper = new ObjectMapper();
+		objectMapper = new JacksonConfig().objectMapper();
 	}
 
 	@Test

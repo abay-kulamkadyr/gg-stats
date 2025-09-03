@@ -7,6 +7,7 @@ import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,6 +16,12 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class TeamProcessor extends BaseProcessor<TeamDto> {
+
+	private final ObjectMapper objectMapper;
+
+	public TeamProcessor(ObjectMapper objectMapper) {
+		this.objectMapper = objectMapper;
+	}
 
 	@Override
 	protected boolean isValidInput(JsonNode item) {
@@ -57,16 +64,12 @@ public class TeamProcessor extends BaseProcessor<TeamDto> {
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
 		MDCLoggingContext.updateContext("batchType", "teams");
 
-		int rating = (item.has("rating") && !item.get("rating").isNull() && item.get("rating").isNumber())
-				? item.get("rating").asInt() : -1;
-
-		return new TeamDto(item.get("team_id").asLong(), rating,
-				item.has("wins") && !item.get("wins").isNull() ? item.get("wins").asInt() : 0,
-				item.has("losses") && !item.get("losses").isNull() ? item.get("losses").asInt() : 0,
-				item.has("last_match_time") && !item.get("last_match_time").isNull()
-						? item.get("last_match_time").asLong() : -1,
-				item.has("name") ? item.get("name").asText() : null, item.has("tag") ? item.get("tag").asText() : null,
-				item.has("logo_url") ? item.get("logo_url").asText() : null);
+		try {
+			return objectMapper.treeToValue(item, TeamDto.class);
+		}
+		catch (Exception e) {
+			return null;
+		}
 	}
 
 	@Override

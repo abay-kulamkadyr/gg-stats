@@ -69,7 +69,7 @@ public class HeroRankingWriter implements ItemWriter<List<HeroRankingDto>> {
 				writeItem(item);
 				successCount++;
 				LoggingUtils.logDebug("Successfully wrote hero ranking item", "correlationId=" + correlationId,
-						"item=" + item.toString());
+						"item=" + item);
 			}
 			catch (Exception e) {
 				errorCount++;

@@ -8,10 +8,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.player.PlayerProcessor;
+import com.abe.gg_stats.config.JacksonConfig;
 import com.abe.gg_stats.dto.PlayerDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.abe.gg_stats.dto.mapper.PlayerResponseMapper;
+import org.mapstruct.factory.Mappers;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class PlayerProcessorTest {
 
 	private PlayerProcessor playerProcessor;
@@ -28,8 +33,9 @@ class PlayerProcessorTest {
 
 	@BeforeEach
 	void setUp() {
-		playerProcessor = new PlayerProcessor();
-		objectMapper = new ObjectMapper();
+		objectMapper = new JacksonConfig().objectMapper();
+		PlayerResponseMapper mapper = Mappers.getMapper(PlayerResponseMapper.class);
+		playerProcessor = new PlayerProcessor(objectMapper, mapper);
 	}
 
 	@Test

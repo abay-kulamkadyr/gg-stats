@@ -174,19 +174,25 @@ public class PlayerReader extends BaseApiReader {
 		Set<Long> allIds = new HashSet<>();
 
 		// 1) Collect ALL ids (union)
-		heroRankingRepository.findAll().stream()
-				.map(HeroRanking::getAccountId).filter(Objects::nonNull).forEach(allIds::add);
+		heroRankingRepository.findAll()
+			.stream()
+			.map(HeroRanking::getAccountId)
+			.filter(Objects::nonNull)
+			.forEach(allIds::add);
 
-		notablePlayerRepository.findAll().stream()
-				.map(NotablePlayer::getAccountId).filter(Objects::nonNull).forEach(allIds::add);
+		notablePlayerRepository.findAll()
+			.stream()
+			.map(NotablePlayer::getAccountId)
+			.filter(Objects::nonNull)
+			.forEach(allIds::add);
 
-		playerRepository.findAll().stream()
-				.map(Player::getAccountId).filter(Objects::nonNull).forEach(allIds::add);
+		playerRepository.findAll().stream().map(Player::getAccountId).filter(Objects::nonNull).forEach(allIds::add);
 
 		// 2) Fetch existing players once
-		Map<Long, Player> playersById = playerRepository.findAllById(allIds).stream()
-				.filter(Objects::nonNull)
-				.collect(Collectors.toMap(Player::getAccountId, Function.identity()));
+		Map<Long, Player> playersById = playerRepository.findAllById(allIds)
+			.stream()
+			.filter(Objects::nonNull)
+			.collect(Collectors.toMap(Player::getAccountId, Function.identity()));
 
 		// 3) Decide which ids need update
 		Set<Long> needingUpdate = new HashSet<>();
@@ -197,14 +203,15 @@ public class PlayerReader extends BaseApiReader {
 				continue;
 			}
 			boolean missingSteam = p.getSteamId() == null;
-			boolean stale = !noRefreshNeededSafe(p.getUpdatedAt()); // wrap to handle nulls
+			boolean stale = !noRefreshNeededSafe(p.getUpdatedAt()); // wrap to handle
+																	// nulls
 			if (missingSteam || stale) {
 				needingUpdate.add(id);
 			}
 		}
 
-		LoggingUtils.logOperationSuccess("account ID collection",
-				"totalUnique=" + needingUpdate.size(), "unionIds=" + allIds.size());
+		LoggingUtils.logOperationSuccess("account ID collection", "totalUnique=" + needingUpdate.size(),
+				"unionIds=" + allIds.size());
 
 		return needingUpdate;
 	}
