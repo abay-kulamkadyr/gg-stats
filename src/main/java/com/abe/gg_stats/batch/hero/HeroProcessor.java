@@ -1,16 +1,13 @@
 package com.abe.gg_stats.batch.hero;
 
 import com.abe.gg_stats.batch.BaseProcessor;
+import com.abe.gg_stats.dto.HeroDto;
 import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.abe.gg_stats.dto.HeroDto;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import org.springframework.stereotype.Component;
@@ -22,6 +19,8 @@ public class HeroProcessor extends BaseProcessor<HeroDto> {
 	private static final String localizedNameLabel = "localized_name";
 
 	private static final String correlationIdLabel = "correlationId=";
+
+	private final ObjectMapper objectMapper;
 
 	@Override
 	protected boolean isValidInput(@NonNull JsonNode item) {
@@ -77,9 +76,26 @@ public class HeroProcessor extends BaseProcessor<HeroDto> {
 
 	@Override
 	protected HeroDto processItem(@NonNull JsonNode item) {
-		HeroDto dto = new HeroDto(item.get("id").asInt(), item.get("name").asText(),
-				item.get("localized_name").asText(), getTextValue(item, "primary_attr").orElse(null),
-				getTextValue(item, "attack_type").orElse(null), processRolesArray(item));
+		HeroDto dto;
+		try {
+			dto = objectMapper.treeToValue(item, HeroDto.class);
+		}
+		catch (Exception e) {
+			LoggingUtils.logWarning("HeroProcessor", LoggingConstants.JSON_PARSING_ERROR,
+					"correlationId=" + MDCLoggingContext.getOrCreateCorrelationId());
+			return null;
+		}
+
+		// Normalize roles: ensure non-null, trim and remove blanks/nulls
+		java.util.List<String> roles = dto.roles() == null ? java.util.Collections.emptyList()
+				: dto.roles()
+					.stream()
+					.filter(Objects::nonNull)
+					.map(String::trim)
+					.filter(s -> !s.isEmpty())
+					.collect(java.util.stream.Collectors.toList());
+
+		dto = new HeroDto(dto.id(), dto.name(), dto.localizedName(), dto.primaryAttr(), dto.attackType(), roles);
 
 		LoggingUtils.logOperationSuccess("HeroProcessor",
 				"correlationId=" + MDCLoggingContext.getOrCreateCorrelationId(), dto.name(), String.valueOf(dto.id()));
@@ -90,34 +106,6 @@ public class HeroProcessor extends BaseProcessor<HeroDto> {
 	@Override
 	protected String getItemTypeDescription() {
 		return "hero";
-	}
-
-	/**
-	 * Process roles array from JSON data
-	 */
-	private List<String> processRolesArray(JsonNode item) {
-		final String rolesLabel = "roles";
-		if (item.has(rolesLabel) && item.get(rolesLabel).isArray()) {
-			return StreamSupport.stream(item.get(rolesLabel).spliterator(), false)
-				.filter(role -> role != null && !role.isNull())
-				.map(JsonNode::asText)
-				.map(String::trim)
-				.filter(s -> !s.isEmpty())
-				.collect(Collectors.toList());
-		}
-		return Collections.emptyList();
-	}
-
-	/**
-	 * Get text value from JSON node, returning null if field is missing or empty
-	 */
-	private Optional<String> getTextValue(JsonNode node, String fieldName) {
-		JsonNode field = node.get(fieldName);
-		if (field == null || field.isNull()) {
-			return Optional.empty();
-		}
-		String value = field.asText().trim();
-		return value.isEmpty() ? Optional.empty() : Optional.of(value);
 	}
 
 }

@@ -1,6 +1,7 @@
 package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.batch.notable_player.NotablePlayerProcessor;
+import com.abe.gg_stats.config.JacksonConfig;
 import com.abe.gg_stats.dto.NotablePlayerDto;
 import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
@@ -13,20 +14,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@ExtendWith(MockitoExtension.class)
 class NotablePlayerProcessorTest {
-
-	@Mock
-	private NotablePlayerRepository notablePlayerRepository;
-
-	@Mock
-	private TeamRepository teamRepository;
 
 	private NotablePlayerProcessor processor;
 
@@ -34,8 +31,8 @@ class NotablePlayerProcessorTest {
 
 	@BeforeEach
 	void setUp() {
-		processor = new NotablePlayerProcessor(notablePlayerRepository, teamRepository);
-		objectMapper = new ObjectMapper();
+		objectMapper = new JacksonConfig().objectMapper();
+		processor = new NotablePlayerProcessor(objectMapper);
 	}
 
 	@Test
@@ -78,10 +75,8 @@ class NotablePlayerProcessorTest {
 					"country_code": "US"
 				}
 				""";
-		JsonNode item = objectMapper.readTree(invalidJson);
-
-		NotablePlayerDto result = processor.process(item);
-		assertNull(result);
+		boolean isValid = processor.isValidInput(objectMapper.readTree(invalidJson));
+		assertFalse(isValid);
 	}
 
 	@Test
@@ -115,8 +110,8 @@ class NotablePlayerProcessorTest {
 		assertNull(result.name());
 		assertNull(result.countryCode());
 		assertNull(result.fantasyRole());
-		assertEquals(false, result.isLocked());
-		assertEquals(true, result.isPro());
+		assertNull(result.isLocked());
+		assertNull(result.isPro());
 		assertNull(result.teamId());
 	}
 

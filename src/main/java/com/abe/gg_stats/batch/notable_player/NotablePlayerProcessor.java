@@ -9,7 +9,11 @@ import com.abe.gg_stats.repository.TeamRepository;
 import com.abe.gg_stats.util.LoggingConstants;
 import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -18,19 +22,13 @@ import java.util.Optional;
  * Processor for NotablePlayer with improved error handling and validation.
  */
 @Component
+@AllArgsConstructor
 public class NotablePlayerProcessor extends BaseProcessor<NotablePlayerDto> {
 
-	private final NotablePlayerRepository notablePlayerRepository;
-
-	private final TeamRepository teamRepository;
-
-	public NotablePlayerProcessor(NotablePlayerRepository notablePlayerRepository, TeamRepository teamRepository) {
-		this.notablePlayerRepository = notablePlayerRepository;
-		this.teamRepository = teamRepository;
-	}
+	private final ObjectMapper objectMapper;
 
 	@Override
-	protected boolean isValidInput(JsonNode item) {
+	public boolean isValidInput(JsonNode item) {
 		// Set up validation context
 		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
@@ -67,27 +65,14 @@ public class NotablePlayerProcessor extends BaseProcessor<NotablePlayerDto> {
 
 	@Override
 	protected NotablePlayerDto processItem(JsonNode item) {
-		Long accountId = item.get("account_id").asLong();
-		String name = item.has("name") ? item.get("name").asText() : null;
-		String countryCode = item.has("country_code") ? item.get("country_code").asText() : null;
-		Integer fantasyRole = item.has("fantasy_role") ? item.get("fantasy_role").asInt() : null;
-		Boolean isLocked = item.has("is_locked") && item.get("is_locked").asBoolean();
-		Boolean isPro = !item.has("is_pro") || item.get("is_pro").asBoolean();
-
-		Long teamId = null;
-		if (item.has("team_id") && !item.get("team_id").isNull()) {
-			try {
-				long parsedTeamId = item.get("team_id").asLong();
-				if (parsedTeamId > 0) {
-					teamId = parsedTeamId;
-				}
-			}
-			catch (Exception e) {
-				// ignore, will return null teamId
-			}
+		NotablePlayerDto dto;
+		try {
+			dto = objectMapper.treeToValue(item, NotablePlayerDto.class);
 		}
-
-		return new NotablePlayerDto(accountId, countryCode, fantasyRole, name, isLocked, isPro, teamId);
+		catch (JsonProcessingException e) {
+			return null;
+		}
+		return dto;
 	}
 
 	@Override

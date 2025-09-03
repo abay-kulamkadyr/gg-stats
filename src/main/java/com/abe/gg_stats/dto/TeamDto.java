@@ -1,6 +1,6 @@
 package com.abe.gg_stats.dto;
 
-public record TeamDto(long teamId, int rating, int wins, int losses, long lastMatchTime, String name, String tag,
-		String logoUrl) {
+public record TeamDto(Long teamId, Integer rating, Integer wins, Integer losses, Integer lastMatchTime, String name,
+		String tag, String logoUrl) {
 
 }

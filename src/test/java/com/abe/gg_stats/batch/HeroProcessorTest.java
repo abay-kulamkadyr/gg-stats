@@ -6,16 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.hero.HeroProcessor;
+import com.abe.gg_stats.config.JacksonConfig;
 import com.abe.gg_stats.dto.HeroDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class HeroProcessorTest {
 
 	private HeroProcessor heroProcessor;
@@ -24,8 +26,8 @@ class HeroProcessorTest {
 
 	@BeforeEach
 	void setUp() {
-		heroProcessor = new HeroProcessor(); // no HeroMapper needed here anymore
-		objectMapper = new ObjectMapper();
+		objectMapper = new JacksonConfig().objectMapper();
+		heroProcessor = new HeroProcessor(objectMapper);
 	}
 
 	@Test

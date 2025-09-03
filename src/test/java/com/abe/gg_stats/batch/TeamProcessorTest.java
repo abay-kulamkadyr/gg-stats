@@ -7,16 +7,19 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.abe.gg_stats.batch.team.TeamProcessor;
+import com.abe.gg_stats.config.JacksonConfig;
 import com.abe.gg_stats.dto.TeamDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
 class TeamProcessorTest {
 
 	private TeamProcessor processor;
@@ -25,8 +28,8 @@ class TeamProcessorTest {
 
 	@BeforeEach
 	void setUp() {
-		processor = new TeamProcessor();
-		objectMapper = new ObjectMapper();
+		objectMapper = new JacksonConfig().objectMapper();
+		processor = new TeamProcessor(objectMapper);
 	}
 
 	@Test
@@ -56,7 +59,7 @@ class TeamProcessorTest {
 		assertEquals(10, result.wins());
 		assertEquals(1640995200, result.lastMatchTime());
 		assertEquals(5, result.losses());
-		assertEquals(1640995200L, result.lastMatchTime());
+		assertEquals(1640995200L, (long) result.lastMatchTime());
 		assertEquals("TestTeam", result.name());
 		assertEquals("TEST", result.tag());
 		assertEquals("http://example.com/logo.png", result.logoUrl());
@@ -78,8 +81,8 @@ class TeamProcessorTest {
 		// Then
 		assertNotNull(result);
 		assertEquals(12345L, result.teamId());
-		assertEquals(0, result.wins());
-		assertEquals(0, result.losses());
+		assertNull(result.wins());
+		assertNull(result.losses());
 		assertNull(result.name());
 		assertNull(result.tag());
 		assertNull(result.logoUrl());
@@ -208,7 +211,7 @@ class TeamProcessorTest {
 		assertEquals(2000, result.rating());
 		assertEquals(15, result.wins());
 		assertEquals(3, result.losses());
-		assertEquals(1640995200L, result.lastMatchTime());
+		assertEquals(1640995200L, (long) result.lastMatchTime());
 		assertEquals("ProTeam", result.name());
 		assertEquals("PRO", result.tag());
 		assertEquals("http://example.com/pro_logo.png", result.logoUrl());
@@ -237,15 +240,13 @@ class TeamProcessorTest {
 		// Then
 		assertNotNull(result);
 		assertEquals(12345L, result.teamId());
-		assert (result.rating() == -1);
-		assertEquals(0, result.wins()); // Should be 0 when explicitly set to null in
-										// JSON (default value)
-		assertEquals(0, result.losses()); // Should be 0 when explicitly set to null in
-											// JSON (default value)
-		assertEquals(-1, result.lastMatchTime());
-		assertEquals("null", result.name());
-		assertEquals("null", result.tag());
-		assertEquals("null", result.logoUrl());
+		assertNull(result.rating());
+		assertNull(result.wins());
+		assertNull(result.losses());
+		assertNull(result.lastMatchTime());
+		assertNull(result.name());
+		assertNull(result.tag());
+		assertNull(result.logoUrl());
 	}
 
 	@Test
@@ -271,10 +272,10 @@ class TeamProcessorTest {
 		// Then
 		assertNotNull(result);
 		assertEquals(12345L, result.teamId());
-		assert (result.rating() == -1);
-		assertEquals(0, result.wins());
-		assertEquals(0, result.losses());
-		assertEquals(0, result.lastMatchTime());
+		assertNull(result.rating());
+		assertNull(result.wins());
+		assertNull(result.losses());
+		assertNull(result.lastMatchTime());
 		assertEquals("12345", result.name()); // Jackson converts to string
 		assertEquals("67890", result.tag()); // Jackson converts to string
 		assertEquals("11111", result.logoUrl()); // Jackson converts to string

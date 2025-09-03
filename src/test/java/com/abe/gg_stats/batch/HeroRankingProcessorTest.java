@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingProcessor;
+import com.abe.gg_stats.config.JacksonConfig;
 import com.abe.gg_stats.dto.HeroRankingDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -17,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
-@ExtendWith(MockitoExtension.class)
 class HeroRankingProcessorTest {
 
 	private HeroRankingProcessor processor;
@@ -27,7 +27,7 @@ class HeroRankingProcessorTest {
 	@BeforeEach
 	void setUp() {
 		processor = new HeroRankingProcessor();
-		objectMapper = new ObjectMapper();
+		objectMapper = new JacksonConfig().objectMapper();
 	}
 
 	@Test
