@@ -2,6 +2,7 @@ package com.abe.gg_stats.batch.hero_ranking;
 
 import com.abe.gg_stats.batch.BaseApiReader;
 import com.abe.gg_stats.config.BatchExpirationConfig;
+import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
@@ -60,7 +61,9 @@ public class HeroRankingReader extends BaseApiReader {
 		LoggingUtils.logMethodEntry("Updating hero ranking info for hero_id", () -> "correlationId=" + correlationId,
 				() -> "heroId=" + heroId);
 
-		Optional<Instant> latestUpdate = heroRankingRepository.findMaxUpdatedAt();
+		Optional<HeroRanking> heroRanking = heroRankingRepository.findByHeroId(heroId);
+		Optional<Instant> latestUpdate = heroRanking.map(HeroRanking::getUpdatedAt);
+
 		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
 			LoggingUtils.logWarning("Hero ranking data is up to date", "correlationId=" + correlationId,
 					"lastUpdate=" + latestUpdate.get());
