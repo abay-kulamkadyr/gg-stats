@@ -178,30 +178,33 @@ public class RateLimitingService {
 			ApiRateLimit current = this.globalRateLimit;
 			if (current == null)
 				return;
-
-			// Update in-memory state
-			LocalDate today = LocalDate.ofInstant(Instant.now(), ZoneOffset.UTC);
-			if (!current.getDailyWindowStart().equals(today)) {
-				// New day - reset counter
-				current.setDailyWindowStart(today);
-				current.setDailyRequests(1);
-			}
-			else {
-				current.setDailyRequests(current.getDailyRequests() + 1);
-			}
-
+			updateDailyRequests();
 		}
 		catch (Exception e) {
 			serviceLogger.logServiceFailure("record_successful_request", "Error updating rate limit", e);
 		}
 	}
 
+	private void updateDailyRequests() {
+		ApiRateLimit current = this.globalRateLimit;
+		if (current == null)
+			return;
+		LocalDate today = LocalDate.ofInstant(Instant.now(), ZoneOffset.UTC);
+		if (!current.getDailyWindowStart().equals(today)) {
+			// New day - reset counter
+			current.setDailyWindowStart(today);
+			current.setDailyRequests(1);
+		}
+		else {
+			current.setDailyRequests(current.getDailyRequests() + 1);
+		}
+	}
 	/**
 	 * Gets current rate limiting status and metrics
 	 */
 	public RateLimitStatus getStatus() {
 		TokenBucket bucket = globalTokenBucket;
-
+		updateDailyRequests();
 		return RateLimitStatus.builder()
 			.availableTokens(bucket != null ? bucket.getAvailableTokens() : 0)
 			.remainingDailyRequests(getRemainingDailyRequests())

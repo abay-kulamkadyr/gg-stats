@@ -14,7 +14,7 @@ public interface HeroRankingRepository extends JpaRepository<HeroRanking, Long> 
 	@Query("SELECT hr FROM HeroRanking hr WHERE hr.heroId=?1 AND hr.accountId=?2")
 	Optional<HeroRanking> findByHeroIdAndAccountId(Long accountId, Integer heroId);
 
-	List<HeroRanking> findByHeroId(Integer heroId);
+	Optional<HeroRanking> findByHeroId(Integer heroId);
 
 	List<HeroRanking> findByAccountId(Long accountId);
 
