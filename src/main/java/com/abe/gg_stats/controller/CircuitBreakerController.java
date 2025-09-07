@@ -52,6 +52,5 @@ public class CircuitBreakerController {
 	public ResponseEntity<ActionResponse> resetCircuitBreakerMetrics(@PathVariable String serviceName) {
 		return circuitBreakerAdminService.resetCircuitBreakerMetrics(serviceName);
 	}
+
 }
-
-

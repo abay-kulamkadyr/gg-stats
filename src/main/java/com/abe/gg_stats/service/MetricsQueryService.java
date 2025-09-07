@@ -21,6 +21,5 @@ public class MetricsQueryService {
 		LoggingUtils.logDebug("Retrieved performance metrics", () -> "metricCount=" + metrics.size());
 		return ResponseEntity.ok(metrics);
 	}
+
 }
-
-

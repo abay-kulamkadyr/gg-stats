@@ -23,6 +23,5 @@ public class HealthController {
 	public ResponseEntity<SystemHealthResponse> getSystemHealth() {
 		return systemHealthService.getSystemHealth();
 	}
+
 }
-
-

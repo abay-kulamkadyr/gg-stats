@@ -21,6 +21,5 @@ public class RateLimitController {
 	public ResponseEntity<RateLimitingService.RateLimitStatus> getRateLimitStatus() {
 		return rateLimitingQueryService.getStatus();
 	}
+
 }
-
-

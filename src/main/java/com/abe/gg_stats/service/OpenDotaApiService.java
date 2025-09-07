@@ -182,6 +182,19 @@ public class OpenDotaApiService implements HealthIndicator {
 		return makeApiCall("/teams");
 	}
 
+	public Optional<JsonNode> getProMatchesPage(Long lessThanMatchId) {
+		String endpoint = "/proMatches" + (lessThanMatchId != null ? ("?less_than_match_id=" + lessThanMatchId) : "");
+		return makeApiCall(endpoint);
+	}
+
+	public Optional<JsonNode> getMatchDetail(long matchId) {
+		return makeApiCall("/matches/" + matchId);
+	}
+
+	public Optional<JsonNode> getPatches() {
+		return makeApiCall("/constants/patch");
+	}
+
 	public Optional<JsonNode> getPlayer(Long accountId) {
 		if (accountId == null || accountId <= 0) {
 			LoggingUtils.logWarning("Invalid account ID provided", "accountId=" + accountId);

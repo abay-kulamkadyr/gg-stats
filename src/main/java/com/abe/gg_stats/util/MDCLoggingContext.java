@@ -41,7 +41,7 @@ public final class MDCLoggingContext {
 	/**
 	 * Sets up context for batch operations with automatic correlation ID generation
 	 */
-	public static String setBatchContext(@NonNull String batchType, String jobId, String stepName) {
+	public static void setBatchContext(@NonNull String batchType, String jobId, String stepName) {
 		String correlationId = getOrCreateCorrelationId();
 
 		Map<String, String> context = new ConcurrentHashMap<>();
@@ -59,7 +59,6 @@ public final class MDCLoggingContext {
 		}
 
 		setMDCContext(context);
-		return correlationId;
 	}
 
 	/**

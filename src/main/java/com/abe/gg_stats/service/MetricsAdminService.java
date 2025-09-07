@@ -35,6 +35,5 @@ public class MetricsAdminService {
 				.body(ActionResponse.error("Failed to reset metrics: " + e.getMessage()));
 		}
 	}
+
 }
-
-

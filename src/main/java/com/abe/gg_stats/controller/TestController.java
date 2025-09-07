@@ -23,6 +23,5 @@ public class TestController {
 	public ResponseEntity<ActionResponse> testApiConnectivity() {
 		return apiConnectivityService.testApiConnectivity();
 	}
+
 }
-
-
