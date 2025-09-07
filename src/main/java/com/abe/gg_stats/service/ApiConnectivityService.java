@@ -25,16 +25,14 @@ public class ApiConnectivityService {
 		try {
 			var result = openDotaApiService.getHeroes();
 			if (result.isPresent()) {
-				ActionResponse response = ActionResponse.success("API connectivity test successful",
-						Map.of("testTime", Instant.now().toString(), "responseReceived", true,
-								"heroesCount", result.get().size()));
+				ActionResponse response = ActionResponse.success("API connectivity test successful", Map.of("testTime",
+						Instant.now().toString(), "responseReceived", true, "heroesCount", result.get().size()));
 				serviceLogger.logServiceSuccess("ApiConnectivityService", "API connectivity test passed");
 				return ResponseEntity.ok(response);
 			}
 			else {
 				ActionResponse response = ActionResponse.error("API connectivity test failed - no response received");
-				serviceLogger.logServiceFailure("api_connectivity_test",
-						"No response received from API", null);
+				serviceLogger.logServiceFailure("api_connectivity_test", "No response received from API", null);
 				return ResponseEntity.status(503).body(response);
 			}
 		}
@@ -44,6 +42,5 @@ public class ApiConnectivityService {
 			return ResponseEntity.status(503).body(response);
 		}
 	}
+
 }
-
-

@@ -199,6 +199,7 @@ public class RateLimitingService {
 			current.setDailyRequests(current.getDailyRequests() + 1);
 		}
 	}
+
 	/**
 	 * Gets current rate limiting status and metrics
 	 */

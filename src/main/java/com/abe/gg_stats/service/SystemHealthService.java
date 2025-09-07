@@ -57,6 +57,5 @@ public class SystemHealthService {
 			return "DEGRADED";
 		}
 	}
+
 }
-
-

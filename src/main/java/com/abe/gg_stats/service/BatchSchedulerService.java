@@ -26,24 +26,30 @@ public class BatchSchedulerService {
 
 	private final Job playerUpdateJob;
 
+	private final Job proMatchesJob;
+
 	private final RateLimitingService rateLimitingService;
 
 	private final ServiceLogger serviceLogger;
+
+	private final AggregationService aggregationService;
 
 	public BatchSchedulerService(JobLauncher jobLauncher, @Qualifier("heroesUpdateJob") Job heroesUpdateJob,
 			@Qualifier("proPlayersUpdateJob") Job notablePlayersUpdateJob,
 			@Qualifier("teamsUpdateJob") Job teamsUpdateJob,
 			@Qualifier("heroRankingUpdateJob") Job heroRankingUpdateJob,
-			@Qualifier("playerUpdateJob") Job playerUpdateJob, RateLimitingService rateLimitingService,
-			ServiceLogger serviceLogger) {
+			@Qualifier("playerUpdateJob") Job playerUpdateJob, @Qualifier("proMatchesJob") Job proMatchesJob,
+			RateLimitingService rateLimitingService, ServiceLogger serviceLogger, AggregationService aggregationService) {
 		this.jobLauncher = jobLauncher;
 		this.heroesUpdateJob = heroesUpdateJob;
 		this.notablePlayersUpdateJob = notablePlayersUpdateJob;
 		this.teamsUpdateJob = teamsUpdateJob;
 		this.heroRankingUpdateJob = heroRankingUpdateJob;
 		this.playerUpdateJob = playerUpdateJob;
+		this.proMatchesJob = proMatchesJob;
 		this.rateLimitingService = rateLimitingService;
 		this.serviceLogger = serviceLogger;
+		this.aggregationService = aggregationService;
 	}
 
 	/**
@@ -96,6 +102,29 @@ public class BatchSchedulerService {
 	}
 
 	/**
+	 * Run pro matches ingestion every hour
+	 */
+//	@Scheduled(cron = "0 0 * * * *")
+//	public void runProMatchesJob() {
+//		if (canRunJob()) {
+//			runJob(proMatchesJob, "Pro Matches Ingestion");
+//		}
+//	}
+//
+	@Scheduled(cron = "15 5 * * * *")
+	public void runAggregations() {
+		if (!canRunJob()) {
+			return;
+		}
+		try {
+			aggregationService.refreshPatchesAndAggregations();
+		}
+		catch (Exception e) {
+			serviceLogger.logServiceFailure("AggregationService", "weekly patch aggregates", e);
+		}
+	}
+
+	/**
 	 * Manual trigger for heroes job
 	 */
 	public boolean triggerHeroesUpdate() {
@@ -106,6 +135,13 @@ public class BatchSchedulerService {
 					}
 					return runJob(heroesUpdateJob, "Manual Heroes Update");
 				}, "jobType=heroes");
+	}
+
+	public boolean triggerProMatchesJob() {
+		if(canRunJob()) {
+			runJob(proMatchesJob, "Pro Matches Ingestion");
+		}
+		return false;
 	}
 
 	/**

@@ -48,3 +48,4 @@ sonar-report.txt
 ### Coverage Reports ###
 coverage/
 *.lcov
+/docs/

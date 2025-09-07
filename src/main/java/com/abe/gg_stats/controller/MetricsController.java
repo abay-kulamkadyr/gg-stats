@@ -35,6 +35,5 @@ public class MetricsController {
 	public ResponseEntity<ActionResponse> resetPerformanceMetrics() {
 		return metricsAdminService.resetPerformanceMetrics();
 	}
+
 }
-
-

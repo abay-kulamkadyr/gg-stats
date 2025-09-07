@@ -18,10 +18,8 @@ public class CircuitBreakerQueryService {
 	@Timed(description = "Circuit breaker status check")
 	public ResponseEntity<Map<String, CircuitBreakerService.CircuitBreakerStatus>> getAllStatuses() {
 		Map<String, CircuitBreakerService.CircuitBreakerStatus> statuses = circuitBreakerService.getAllStatuses();
-		LoggingUtils.logDebug("Retrieved circuit breaker statuses",
-				() -> "serviceCount=" + statuses.size());
+		LoggingUtils.logDebug("Retrieved circuit breaker statuses", () -> "serviceCount=" + statuses.size());
 		return ResponseEntity.ok(statuses);
 	}
+
 }
-
-

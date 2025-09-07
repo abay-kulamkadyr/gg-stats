@@ -71,12 +71,11 @@ public class CircuitBreakerAdminService {
 			return ResponseEntity.ok(response);
 		}
 		catch (Exception e) {
-			serviceLogger.logServiceFailure("reset_circuit_breaker_metrics",
-					"Failed to reset circuit breaker metrics", e);
+			serviceLogger.logServiceFailure("reset_circuit_breaker_metrics", "Failed to reset circuit breaker metrics",
+					e);
 			return ResponseEntity.internalServerError()
 				.body(ActionResponse.error("Failed to reset metrics: " + e.getMessage()));
 		}
 	}
+
 }
-
-

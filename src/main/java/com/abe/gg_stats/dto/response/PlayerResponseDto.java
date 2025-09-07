@@ -9,4 +9,3 @@ public record PlayerResponseDto(Long accountId, ProfileDto profile, Integer rank
 }
 
 
-

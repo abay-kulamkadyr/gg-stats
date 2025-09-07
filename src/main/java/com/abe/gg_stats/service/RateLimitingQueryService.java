@@ -19,6 +19,5 @@ public class RateLimitingQueryService {
 				() -> "remainingDaily=" + status.remainingDailyRequests());
 		return ResponseEntity.ok(status);
 	}
+
 }
-
-
