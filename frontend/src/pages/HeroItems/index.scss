@@ -1,0 +1,114 @@
+.hero-items-page {
+    width: calc(100% - 100px);
+    position: initial;
+    height: auto;
+    overflow: visible;
+    margin-top: 140px;
+
+    /* Ensure all headings on this page are white (override global h2 color) */
+    h2 {
+        color: #fff;
+    }
+
+    .hero-header{
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-left: 100px;
+        margin-top: 20px;
+    }
+    .hero-portrait{
+        width: 96px;
+        height: 96px;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+    h1.page-title {
+        font-size: 40px;
+        color: #fff;
+        margin: 0;
+    }
+
+    section {
+        margin-left: 50px;
+        margin-top: 30px;
+        h2 {
+            color: #fff;
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+    }
+
+    .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 16px;
+        padding-right: 50px;
+        padding-bottom: 30px;
+        max-width: 900px;
+    }
+
+    .item-card {
+        background: rgba(0,0,0,0.35);
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+        color: #fff;
+    }
+
+    .item-card img {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto 6px auto;
+        mix-blend-mode: normal;
+    }
+
+    .item-name {
+        font-size: 12px;
+        text-transform: capitalize;
+        line-height: 1.2;
+        min-height: 28px;
+    }
+
+    .players-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+        padding-right: 50px;
+        padding-bottom: 30px;
+        max-width: 900px;
+    }
+
+    .player-card {
+        background: rgba(0,0,0,0.35);
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        color: #fff;
+    }
+
+    .player-card img {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+        margin: 0 auto 8px auto;
+    }
+
+    .player-name {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .player-score {
+        font-size: 12px;
+        opacity: 0.85;
+    }
+}
+
+

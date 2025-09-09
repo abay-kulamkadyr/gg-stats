@@ -44,13 +44,13 @@ public class TeamsReader extends BaseApiReader {
 			return;
 		}
 
-		// Fetch from API
-		LoggingUtils.logOperationStart("Fetching teams data from API", "correlationId=" + correlationId);
+		// Fetch multi-page from API (default 20 pages)
+		LoggingUtils.logOperationStart("Fetching teams data from API (multi-page)", "correlationId=" + correlationId);
 
-		Optional<JsonNode> teamsData = openDotaApiService.getTeams();
+		Optional<JsonNode> teamsData = openDotaApiService.getTeamsAllPages(20);
 		if (teamsData.isPresent()) {
 			this.dataIterator = teamsData.get().elements();
-			LoggingUtils.logOperationSuccess("Successfully fetched teams data from API",
+			LoggingUtils.logOperationSuccess("Successfully fetched teams data from API (multi-page)",
 					"correlationId=" + correlationId, "dataSize=" + teamsData.get().size());
 		}
 		else {

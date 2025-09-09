@@ -39,7 +39,8 @@ public class BatchSchedulerService {
 			@Qualifier("teamsUpdateJob") Job teamsUpdateJob,
 			@Qualifier("heroRankingUpdateJob") Job heroRankingUpdateJob,
 			@Qualifier("playerUpdateJob") Job playerUpdateJob, @Qualifier("proMatchesJob") Job proMatchesJob,
-			RateLimitingService rateLimitingService, ServiceLogger serviceLogger, AggregationService aggregationService) {
+			RateLimitingService rateLimitingService, ServiceLogger serviceLogger,
+			AggregationService aggregationService) {
 		this.jobLauncher = jobLauncher;
 		this.heroesUpdateJob = heroesUpdateJob;
 		this.notablePlayersUpdateJob = notablePlayersUpdateJob;
@@ -104,13 +105,13 @@ public class BatchSchedulerService {
 	/**
 	 * Run pro matches ingestion every hour
 	 */
-//	@Scheduled(cron = "0 0 * * * *")
-//	public void runProMatchesJob() {
-//		if (canRunJob()) {
-//			runJob(proMatchesJob, "Pro Matches Ingestion");
-//		}
-//	}
-//
+	// @Scheduled(cron = "0 0 * * * *")
+	// public void runProMatchesJob() {
+	// if (canRunJob()) {
+	// runJob(proMatchesJob, "Pro Matches Ingestion");
+	// }
+	// }
+	//
 	@Scheduled(cron = "15 5 * * * *")
 	public void runAggregations() {
 		if (!canRunJob()) {
@@ -138,7 +139,7 @@ public class BatchSchedulerService {
 	}
 
 	public boolean triggerProMatchesJob() {
-		if(canRunJob()) {
+		if (canRunJob()) {
 			runJob(proMatchesJob, "Pro Matches Ingestion");
 		}
 		return false;

@@ -7,5 +7,3 @@ public record PlayerResponseDto(Long accountId, ProfileDto profile, Integer rank
 			Integer cheese, Boolean fh_unavailable, String loccountrycode, Boolean plus) {
 	}
 }
-
-

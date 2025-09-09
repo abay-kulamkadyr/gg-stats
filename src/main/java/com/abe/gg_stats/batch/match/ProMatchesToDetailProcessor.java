@@ -24,5 +24,3 @@ public class ProMatchesToDetailProcessor implements ItemProcessor<JsonNode, Json
 	}
 
 }
-
-

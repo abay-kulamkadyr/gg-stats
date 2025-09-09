@@ -12,15 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AggregationsController {
 
-    private final AggregationService aggregationService;
+	private final AggregationService aggregationService;
 
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh() {
-        aggregationService.refreshPatchesAndAggregations();
-        return ResponseEntity.ok().build();
-    }
+	@PostMapping("/refresh")
+	public ResponseEntity<?> refresh() {
+		aggregationService.refreshPatchesAndAggregations();
+		return ResponseEntity.ok().build();
+	}
+
 }
-
-
-
-

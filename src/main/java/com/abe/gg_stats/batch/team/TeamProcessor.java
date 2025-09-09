@@ -9,6 +9,7 @@ import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
+import com.abe.gg_stats.service.TeamLogoService;
 
 /**
  * Processor for Team entities with improved error handling and validation. Implements
@@ -18,9 +19,11 @@ import org.springframework.stereotype.Component;
 public class TeamProcessor extends BaseProcessor<TeamDto> {
 
 	private final ObjectMapper objectMapper;
+	private final TeamLogoService teamLogoService;
 
-	public TeamProcessor(ObjectMapper objectMapper) {
+	public TeamProcessor(ObjectMapper objectMapper, TeamLogoService teamLogoService) {
 		this.objectMapper = objectMapper;
+		this.teamLogoService = teamLogoService;
 	}
 
 	@Override
@@ -65,7 +68,12 @@ public class TeamProcessor extends BaseProcessor<TeamDto> {
 		MDCLoggingContext.updateContext("batchType", "teams");
 
 		try {
-			return objectMapper.treeToValue(item, TeamDto.class);
+			TeamDto dto = objectMapper.treeToValue(item, TeamDto.class);
+			String resolved = teamLogoService.resolveLogoUrl(dto.teamId(), dto.logoUrl());
+			if (resolved != null && !resolved.equals(dto.logoUrl())) {
+				return new TeamDto(dto.teamId(), dto.rating(), dto.wins(), dto.losses(), dto.lastMatchTime(), dto.name(), dto.tag(), resolved);
+			}
+			return dto;
 		}
 		catch (Exception e) {
 			return null;
