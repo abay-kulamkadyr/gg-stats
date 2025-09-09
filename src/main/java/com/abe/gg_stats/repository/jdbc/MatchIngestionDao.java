@@ -16,11 +16,7 @@ public class MatchIngestionDao {
 				+ "league_id, series_id, series_type, cluster, lobby_type, game_mode, engine, radiant_score, dire_score, "
 				+ "tower_status_radiant, tower_status_dire, barracks_status_radiant, barracks_status_dire, first_blood_time, "
 				+ "radiant_team_id, radiant_name, dire_team_id, dire_name, radiant_captain, dire_captain, patch, region, replay_url) "
-				+ "VALUES (" +
-				  "?,?,?,?,?,?,?,?,?,?" +
-				  ",?,?,?,?,?,?,?,?,?,?" +
-				  ",?,?,?,?,?,?,?,?" +
-				  ") "
+				+ "VALUES (" + "?,?,?,?,?,?,?,?,?,?" + ",?,?,?,?,?,?,?,?,?,?" + ",?,?,?,?,?,?,?,?" + ") "
 				+ "ON CONFLICT (match_id) DO UPDATE SET start_time=EXCLUDED.start_time, duration=EXCLUDED.duration, pre_game_duration=EXCLUDED.pre_game_duration, "
 				+ "radiant_win=EXCLUDED.radiant_win, league_id=EXCLUDED.league_id, series_id=EXCLUDED.series_id, series_type=EXCLUDED.series_type, cluster=EXCLUDED.cluster, lobby_type=EXCLUDED.lobby_type, game_mode=EXCLUDED.game_mode, engine=EXCLUDED.engine, "
 				+ "radiant_score=EXCLUDED.radiant_score, dire_score=EXCLUDED.dire_score, tower_status_radiant=EXCLUDED.tower_status_radiant, tower_status_dire=EXCLUDED.tower_status_dire, barracks_status_radiant=EXCLUDED.barracks_status_radiant, barracks_status_dire=EXCLUDED.barracks_status_dire, first_blood_time=EXCLUDED.first_blood_time, "

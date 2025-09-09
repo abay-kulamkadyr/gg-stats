@@ -112,7 +112,7 @@ public class OpenDotaApiService implements HealthIndicator {
 			}
 
 			try (LoggingUtils.AutoCloseableStopWatch _ = LoggingUtils
-				.createStopWatch("opendota_api_call_" + endpoint.replaceAll("/", "_"))) {
+					.createStopWatch("opendota_api_call_" + endpoint.replaceAll("/", "_"))) {
 
 				String url = baseUrl + endpoint;
 				LoggingUtils.logApiCall(endpoint, "GET");
@@ -182,6 +182,32 @@ public class OpenDotaApiService implements HealthIndicator {
 		return makeApiCall("/teams");
 	}
 
+	public Optional<JsonNode> getTeamsPage(int page) {
+		if (page < 1)
+			page = 1;
+		if (page > 50)
+			page = 50;
+		return makeApiCall("/teams?page=" + page);
+	}
+
+	public Optional<JsonNode> getTeamsAllPages(int pages) {
+		try {
+			int total = Math.min(Math.max(pages, 1), 50);
+			com.fasterxml.jackson.databind.node.ArrayNode all = objectMapper.createArrayNode();
+			for (int p = 1; p <= total; p++) {
+				Optional<JsonNode> page = getTeamsPage(p);
+				if (page.isPresent() && page.get().isArray()) {
+					page.get().forEach(all::add);
+				}
+			}
+			return Optional.of(all);
+		}
+		catch (Exception e) {
+			LoggingUtils.logOperationFailure("opendota_get_teams_all_pages", "error", e);
+			return Optional.empty();
+		}
+	}
+
 	public Optional<JsonNode> getProMatchesPage(Long lessThanMatchId) {
 		String endpoint = "/proMatches" + (lessThanMatchId != null ? ("?less_than_match_id=" + lessThanMatchId) : "");
 		return makeApiCall(endpoint);
@@ -242,88 +268,66 @@ public class OpenDotaApiService implements HealthIndicator {
 		catch (Exception e) {
 			LoggingUtils.logOperationFailure("health_check", "Health check failed", e);
 			return Health.down()
-				.withDetail("error", e.getMessage())
-				.withDetail("timestamp", Instant.now().toString())
-				.build();
+					.withDetail("error", e.getMessage())
+					.withDetail("timestamp", Instant.now().toString())
+					.build();
 		}
 	}
 
 	/**
-	 * Gets comprehensive service statistics
+	 * Handle HTTP client errors in a centralized way for logging and classification.
 	 */
-	public ApiServiceStatistics getStatistics() {
-		CircuitBreakerService.CircuitBreakerStatus cbStatus = circuitBreakerService.getStatus(SERVICE_NAME);
-		RateLimitingService.RateLimitStatus rlStatus = rateLimitingService.getStatus();
-
-		return ApiServiceStatistics.builder()
-			.serviceName(SERVICE_NAME)
-			.circuitBreakerStatus(cbStatus)
-			.rateLimitStatus(rlStatus)
-			.baseUrl(baseUrl)
-			.readTimeoutMs(readTimeoutMs)
-			.connectTimeoutMs(connectTimeoutMs)
-			.timestamp(Instant.now())
-			.build();
-	}
-
 	private void handleHttpClientError(String endpoint, HttpClientErrorException e) {
 		HttpStatusCode status = e.getStatusCode();
-
-		switch (status) {
-			case TOO_MANY_REQUESTS:
-				if (e.getResponseHeaders() != null) {
-					LoggingUtils.logWarning("Rate limited by OpenDota API", "endpoint=" + endpoint,
-							"retryAfter=" + e.getResponseHeaders().getFirst("Retry-After"));
-				}
-				break;
-
-			case NOT_FOUND:
-				LoggingUtils.logWarning("Resource not found", "endpoint=" + endpoint);
-				break;
-
-			case BAD_REQUEST:
-				LoggingUtils.logWarning("Bad request to API", "endpoint=" + endpoint,
-						"response=" + e.getResponseBodyAsString());
-				break;
-
-			case UNAUTHORIZED:
-			case FORBIDDEN:
-				LoggingUtils.logOperationFailure("opendota_api_call", "Authentication/authorization error", e);
-				break;
-
-			default:
-				LoggingUtils.logOperationFailure("opendota_api_call", "HTTP error: " + status, e);
+		if (status == TOO_MANY_REQUESTS) {
+			if (e.getResponseHeaders() != null) {
+				LoggingUtils.logWarning("Rate limited by OpenDota API", "endpoint=" + endpoint,
+						"retryAfter=" + e.getResponseHeaders().getFirst("Retry-After"));
+			}
+			return;
 		}
+		if (status == NOT_FOUND) {
+			LoggingUtils.logWarning("Resource not found", "endpoint=" + endpoint);
+			return;
+		}
+		if (status == BAD_REQUEST) {
+			LoggingUtils.logWarning("Bad request to API", "endpoint=" + endpoint,
+					"response=" + e.getResponseBodyAsString());
+			return;
+		}
+		if (status == UNAUTHORIZED || status == FORBIDDEN) {
+			LoggingUtils.logOperationFailure("opendota_api_call", "Authentication/authorization error", e);
+			return;
+		}
+		LoggingUtils.logOperationFailure("opendota_api_call", "HTTP error: " + status, e);
 	}
 
+	/**
+	 * Fallback used by the circuit breaker wrapper when performApiCall fails.
+	 */
 	private Optional<JsonNode> handleFallback(String endpoint) {
 		LoggingUtils.logWarning("Using fallback for API call", "endpoint=" + endpoint);
-		// TODO: Implement fallback logic - could be cached data, default values, or
-		// alternative data source
-		// For now, return empty as fallback is not yet implemented
 		return Optional.empty();
 	}
 
+	/**
+	 * Lightweight upstream check used in the /health endpoint to avoid heavy calls.
+	 */
 	private void performHealthCheck(Health.Builder healthBuilder) {
 		try {
-			// Use a lightweight endpoint for health check
 			Optional<JsonNode> response = performApiCall("/constants/heroes");
-
 			if (response.isPresent()) {
 				healthBuilder.withDetail("apiCheck", "successful");
-			}
-			else {
+			} else {
 				healthBuilder.withDetail("apiCheck", "failed - no response");
 			}
-
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			healthBuilder.withDetail("apiCheck", "failed - " + e.getMessage());
 		}
 	}
 
 	/**
-	 * Statistics container for monitoring
+	 * Gets comprehensive service statistics
 	 */
 	@Builder
 	public record ApiServiceStatistics(String serviceName,

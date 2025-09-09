@@ -18,14 +18,16 @@ import org.springframework.stereotype.Component;
 public class ProMatchesReader extends BaseApiReader {
 
 	private static final int MAX_PAGES = 20; // safety cap per run
+
 	private final MatchIngestionDao dao;
 
-	public ProMatchesReader(OpenDotaApiService openDotaApiService, BatchExpirationConfig batchExpirationConfig, MatchIngestionDao dao) {
+	public ProMatchesReader(OpenDotaApiService openDotaApiService, BatchExpirationConfig batchExpirationConfig,
+			MatchIngestionDao dao) {
 		super(openDotaApiService, batchExpirationConfig);
 		this.dao = dao;
 	}
 
-  @Override
+	@Override
 	protected void initialize() {
 		List<JsonNode> all = new ArrayList<>();
 		Long cursor = dao.getMinMatchId();

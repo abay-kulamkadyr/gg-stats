@@ -11,19 +11,20 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AggregationService {
 
-    private final OpenDotaApiService api;
-    private final AggregationDao dao;
+	private final OpenDotaApiService api;
 
-    public void refreshPatchesAndAggregations() {
-        LoggingUtils.logOperationStart("aggregations", "type=weekly_patch");
-        api.getPatches().ifPresent(json -> {
-            dao.upsertPatches(json.toString());
-        });
-        dao.refreshTeamPicksView();
-        dao.aggregateWeeklyHeroTrends();
-        dao.aggregateWeeklyHeroPairs();
-        LoggingUtils.logOperationSuccess("aggregations", "type=weekly_patch");
-    }
+	private final AggregationDao dao;
+
+	public void refreshPatchesAndAggregations() {
+		LoggingUtils.logOperationStart("aggregations", "type=weekly_patch");
+		api.getPatches().ifPresent(json -> {
+			dao.upsertPatches(json.toString());
+		});
+		dao.refreshTeamPicksView();
+		dao.aggregateWeeklyHeroTrends();
+		dao.aggregateWeeklyHeroPairs();
+		dao.refreshHeroItemPopularityView();
+		LoggingUtils.logOperationSuccess("aggregations", "type=weekly_patch");
+	}
+
 }
-
-
