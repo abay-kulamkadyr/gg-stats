@@ -1,36 +1,90 @@
 package com.abe.gg_stats.batch.player;
 
-import com.abe.gg_stats.batch.BaseProcessor;
-import com.abe.gg_stats.dto.PlayerDto;
-import com.abe.gg_stats.dto.mapper.PlayerResponseMapper;
+import com.abe.gg_stats.config.batch.BatchExpirationConfig;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaPlayerDto;
+import com.abe.gg_stats.dto.request.opendota.mapper.OpenDotaPlayerResponseMapper;
 import com.abe.gg_stats.dto.response.PlayerResponseDto;
-import com.abe.gg_stats.util.LoggingConstants;
-import com.abe.gg_stats.util.LoggingUtils;
-import com.abe.gg_stats.util.MDCLoggingContext;
+import com.abe.gg_stats.entity.Player;
+import com.abe.gg_stats.repository.PlayerRepository;
+import com.abe.gg_stats.service.OpenDotaApiService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
-import lombok.AllArgsConstructor;
+import java.util.Optional;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@AllArgsConstructor
-public class PlayerProcessor extends BaseProcessor<PlayerDto> {
+public class PlayerProcessor implements ItemProcessor<Long, OpenDotaPlayerDto> {
 
 	private final ObjectMapper objectMapper;
 
-	private final PlayerResponseMapper playerResponseMapper;
+	private final OpenDotaPlayerResponseMapper openDotaPlayerResponseMapper;
+
+	private final OpenDotaApiService openDotaApiService;
+
+	private final PlayerRepository playerRepository;
+
+	private final BatchExpirationConfig batchExpirationConfig;
+
+	@Autowired
+	public PlayerProcessor(OpenDotaApiService openDotaApiService, ObjectMapper objectMapper,
+			OpenDotaPlayerResponseMapper openDotaPlayerResponseMapper, PlayerRepository playerRepository,
+			BatchExpirationConfig batchExpirationConfig) {
+		this.objectMapper = objectMapper;
+		this.openDotaPlayerResponseMapper = openDotaPlayerResponseMapper;
+		this.openDotaApiService = openDotaApiService;
+		this.playerRepository = playerRepository;
+		this.batchExpirationConfig = batchExpirationConfig;
+	}
 
 	@Override
-	protected boolean isValidInput(JsonNode item) {
-		// Set up validation context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "players");
+	@Transactional(readOnly = true)
+	public OpenDotaPlayerDto process(@NonNull Long accountId) throws Exception {
 
+		Optional<Player> existingPlayer = playerRepository.findByAccountId(accountId);
+		if (existingPlayer.isPresent() && noRefreshNeeded(existingPlayer.get().getUpdatedAt())) {
+			return null;
+		}
+
+		Optional<JsonNode> apiResponse = openDotaApiService.getPlayer(accountId);
+		if (apiResponse.isEmpty()) {
+			return null;
+		}
+
+		JsonNode item = apiResponse.get();
+
+		if (!isValidInput(item)) {
+			return null;
+		}
+
+		return processItem(item);
+	}
+
+	private boolean noRefreshNeeded(Instant updatedAt) {
+		if (updatedAt == null) {
+			return false;
+		}
+		Instant expirationTime = updatedAt.plus(batchExpirationConfig.getDurationByConfigName("players"));
+		return !Instant.now().isAfter(expirationTime);
+	}
+
+	protected OpenDotaPlayerDto processItem(JsonNode item) {
+		try {
+			PlayerResponseDto dto = objectMapper.treeToValue(item, PlayerResponseDto.class);
+			return openDotaPlayerResponseMapper.toPlayerDto(dto);
+		}
+		catch (JsonProcessingException e) {
+			return null;
+		}
+	}
+
+	protected boolean isValidInput(JsonNode item) {
 		if (item == null || item.isNull()) {
-			LoggingUtils.logWarning("Player JSON item is null", "correlationId=" + correlationId);
 			return false;
 		}
 
@@ -39,43 +93,17 @@ public class PlayerProcessor extends BaseProcessor<PlayerDto> {
 		boolean hasProfile = item.has("profile") && item.get("profile").isObject();
 
 		if (!hasAccountId && !hasProfile) {
-			LoggingUtils.logWarning("Player JSON item missing both account_id and profile",
-					"correlationId=" + correlationId, "item=" + item);
 			return false;
 		}
 
 		if (hasProfile) {
 			JsonNode profile = item.get("profile");
-
-			// Validate required profile strings if present
 			String steamId = getTextValue(profile, "steamid");
 			String personName = getTextValue(profile, "personaname");
 
-			if (steamId == null || personName == null) {
-				LoggingUtils.logWarning("Invalid profile data, missing required fields",
-						"correlationId=" + correlationId, "profile=" + profile);
-				return false;
-			}
+			return steamId != null && personName != null;
 		}
-
 		return true;
-	}
-
-	@Override
-	protected PlayerDto processItem(JsonNode item) {
-		PlayerResponseDto dto;
-		try {
-			dto = objectMapper.treeToValue(item, PlayerResponseDto.class);
-		}
-		catch (JsonProcessingException e) {
-			return null;
-		}
-		return playerResponseMapper.toPlayerDto(dto);
-	}
-
-	@Override
-	protected String getItemTypeDescription() {
-		return "player account ID";
 	}
 
 	private String getTextValue(JsonNode node, String fieldName) {

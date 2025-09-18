@@ -9,8 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.abe.gg_stats.batch.hero.HeroWriter;
-import com.abe.gg_stats.dto.HeroDto;
-import com.abe.gg_stats.dto.mapper.HeroMapper;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroDto;
+import com.abe.gg_stats.dto.request.opendota.mapper.OpenDotaHeroMapper;
 import com.abe.gg_stats.entity.Hero;
 import com.abe.gg_stats.repository.HeroRepository;
 import java.util.List;
@@ -29,19 +29,19 @@ class HeroWriterTest {
 	private HeroRepository heroRepository;
 
 	@Mock
-	private HeroMapper heroMapper;
+	private OpenDotaHeroMapper heroMapper;
 
 	@InjectMocks
 	private HeroWriter heroWriter;
 
-	private HeroDto dto1;
+	private OpenDotaHeroDto dto1;
 
-	private HeroDto dto2;
+	private OpenDotaHeroDto dto2;
 
 	@BeforeEach
 	void setUp() {
-		dto1 = new HeroDto(1, "antimage", "Anti-Mage", null, null, List.of());
-		dto2 = new HeroDto(2, "axe", "Axe", "str", "Melee", List.of("Initiator"));
+		dto1 = new OpenDotaHeroDto(1, "antimage", "Anti-Mage", null, null, List.of());
+		dto2 = new OpenDotaHeroDto(2, "axe", "Axe", "str", "Melee", List.of("Initiator"));
 	}
 
 	@Test
@@ -57,7 +57,7 @@ class HeroWriterTest {
 		when(heroMapper.dtoToEntity(dto1)).thenReturn(hero1);
 		when(heroMapper.dtoToEntity(dto2)).thenReturn(hero2);
 
-		Chunk<HeroDto> chunk = Chunk.of(dto1, dto2);
+		Chunk<OpenDotaHeroDto> chunk = Chunk.of(dto1, dto2);
 		heroWriter.write(chunk);
 
 		verify(heroMapper, times(1)).dtoToEntity(dto1);
@@ -68,7 +68,7 @@ class HeroWriterTest {
 
 	@Test
 	void write_WithEmptyChunk_ShouldDoNothing() throws Exception {
-		Chunk<HeroDto> chunk = Chunk.of();
+		Chunk<OpenDotaHeroDto> chunk = Chunk.of();
 		heroWriter.write(chunk);
 		// Nothing to verify beyond no interactions with repository
 		org.mockito.Mockito.verifyNoInteractions(heroRepository);

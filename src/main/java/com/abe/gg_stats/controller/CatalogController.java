@@ -45,8 +45,8 @@ public class CatalogController {
 			page = 0;
 		if (size <= 0 || size > 200)
 			size = 24;
-		PageRequest pr = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "rating"));
-		Page<Team> p = teamRepository.findAll(pr);
+		PageRequest pr = PageRequest.of(page, size);
+		Page<Team> p = teamRepository.findAllOrderByRatingDescNullsLast(pr);
 		List<TeamDto> content = p.getContent().stream().map(CatalogController::toTeamDto).collect(Collectors.toList());
 		return new PageResponse<>(content, p.getNumber(), p.getSize(), p.getTotalPages(), p.getTotalElements());
 	}

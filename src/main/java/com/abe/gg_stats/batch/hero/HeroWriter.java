@@ -1,48 +1,27 @@
 package com.abe.gg_stats.batch.hero;
 
 import com.abe.gg_stats.batch.BaseWriter;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroDto;
+import com.abe.gg_stats.dto.request.opendota.mapper.OpenDotaHeroMapper;
 import com.abe.gg_stats.entity.Hero;
 import com.abe.gg_stats.repository.HeroRepository;
-import com.abe.gg_stats.util.LoggingConstants;
-import com.abe.gg_stats.util.LoggingUtils;
-import com.abe.gg_stats.util.MDCLoggingContext;
-import com.abe.gg_stats.dto.HeroDto;
-import com.abe.gg_stats.dto.mapper.HeroMapper;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@AllArgsConstructor
-public class HeroWriter extends BaseWriter<HeroDto> {
+public class HeroWriter extends BaseWriter<OpenDotaHeroDto, Hero> {
 
-	private final HeroRepository heroRepository;
+	private final OpenDotaHeroMapper heroMapper;
 
-	private final HeroMapper heroMapper;
-
-	@Override
-	protected void writeItem(HeroDto heroDto) {
-		// Set up writing context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "heroes");
-
-		try {
-			Hero hero = heroMapper.dtoToEntity(heroDto);
-			heroRepository.save(hero);
-			LoggingUtils.logDebug("Successfully saved hero to database", "correlationId=" + correlationId,
-					"heroId=" + hero.getId(), "heroName=" + hero.getName());
-		}
-		catch (Exception e) {
-			LoggingUtils.logOperationFailure("hero database save", "Failed to save hero to database", e,
-					"correlationId=" + correlationId, "heroId=" + heroDto.id(), "heroName=" + heroDto.name(),
-					"errorType=" + e.getClass().getSimpleName());
-			throw e;
-		}
+	@Autowired
+	public HeroWriter(HeroRepository heroRepository, OpenDotaHeroMapper heroMapper) {
+		super(heroRepository);
+		this.heroMapper = heroMapper;
 	}
 
 	@Override
-	protected String getItemTypeDescription() {
-		return "hero";
+	protected Hero dtoToEntity(OpenDotaHeroDto openDotaHeroDto) {
+		return heroMapper.dtoToEntity(openDotaHeroDto);
 	}
 
 }

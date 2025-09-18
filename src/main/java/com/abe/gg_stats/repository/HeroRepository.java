@@ -14,7 +14,7 @@ public interface HeroRepository extends JpaRepository<Hero, Integer> {
 
 	Optional<Hero> findByName(String name);
 
-	@Query("SELECT id FROM Hero")
+	@Query("SELECT h.id FROM Hero h")
 	List<Integer> findAllIds();
 
 	@Query("SELECT MAX(h.updatedAt) FROM Hero h")

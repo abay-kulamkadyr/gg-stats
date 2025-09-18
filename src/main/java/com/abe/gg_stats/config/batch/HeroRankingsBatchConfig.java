@@ -1,11 +1,12 @@
-package com.abe.gg_stats.config;
+package com.abe.gg_stats.config.batch;
 
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingProcessor;
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingReader;
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingWriter;
+import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
 import com.abe.gg_stats.batch.listener.HeroRankingJobExecutionListener;
 import com.abe.gg_stats.batch.listener.HeroRankingsStepExecutionListener;
-import com.abe.gg_stats.dto.HeroRankingDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroRankingDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -38,20 +39,20 @@ public class HeroRankingsBatchConfig {
 	private int skipLimit;
 
 	@Bean("heroRankingUpdateJob")
-	public Job heroRankingUpdateJob(Step heroRankingStep,
-			HeroRankingJobExecutionListener heroRankingJobExecutionListener) {
+	public Job heroRankingUpdateJob(Step heroRankingStep) {
 		return new JobBuilder("heroRankingUpdateJob", jobRepository)//
 			.incrementer(new RunIdIncrementer())
 			.start(heroRankingStep)
-			.listener(heroRankingJobExecutionListener)
+			.listener(new HeroRankingJobExecutionListener())
 			.build();
 	}
 
 	@Bean("heroRankingStep")
 	public Step heroRankingStep(HeroRankingReader heroRankingReader, HeroRankingProcessor heroRankingProcessor,
 			HeroRankingWriter heroRankingWriter) {
+		var itemListener = new BaseItemExecutionListener<Integer, List<OpenDotaHeroRankingDto>>();
 		return new StepBuilder("heroRankingStep", jobRepository)
-			.<JsonNode, List<HeroRankingDto>>chunk(chunkSize, transactionManager)
+			.<Integer, List<OpenDotaHeroRankingDto>>chunk(chunkSize, transactionManager)
 			.reader(heroRankingReader)
 			.processor(heroRankingProcessor)
 			.writer(heroRankingWriter)
@@ -61,6 +62,7 @@ public class HeroRankingsBatchConfig {
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
 			.listener(new HeroRankingsStepExecutionListener())
+			.listener(itemListener)
 			.build();
 	}
 

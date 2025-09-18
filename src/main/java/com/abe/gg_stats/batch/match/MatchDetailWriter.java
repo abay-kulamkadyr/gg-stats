@@ -1,24 +1,29 @@
 package com.abe.gg_stats.batch.match;
 
-import com.abe.gg_stats.batch.BaseWriter;
 import com.abe.gg_stats.repository.jdbc.MatchIngestionDao;
-import com.abe.gg_stats.util.LoggingConstants;
-import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import lombok.RequiredArgsConstructor;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
-public class MatchDetailWriter extends BaseWriter<JsonNode> {
+public class MatchDetailWriter implements ItemWriter<JsonNode> {
 
 	private final MatchIngestionDao dao;
 
-	@Override
-	protected void writeItem(JsonNode m) {
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "promatches-detail");
+	@Autowired
+	public MatchDetailWriter(MatchIngestionDao dao) {
+		this.dao = dao;
+	}
 
+	@Override
+	public void write(org.springframework.batch.item.Chunk<? extends JsonNode> chunk) throws Exception {
+		for (JsonNode m : chunk.getItems()) {
+			writeItem(m);
+		}
+	}
+
+	protected void writeItem(JsonNode m) {
 		long matchId = m.path("match_id").asLong();
 		// Upsert match core
 		dao.upsertMatch(m);
@@ -26,10 +31,12 @@ public class MatchDetailWriter extends BaseWriter<JsonNode> {
 		// team_match rows (if team ids present)
 		long radTeam = m.path("radiant_team_id").asLong(0);
 		long direTeam = m.path("dire_team_id").asLong(0);
-		if (radTeam > 0)
+		if (radTeam > 0) {
 			dao.upsertTeamMatch(matchId, radTeam, true);
-		if (direTeam > 0)
+		}
+		if (direTeam > 0) {
 			dao.upsertTeamMatch(matchId, direTeam, false);
+		}
 
 		// picks_bans
 		JsonNode pbArr = m.path("picks_bans");
@@ -93,16 +100,6 @@ public class MatchDetailWriter extends BaseWriter<JsonNode> {
 				}
 			}
 		}
-
-		// Optional: refresh MV after each match (safe but can be heavy). Prefer a
-		// periodic refresh.
-		// For now, skip per-item refresh; schedule a periodic refresh elsewhere or after
-		// chunk.
-	}
-
-	@Override
-	protected String getItemTypeDescription() {
-		return "match-detail";
 	}
 
 }

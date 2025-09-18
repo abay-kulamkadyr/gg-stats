@@ -1,7 +1,7 @@
 package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingReader;
-import com.abe.gg_stats.config.BatchExpirationConfig;
+import com.abe.gg_stats.config.batch.BatchExpirationConfig;
 import com.abe.gg_stats.config.JacksonConfig;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.repository.HeroRankingRepository;
@@ -18,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

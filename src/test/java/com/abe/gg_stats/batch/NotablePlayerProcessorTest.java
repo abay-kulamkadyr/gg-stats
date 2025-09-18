@@ -2,20 +2,12 @@ package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.batch.notable_player.NotablePlayerProcessor;
 import com.abe.gg_stats.config.JacksonConfig;
-import com.abe.gg_stats.dto.NotablePlayerDto;
-import com.abe.gg_stats.entity.Team;
-import com.abe.gg_stats.repository.NotablePlayerRepository;
-import com.abe.gg_stats.repository.TeamRepository;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaNotablePlayerDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,7 +42,7 @@ class NotablePlayerProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		NotablePlayerDto result = processor.process(item);
+		OpenDotaNotablePlayerDto result = processor.process(item);
 
 		assertNotNull(result);
 		assertEquals(12345L, result.accountId());
@@ -90,7 +82,7 @@ class NotablePlayerProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		NotablePlayerDto result = processor.process(item);
+		OpenDotaNotablePlayerDto result = processor.process(item);
 		assertNotNull(result);
 		assertNull(result.teamId());
 	}
@@ -104,7 +96,7 @@ class NotablePlayerProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		NotablePlayerDto result = processor.process(item);
+		OpenDotaNotablePlayerDto result = processor.process(item);
 		assertNotNull(result);
 		assertEquals(12345L, result.accountId());
 		assertNull(result.name());

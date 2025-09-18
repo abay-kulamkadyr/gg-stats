@@ -4,6 +4,7 @@ package com.abe.gg_stats.util;
  * Centralized constants for logging operations and MDC keys. Provides type safety and
  * prevents typos in operation names.
  */
+@Deprecated
 public final class LoggingConstants {
 
 	// MDC Keys

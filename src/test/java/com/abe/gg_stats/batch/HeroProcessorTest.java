@@ -7,16 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.hero.HeroProcessor;
 import com.abe.gg_stats.config.JacksonConfig;
-import com.abe.gg_stats.dto.HeroDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 class HeroProcessorTest {
 
@@ -44,7 +40,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNotNull(result);
 		assertEquals(1, result.id());
@@ -70,7 +66,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNotNull(result);
 		assertEquals(2, result.id());
@@ -94,7 +90,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNotNull(result);
 		assertEquals(3, result.id());
@@ -114,7 +110,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNull(result);
 	}
@@ -129,7 +125,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNull(result);
 	}
@@ -144,7 +140,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNull(result);
 	}
@@ -160,7 +156,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNull(result);
 	}
@@ -176,7 +172,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNull(result);
 	}
@@ -192,7 +188,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNull(result);
 	}
@@ -208,7 +204,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(invalidHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNull(result);
 	}
@@ -225,7 +221,7 @@ class HeroProcessorTest {
 				""";
 		JsonNode heroData = objectMapper.readTree(validHeroJson);
 
-		HeroDto result = heroProcessor.process(heroData);
+		OpenDotaHeroDto result = heroProcessor.process(heroData);
 
 		assertNotNull(result);
 		assertEquals(4, result.id());

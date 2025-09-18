@@ -73,6 +73,11 @@ public class MatchIngestionDao {
 		return jdbcTemplate.queryForObject(sql, Long.class);
 	}
 
+	public Long getMaxMatchId() {
+		String sql = "SELECT MAX(match_id) FROM matches";
+		return jdbcTemplate.queryForObject(sql, Long.class);
+	}
+
 	public void refreshProTeamPicksMv() {
 		jdbcTemplate.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY pro_team_picks_mv");
 	}

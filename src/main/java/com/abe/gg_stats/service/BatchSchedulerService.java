@@ -26,19 +26,25 @@ public class BatchSchedulerService {
 
 	private final Job playerUpdateJob;
 
-	private final Job proMatchesJob;
-
 	private final RateLimitingService rateLimitingService;
 
 	private final ServiceLogger serviceLogger;
 
 	private final AggregationService aggregationService;
 
-	public BatchSchedulerService(JobLauncher jobLauncher, @Qualifier("heroesUpdateJob") Job heroesUpdateJob,
+	// Newly added jobs
+	private final Job newMatchesIngestionJob;
+
+	private final Job historicalMatchesIngestionJob;
+
+	public BatchSchedulerService(JobLauncher jobLauncher, //
+			@Qualifier("heroesUpdateJob") Job heroesUpdateJob,
 			@Qualifier("proPlayersUpdateJob") Job notablePlayersUpdateJob,
 			@Qualifier("teamsUpdateJob") Job teamsUpdateJob,
 			@Qualifier("heroRankingUpdateJob") Job heroRankingUpdateJob,
-			@Qualifier("playerUpdateJob") Job playerUpdateJob, @Qualifier("proMatchesJob") Job proMatchesJob,
+			@Qualifier("playerUpdateJob") Job playerUpdateJob,
+			@Qualifier("newMatchesIngestionJob") Job newMatchesIngestionJob,
+			@Qualifier("historicalMatchesIngestionJob") Job historicalMatchesIngestionJob,
 			RateLimitingService rateLimitingService, ServiceLogger serviceLogger,
 			AggregationService aggregationService) {
 		this.jobLauncher = jobLauncher;
@@ -47,10 +53,48 @@ public class BatchSchedulerService {
 		this.teamsUpdateJob = teamsUpdateJob;
 		this.heroRankingUpdateJob = heroRankingUpdateJob;
 		this.playerUpdateJob = playerUpdateJob;
-		this.proMatchesJob = proMatchesJob;
+		this.newMatchesIngestionJob = newMatchesIngestionJob;
+		this.historicalMatchesIngestionJob = historicalMatchesIngestionJob;
 		this.rateLimitingService = rateLimitingService;
 		this.serviceLogger = serviceLogger;
 		this.aggregationService = aggregationService;
+	}
+
+	/**
+	 * Run new matches ingestion job every 15 minutes.
+	 */
+	@Scheduled(cron = "0 */15 * * * *") // Every 15 minutes
+	public void runNewMatchesIngestionJob() {
+		if (canRunJob()) {
+			runJob(newMatchesIngestionJob, "New Matches Ingestion");
+		}
+	}
+
+	/**
+	 * Run historical matches ingestion job daily at 3 AM. This should run after the new
+	 * matches job has had a chance to run.
+	 */
+	@Scheduled(cron = "0 0 3 * * *") // Daily at 3 AM
+	public void runHistoricalMatchesIngestionJob() {
+		if (canRunJob()) {
+			runJob(historicalMatchesIngestionJob, "Historical Matches Ingestion");
+		}
+	}
+
+	// ... (Existing manual trigger methods) ...
+
+	public boolean triggerNewMatchesIngestion() {
+		if (canRunJob()) {
+			return runJob(newMatchesIngestionJob, "Manual New Matches Ingestion");
+		}
+		return false;
+	}
+
+	public boolean triggerHistoricalMatchesIngestion() {
+		if (canRunJob()) {
+			return runJob(historicalMatchesIngestionJob, "Manual Historical Matches Ingestion");
+		}
+		return false;
 	}
 
 	/**
@@ -138,12 +182,12 @@ public class BatchSchedulerService {
 				}, "jobType=heroes");
 	}
 
-	public boolean triggerProMatchesJob() {
-		if (canRunJob()) {
-			runJob(proMatchesJob, "Pro Matches Ingestion");
-		}
-		return false;
-	}
+	// public boolean triggerProMatchesJob() {
+	// if (canRunJob()) {
+	// runJob(proMatchesJob, "Pro Matches Ingestion");
+	// }
+	// return false;
+	// }
 
 	/**
 	 * Manual trigger for player job (can be called via REST endpoint)
@@ -214,14 +258,11 @@ public class BatchSchedulerService {
 			serviceLogger.logServiceStart("BatchSchedulerService", jobDescription, "job=" + job.getName(),
 					"correlationId=" + correlationId);
 
-			// Create unique parameters for each run with correlation ID
-			JobParameters jobParameters = new JobParametersBuilder().addLong("timestamp", System.currentTimeMillis())
-				.addString("correlationId", correlationId)
-				.toJobParameters();
+			jobLauncher.run(job, new JobParametersBuilder().addLong("timestamp", System.currentTimeMillis()).toJobParameters());
 
-			jobLauncher.run(job, jobParameters);
 			serviceLogger.logServiceSuccess("BatchSchedulerService", jobDescription, "job=" + job.getName(),
 					"correlationId=" + correlationId);
+
 			return true;
 		}
 		catch (Exception e) {

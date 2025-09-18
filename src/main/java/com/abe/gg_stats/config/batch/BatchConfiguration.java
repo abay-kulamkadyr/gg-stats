@@ -1,4 +1,4 @@
-package com.abe.gg_stats.config;
+package com.abe.gg_stats.config.batch;
 
 import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
@@ -6,6 +6,7 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
@@ -19,10 +20,14 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
  * This separation improves maintainability and follows single responsibility principle.
  */
 @Configuration
-@RequiredArgsConstructor
 public class BatchConfiguration {
 
 	private final DataSource dataSource;
+
+	@Autowired
+	public BatchConfiguration(DataSource dataSource) {
+		this.dataSource = dataSource;
+	}
 
 	@Bean
 	public JobRepository jobRepository() throws Exception {

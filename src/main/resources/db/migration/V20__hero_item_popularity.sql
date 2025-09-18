@@ -31,3 +31,11 @@ CREATE INDEX IF NOT EXISTS idx_pro_hip_mv_hero_bucket ON pro_hero_item_popularit
 CREATE INDEX IF NOT EXISTS idx_pro_hip_mv_purchases ON pro_hero_item_popularity_mv(hero_id, time_bucket, purchases DESC);
 
 
+
+
+
+
+
+
+
+

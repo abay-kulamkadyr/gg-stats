@@ -21,13 +21,13 @@ public class StartupJobRunner implements ApplicationRunner {
 	@Override
 	public void run(ApplicationArguments args) {
 		try (ExecutorService executor = Executors.newFixedThreadPool(5)) {
-			// executor.submit(batchSchedulerService::triggerHeroesUpdate);
-			// executor.submit(batchSchedulerService::triggerNotablePlayerUpdate);
-			 executor.submit(batchSchedulerService::triggerTeamsUpdate);
+//			 executor.submit(batchSchedulerService::triggerHeroesUpdate);
+//			 executor.submit(batchSchedulerService::triggerNotablePlayerUpdate);
+			// executor.submit(batchSchedulerService::triggerTeamsUpdate);
 			// executor.submit(batchSchedulerService::triggerHeroRankingUpdate);
-			// executor.submit(batchSchedulerService::triggerPlayerUpdate);
-			// executor.submit(batchSchedulerService::runProMatchesJob);
-			// executor.submit(batchSchedulerService::triggerProMatchesJob);
+			 executor.submit(batchSchedulerService::triggerPlayerUpdate);
+//			executor.submit(batchSchedulerService::triggerHistoricalMatchesIngestion);
+			// executor.submit(batchSchedulerService::triggerNewMatchesIngestion);
 		}
 	}
 

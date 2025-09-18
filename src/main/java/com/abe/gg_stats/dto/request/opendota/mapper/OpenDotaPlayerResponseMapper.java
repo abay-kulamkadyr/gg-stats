@@ -1,6 +1,6 @@
-package com.abe.gg_stats.dto.mapper;
+package com.abe.gg_stats.dto.request.opendota.mapper;
 
-import com.abe.gg_stats.dto.PlayerDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaPlayerDto;
 import com.abe.gg_stats.dto.response.PlayerResponseDto;
 import java.time.Instant;
 import org.mapstruct.Mapper;
@@ -8,7 +8,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 @Mapper(componentModel = "spring")
-public interface PlayerResponseMapper {
+public interface OpenDotaPlayerResponseMapper {
 
 	@Mapping(target = "accountId", expression = "java(selectAccountId(src))")
 	@Mapping(target = "steamId", source = "profile.steamid")
@@ -26,23 +26,27 @@ public interface PlayerResponseMapper {
 	@Mapping(target = "plus", source = "profile.plus")
 	@Mapping(target = "rankTier", source = "rankTier")
 	@Mapping(target = "leaderboardRank", source = "leaderboardRank")
-	PlayerDto toPlayerDto(PlayerResponseDto src);
+	OpenDotaPlayerDto toPlayerDto(PlayerResponseDto src);
 
 	default Long selectAccountId(PlayerResponseDto src) {
-		if (src == null)
+		if (src == null) {
 			return null;
-		if (src.accountId() != null)
+		}
+		if (src.accountId() != null) {
 			return src.accountId();
+		}
 		return src.profile() != null ? src.profile().accountId() : null;
 	}
 
 	@Named("toInstant")
 	default Instant toInstant(String value) {
-		if (value == null)
+		if (value == null) {
 			return null;
+		}
 		String v = value.trim();
-		if (v.isEmpty())
+		if (v.isEmpty()) {
 			return null;
+		}
 		try {
 			return Instant.parse(v);
 		}
@@ -58,8 +62,9 @@ public interface PlayerResponseMapper {
 
 	@Named("toNullIfBlank")
 	default String toNullIfBlank(String value) {
-		if (value == null)
+		if (value == null) {
 			return null;
+		}
 		String v = value.trim();
 		return v.isEmpty() ? null : value;
 	}

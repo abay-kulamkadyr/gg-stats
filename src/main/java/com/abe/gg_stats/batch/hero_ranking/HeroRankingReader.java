@@ -1,82 +1,36 @@
 package com.abe.gg_stats.batch.hero_ranking;
 
-import com.abe.gg_stats.batch.BaseApiReader;
-import com.abe.gg_stats.config.BatchExpirationConfig;
-import com.abe.gg_stats.entity.HeroRanking;
-import com.abe.gg_stats.repository.HeroRankingRepository;
 import com.abe.gg_stats.repository.HeroRepository;
-import com.abe.gg_stats.service.OpenDotaApiService;
-import com.abe.gg_stats.util.LoggingConstants;
-import com.abe.gg_stats.util.LoggingUtils;
-import com.abe.gg_stats.util.MDCLoggingContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import java.time.Instant;
-import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * Reader for HeroRanking entities with improved error handling and performance. Fetches
- * hero rankings from the OpenDota API and provides them for processing.
- */
 @Component
-public class HeroRankingReader extends BaseApiReader {
+public class HeroRankingReader implements ItemReader<Integer> {
 
 	private final HeroRepository heroRepository;
 
-	private final HeroRankingRepository heroRankingRepository;
+	private Iterator<Integer> heroIdIterator;
 
-	public HeroRankingReader(OpenDotaApiService openDotaApiService, HeroRepository heroRepository,
-			BatchExpirationConfig expirationConfig, HeroRankingRepository heroRankingRepository) {
-		super(openDotaApiService, expirationConfig);
+	@Autowired
+	public HeroRankingReader(HeroRepository heroRepository) {
 		this.heroRepository = heroRepository;
-		this.heroRankingRepository = heroRankingRepository;
 	}
 
 	@Override
-	protected void initialize() {
-		// Set up reader context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "herorankings");
-
-		LoggingUtils.logOperationStart("Initializing hero ranking reader", "correlationId=" + correlationId);
-
-		List<Integer> heroIds = heroRepository.findAllIds();
-		List<JsonNode> heroRankings = new ArrayList<>();
-		heroIds.forEach(heroId -> fetchDataFromApiIfNeeded(heroId).ifPresent(heroRankings::add));
-
-		LoggingUtils.logOperationSuccess("Initialized hero ranking reader", "correlationId=" + correlationId,
-				"heroesLoaded=" + heroRankings.size());
-		this.dataIterator = heroRankings.iterator();
-	}
-
-	Optional<JsonNode> fetchDataFromApiIfNeeded(Integer heroId) {
-		// Set up processing context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "herorankings");
-
-		LoggingUtils.logMethodEntry("Updating hero ranking info for hero_id", () -> "correlationId=" + correlationId,
-				() -> "heroId=" + heroId);
-
-		Optional<HeroRanking> heroRanking = heroRankingRepository.findByHeroId(heroId);
-		Optional<Instant> latestUpdate = heroRanking.map(HeroRanking::getUpdatedAt);
-
-		if (latestUpdate.isPresent() && super.noRefreshNeeded(latestUpdate.get())) {
-			LoggingUtils.logWarning("Hero ranking data is up to date", "correlationId=" + correlationId,
-					"lastUpdate=" + latestUpdate.get());
-			return Optional.empty();
+	public Integer read() throws Exception {
+		if (heroIdIterator == null) {
+			List<Integer> allHeroIds = heroRepository.findAllIds();
+			this.heroIdIterator = allHeroIds.iterator();
 		}
 
-		// Fetch player info from OpenDota API
-		return openDotaApiService.getHeroRanking(heroId);
-	}
+		if (heroIdIterator.hasNext()) {
+			return heroIdIterator.next();
+		}
 
-	@Override
-	protected String getExpirationConfigName() {
-		return "herorankings";
+		return null;
 	}
 
 }

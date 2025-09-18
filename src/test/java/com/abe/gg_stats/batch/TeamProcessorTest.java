@@ -8,17 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.abe.gg_stats.batch.team.TeamProcessor;
 import com.abe.gg_stats.config.JacksonConfig;
-import com.abe.gg_stats.dto.TeamDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaTeamDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 class TeamProcessorTest {
 
@@ -50,7 +45,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(validJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
@@ -76,7 +71,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(validJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
@@ -107,7 +102,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNull(result);
@@ -125,7 +120,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNull(result);
@@ -143,7 +138,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNull(result);
@@ -161,7 +156,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNull(result);
@@ -179,7 +174,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(invalidJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNull(result);
@@ -203,7 +198,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(validJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
@@ -235,7 +230,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(validJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNotNull(result);
@@ -267,7 +262,7 @@ class TeamProcessorTest {
 		JsonNode item = objectMapper.readTree(validJson);
 
 		// When
-		TeamDto result = processor.process(item);
+		OpenDotaTeamDto result = processor.process(item);
 
 		// Then
 		assertNotNull(result);

@@ -12,8 +12,8 @@ import com.abe.gg_stats.util.LoggingUtils;
 import com.abe.gg_stats.util.MDCLoggingContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import jakarta.annotation.PostConstruct;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -30,6 +30,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 /**
  * OpenDota API client with comprehensive resilience patterns.
@@ -41,6 +44,7 @@ import org.springframework.web.client.RestTemplate;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OpenDotaApiService implements HealthIndicator {
 
 	private static final String SERVICE_NAME = "opendota_api";
@@ -53,7 +57,7 @@ public class OpenDotaApiService implements HealthIndicator {
 
 	private final ObjectMapper objectMapper;
 
-	private final ServiceLogger serviceLogger;
+	private final MeterRegistry meterRegistry;
 
 	@Value("${opendota.api.base-url:https://api.opendota.com/api}")
 	private String baseUrl;
@@ -69,11 +73,10 @@ public class OpenDotaApiService implements HealthIndicator {
 
 	@PostConstruct
 	public void initialize() {
-		serviceLogger.logServiceStart("OpenDotaApiService", "OpenDota API service initialization");
-		serviceLogger.logServiceSuccess("OpenDotaApiService", "OpenDota API service initialized", "baseUrl=" + baseUrl,
-				"readTimeout=" + readTimeoutMs + "ms", "connectTimeout=" + connectTimeoutMs + "ms");
+		log.info("OpenDotaApiService initialized", kv("baseUrl", baseUrl), kv("readTimeoutMs", readTimeoutMs),
+				kv("connectTimeoutMs", connectTimeoutMs));
 	}
-	// ServiceLogger provides the service name automatically
+	// Initialization complete
 
 	/**
 	 * Makes a synchronous API call with custom timeout
@@ -84,8 +87,7 @@ public class OpenDotaApiService implements HealthIndicator {
 					() -> handleFallback(endpoint));
 		}
 		catch (CircuitBreakerOpenException e) {
-			LoggingUtils.logWarning("Circuit breaker prevented API call", "endpoint=" + endpoint,
-					"reason=" + e.getMessage());
+			log.warn("Circuit breaker prevented API call", kv("endpoint", endpoint), kv("reason", e.getMessage()));
 			return Optional.empty();
 		}
 	}
@@ -100,53 +102,55 @@ public class OpenDotaApiService implements HealthIndicator {
 		MDCLoggingContext.updateContext("apiEndpoint", endpoint);
 		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_API_CALL);
 
+		Timer.Sample sample = Timer.start(meterRegistry);
+		String statusTag = "unknown";
+		long responseSize = -1;
+		long durationMs = -1;
+
 		try {
 			// Check rate limit first
 			RateLimitingService.RateLimitResult rateLimitResult = rateLimitingService.tryAcquirePermit(endpoint);
 
 			if (!rateLimitResult.allowed()) {
-				LoggingUtils.logWarning("Rate limit exceeded", "endpoint=" + endpoint,
-						"reason=" + rateLimitResult.reason(), "resetTime=" + rateLimitResult.resetTimeMs() + "ms",
-						"correlationId=" + correlationId);
+				statusTag = "rate_limited";
+				log.warn("Rate limit exceeded", kv("endpoint", endpoint), kv("reason", rateLimitResult.reason()),
+						kv("resetTimeMs", rateLimitResult.resetTimeMs()), kv("correlationId", correlationId));
 				return Optional.empty();
 			}
 
-			try (LoggingUtils.AutoCloseableStopWatch _ = LoggingUtils
-					.createStopWatch("opendota_api_call_" + endpoint.replaceAll("/", "_"))) {
+			String url = baseUrl + endpoint;
+			Instant startTime = Instant.now();
+			ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+			durationMs = java.time.Duration.between(startTime, Instant.now()).toMillis();
 
-				String url = baseUrl + endpoint;
-				LoggingUtils.logApiCall(endpoint, "GET");
+			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+				statusTag = String.valueOf(response.getStatusCode().value());
+				responseSize = response.getBody().length();
+				log.info("OpenDota API call success", kv("endpoint", endpoint),
+						kv("status", response.getStatusCode().value()), kv("durationMs", durationMs),
+						kv("size", responseSize));
+				return Optional.of(objectMapper.readTree(response.getBody()));
 
-				Instant startTime = Instant.now();
-				ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-				long responseTime = Duration.between(startTime, Instant.now()).toMillis();
-
-				if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-					LoggingUtils.logApiResponse(endpoint, response.getStatusCode().value(), responseTime,
-							response.getBody().length());
-
-					return Optional.of(objectMapper.readTree(response.getBody()));
-
-				}
-				else if (response.getStatusCode() == HttpStatus.OK) {
-					LoggingUtils.logWarning("API call successful but response body is null", "endpoint=" + endpoint);
-					return Optional.empty();
-				}
-				else {
-					LoggingUtils.logWarning("API call returned non-200 status", "endpoint=" + endpoint,
-							"status=" + response.getStatusCode().value());
-					return Optional.empty();
-				}
-
+			}
+			else if (response.getStatusCode() == HttpStatus.OK) {
+				statusTag = String.valueOf(response.getStatusCode().value());
+				log.warn("API call successful but response body is null", kv("endpoint", endpoint));
+				return Optional.empty();
+			}
+			else {
+				statusTag = String.valueOf(response.getStatusCode().value());
+				log.warn("API call returned non-200 status", kv("endpoint", endpoint),
+						kv("status", response.getStatusCode().value()), kv("durationMs", durationMs));
+				return Optional.empty();
 			}
 		}
 		catch (HttpClientErrorException e) {
+			statusTag = String.valueOf(e.getStatusCode().value());
 			handleHttpClientError(endpoint, e);
 
 			// Don't treat rate limiting as a circuit breaker failure
 			if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-				LoggingUtils.logWarning("Rate limit hit - not counting as circuit breaker failure",
-						"endpoint=" + endpoint);
+				log.warn("Rate limit hit - not counting as circuit breaker failure", kv("endpoint", endpoint));
 				return Optional.empty(); // Return empty instead of throwing
 			}
 
@@ -154,19 +158,25 @@ public class OpenDotaApiService implements HealthIndicator {
 
 		}
 		catch (ResourceAccessException e) {
-			LoggingUtils.logOperationFailure("opendota_api_call", "Network error for endpoint: " + endpoint, e);
+			statusTag = "network_error";
+			log.error("Network error for endpoint", e);
 			throw e; // Re-throw for retry and circuit breaker
 
 		}
 		catch (Exception e) {
-			LoggingUtils.logOperationFailure("opendota_api_call", "Unexpected error for endpoint: " + endpoint, e);
+			statusTag = "unexpected_error";
+			log.error("Unexpected error for endpoint", e);
 			throw new RuntimeException("API call failed", e);
 		}
+
 		finally {
-			// Don't clear context here - let the job-level listener handle context
-			// clearing
-			// MDCLoggingContext.clearContext(); // REMOVED: This was causing context loss
-			// between heroes
+			long durationNs = sample.stop(Timer.builder("opendota.api.call")
+				.tag("method", "GET")
+				.tag("endpoint", endpoint)
+				.tag("status", statusTag)
+				.register(meterRegistry));
+			log.debug("OpenDota API call timing", kv("endpoint", endpoint), kv("status", statusTag),
+					kv("durationNs", durationNs), kv("size", responseSize));
 		}
 	}
 
@@ -188,24 +198,6 @@ public class OpenDotaApiService implements HealthIndicator {
 		if (page > 50)
 			page = 50;
 		return makeApiCall("/teams?page=" + page);
-	}
-
-	public Optional<JsonNode> getTeamsAllPages(int pages) {
-		try {
-			int total = Math.min(Math.max(pages, 1), 50);
-			com.fasterxml.jackson.databind.node.ArrayNode all = objectMapper.createArrayNode();
-			for (int p = 1; p <= total; p++) {
-				Optional<JsonNode> page = getTeamsPage(p);
-				if (page.isPresent() && page.get().isArray()) {
-					page.get().forEach(all::add);
-				}
-			}
-			return Optional.of(all);
-		}
-		catch (Exception e) {
-			LoggingUtils.logOperationFailure("opendota_get_teams_all_pages", "error", e);
-			return Optional.empty();
-		}
 	}
 
 	public Optional<JsonNode> getProMatchesPage(Long lessThanMatchId) {
@@ -268,9 +260,9 @@ public class OpenDotaApiService implements HealthIndicator {
 		catch (Exception e) {
 			LoggingUtils.logOperationFailure("health_check", "Health check failed", e);
 			return Health.down()
-					.withDetail("error", e.getMessage())
-					.withDetail("timestamp", Instant.now().toString())
-					.build();
+				.withDetail("error", e.getMessage())
+				.withDetail("timestamp", Instant.now().toString())
+				.build();
 		}
 	}
 
@@ -281,32 +273,31 @@ public class OpenDotaApiService implements HealthIndicator {
 		HttpStatusCode status = e.getStatusCode();
 		if (status == TOO_MANY_REQUESTS) {
 			if (e.getResponseHeaders() != null) {
-				LoggingUtils.logWarning("Rate limited by OpenDota API", "endpoint=" + endpoint,
-						"retryAfter=" + e.getResponseHeaders().getFirst("Retry-After"));
+				log.warn("Rate limited by OpenDota API", kv("endpoint", endpoint),
+						kv("retryAfter", e.getResponseHeaders().getFirst("Retry-After")));
 			}
 			return;
 		}
 		if (status == NOT_FOUND) {
-			LoggingUtils.logWarning("Resource not found", "endpoint=" + endpoint);
+			log.warn("Resource not found", kv("endpoint", endpoint));
 			return;
 		}
 		if (status == BAD_REQUEST) {
-			LoggingUtils.logWarning("Bad request to API", "endpoint=" + endpoint,
-					"response=" + e.getResponseBodyAsString());
+			log.warn("Bad request to API", kv("endpoint", endpoint), kv("response", e.getResponseBodyAsString()));
 			return;
 		}
 		if (status == UNAUTHORIZED || status == FORBIDDEN) {
-			LoggingUtils.logOperationFailure("opendota_api_call", "Authentication/authorization error", e);
+			log.error("Authentication/authorization error", e);
 			return;
 		}
-		LoggingUtils.logOperationFailure("opendota_api_call", "HTTP error: " + status, e);
+		log.error("HTTP error", e);
 	}
 
 	/**
 	 * Fallback used by the circuit breaker wrapper when performApiCall fails.
 	 */
 	private Optional<JsonNode> handleFallback(String endpoint) {
-		LoggingUtils.logWarning("Using fallback for API call", "endpoint=" + endpoint);
+		log.warn("Using fallback for API call", kv("endpoint", endpoint));
 		return Optional.empty();
 	}
 
@@ -318,10 +309,12 @@ public class OpenDotaApiService implements HealthIndicator {
 			Optional<JsonNode> response = performApiCall("/constants/heroes");
 			if (response.isPresent()) {
 				healthBuilder.withDetail("apiCheck", "successful");
-			} else {
+			}
+			else {
 				healthBuilder.withDetail("apiCheck", "failed - no response");
 			}
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			healthBuilder.withDetail("apiCheck", "failed - " + e.getMessage());
 		}
 	}

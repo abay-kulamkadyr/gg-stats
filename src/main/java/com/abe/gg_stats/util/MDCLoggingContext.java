@@ -28,6 +28,7 @@ import org.springframework.lang.NonNull;
  * operations - Thread-safe context management - Automatic cleanup to prevent memory leaks
  * - Operation-specific context builders
  */
+@Deprecated
 public final class MDCLoggingContext {
 
 	private static final int MAX_PARAM_LENGTH = 200;

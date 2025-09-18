@@ -9,21 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.config.JacksonConfig;
-import com.abe.gg_stats.dto.PlayerDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaPlayerDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.abe.gg_stats.dto.mapper.PlayerResponseMapper;
+import com.abe.gg_stats.dto.request.opendota.mapper.OpenDotaPlayerResponseMapper;
 import org.mapstruct.factory.Mappers;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 class PlayerProcessorTest {
 
@@ -34,7 +29,7 @@ class PlayerProcessorTest {
 	@BeforeEach
 	void setUp() {
 		objectMapper = new JacksonConfig().objectMapper();
-		PlayerResponseMapper mapper = Mappers.getMapper(PlayerResponseMapper.class);
+		OpenDotaPlayerResponseMapper mapper = Mappers.getMapper(OpenDotaPlayerResponseMapper.class);
 		playerProcessor = new PlayerProcessor(objectMapper, mapper);
 	}
 
@@ -66,7 +61,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
@@ -98,7 +93,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
@@ -131,7 +126,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
@@ -157,7 +152,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor creates a DTO even when profile data is missing
 		assertNotNull(result);
@@ -183,7 +178,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor rejects invalid input (missing steamid) and returns null
 		assertNull(result);
@@ -202,7 +197,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor rejects invalid input (missing personaname) and returns null
 		assertNull(result);
@@ -222,7 +217,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor rejects invalid input (empty steamid) and returns null
 		assertNull(result);
@@ -242,7 +237,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(invalidJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor rejects invalid input (empty personaname) and returns null
 		assertNull(result);
@@ -263,7 +258,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
@@ -292,7 +287,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
@@ -319,7 +314,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);
@@ -348,7 +343,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then - Processor preserves whitespace, doesn't trim
 		assertNotNull(result);
@@ -373,7 +368,7 @@ class PlayerProcessorTest {
 		JsonNode playerData = objectMapper.readTree(validJson);
 
 		// When
-		PlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(playerData);
 
 		// Then
 		assertNotNull(result);

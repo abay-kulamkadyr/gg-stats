@@ -28,14 +28,15 @@ public class SystemHealthService {
 	public ResponseEntity<SystemHealthResponse> getSystemHealth() {
 		try (LoggingUtils.AutoCloseableStopWatch ignored = LoggingUtils.createStopWatch("system_health_check")) {
 			Health apiHealth = openDotaApiService.health();
-//			OpenDotaApiService.ApiServiceStatistics stats = openDotaApiService.getStatistics();
+			// OpenDotaApiService.ApiServiceStatistics stats =
+			// openDotaApiService.getStatistics();
 
 			SystemHealthResponse response = SystemHealthResponse.builder()
 				.timestamp(Instant.now())
 				.overallStatus(determineOverallStatus(apiHealth))
 				.apiHealth(apiHealth)
-//				.circuitBreakerStatus(stats.circuitBreakerStatus())
-//				.rateLimitStatus(stats.rateLimitStatus())
+				// .circuitBreakerStatus(stats.circuitBreakerStatus())
+				// .rateLimitStatus(stats.rateLimitStatus())
 				.performanceMetrics(metricsService.getPerformanceMetrics())
 				.build();
 

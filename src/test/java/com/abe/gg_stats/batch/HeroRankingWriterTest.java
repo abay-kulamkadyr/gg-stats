@@ -1,8 +1,8 @@
 package com.abe.gg_stats.batch;
 
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingWriter;
-import com.abe.gg_stats.dto.HeroRankingDto;
-import com.abe.gg_stats.dto.mapper.HeroRankingMapper;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroRankingDto;
+import com.abe.gg_stats.dto.request.opendota.mapper.OpenDotaHeroRankingMapper;
 import com.abe.gg_stats.entity.HeroRanking;
 import com.abe.gg_stats.repository.HeroRankingRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,29 +30,29 @@ class HeroRankingWriterTest {
 	private HeroRankingRepository heroRankingRepository;
 
 	@Mock
-	private HeroRankingMapper heroRankingMapper;
+	private OpenDotaHeroRankingMapper openDotaHeroRankingMapper;
 
 	private HeroRankingWriter writer;
 
 	@BeforeEach
 	void setUp() {
-		writer = new HeroRankingWriter(heroRankingRepository, heroRankingMapper);
+		writer = new HeroRankingWriter(heroRankingRepository, openDotaHeroRankingMapper);
 	}
 
 	@Test
 	void testWrite_ValidChunk_ShouldSaveAll() throws Exception {
-		List<HeroRankingDto> rankings1 = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5),
-				new HeroRankingDto(67890L, 1, 88.0));
+		List<OpenDotaHeroRankingDto> rankings1 = Arrays.asList(new OpenDotaHeroRankingDto(12345L, 1, 95.5),
+				new OpenDotaHeroRankingDto(67890L, 1, 88.0));
 		List<HeroRanking> rankings1Entities = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
 				createHeroRanking(1, 67890L, 88.0));
 
-		List<HeroRankingDto> rankings2 = Arrays.asList(new HeroRankingDto(11111L, 2, 92.0));
+		List<OpenDotaHeroRankingDto> rankings2 = Arrays.asList(new OpenDotaHeroRankingDto(11111L, 2, 92.0));
 		List<HeroRanking> rankings2Entities = Arrays.asList(createHeroRanking(2, 11111L, 92.0));
 
-		when(heroRankingMapper.dtoToEntity(rankings1)).thenReturn(rankings1Entities);
-		when(heroRankingMapper.dtoToEntity(rankings2)).thenReturn(rankings2Entities);
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings1)).thenReturn(rankings1Entities);
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings2)).thenReturn(rankings2Entities);
 
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
 
 		writer.write(chunk);
 
@@ -63,7 +63,7 @@ class HeroRankingWriterTest {
 
 	@Test
 	void testWrite_EmptyChunk_ShouldHandleGracefully() throws Exception {
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.emptyList());
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Collections.emptyList());
 		writer.write(chunk);
 		verify(heroRankingRepository, never()).saveAll(any(List.class));
 	}
@@ -76,35 +76,35 @@ class HeroRankingWriterTest {
 
 	@Test
 	void testWrite_ChunkWithNullItems_ShouldHandleGracefully() throws Exception {
-		List<HeroRankingDto> rankings1 = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5),
-				new HeroRankingDto(67890L, 1, 88.0));
+		List<OpenDotaHeroRankingDto> rankings1 = Arrays.asList(new OpenDotaHeroRankingDto(12345L, 1, 95.5),
+				new OpenDotaHeroRankingDto(67890L, 1, 88.0));
 		List<HeroRanking> rankings1Entities = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
 				createHeroRanking(1, 67890L, 88.0));
-		when(heroRankingMapper.dtoToEntity(rankings1)).thenReturn(rankings1Entities);
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, null));
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings1)).thenReturn(rankings1Entities);
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, null));
 		writer.write(chunk);
 		verify(heroRankingRepository, times(1)).saveAll(rankings1Entities);
 	}
 
 	@Test
 	void testWrite_SingleItem_ShouldSaveSuccessfully() throws Exception {
-		List<HeroRankingDto> rankings = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5));
+		List<OpenDotaHeroRankingDto> rankings = Arrays.asList(new OpenDotaHeroRankingDto(12345L, 1, 95.5));
 		List<HeroRanking> entities = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
-		when(heroRankingMapper.dtoToEntity(rankings)).thenReturn(entities);
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings)).thenReturn(entities);
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
 		writer.write(chunk);
 		verify(heroRankingRepository, times(1)).saveAll(entities);
 	}
 
 	@Test
 	void testWrite_DatabaseError_ShouldContinueProcessing() throws Exception {
-		List<HeroRankingDto> rankings1 = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5));
+		List<OpenDotaHeroRankingDto> rankings1 = Arrays.asList(new OpenDotaHeroRankingDto(12345L, 1, 95.5));
 		List<HeroRanking> entities1 = Arrays.asList(createHeroRanking(1, 12345L, 95.5));
-		List<HeroRankingDto> rankings2 = Arrays.asList(new HeroRankingDto(67890L, 2, 88.0));
+		List<OpenDotaHeroRankingDto> rankings2 = Arrays.asList(new OpenDotaHeroRankingDto(67890L, 2, 88.0));
 		List<HeroRanking> entities2 = Arrays.asList(createHeroRanking(2, 67890L, 88.0));
-		when(heroRankingMapper.dtoToEntity(rankings1)).thenReturn(entities1);
-		when(heroRankingMapper.dtoToEntity(rankings2)).thenReturn(entities2);
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings1)).thenReturn(entities1);
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings2)).thenReturn(entities2);
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2));
 		when(heroRankingRepository.saveAll(entities1)).thenReturn(entities1);
 		when(heroRankingRepository.saveAll(entities2)).thenThrow(new RuntimeException("Database error"));
 		writer.write(chunk);
@@ -114,74 +114,75 @@ class HeroRankingWriterTest {
 
 	@Test
 	void testWrite_LargeChunk_ShouldHandleCorrectly() throws Exception {
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>();
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>();
 		for (int i = 0; i < 100; i++) {
-			List<HeroRankingDto> rankings = Arrays.asList(new HeroRankingDto((long) i, i, 50.0 + i));
+			List<OpenDotaHeroRankingDto> rankings = Arrays.asList(new OpenDotaHeroRankingDto((long) i, i, 50.0 + i));
 			chunk.add(rankings);
 		}
 		// Mock mapper to return non-null for all calls
-		when(heroRankingMapper.dtoToEntity(any(Iterable.class))).thenAnswer(invocation -> Collections.emptyList());
+		when(openDotaHeroRankingMapper.dtoToEntity(any(Iterable.class)))
+			.thenAnswer(invocation -> Collections.emptyList());
 		writer.write(chunk);
 		verify(heroRankingRepository, times(100)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithMixedData_ShouldHandleCorrectly() throws Exception {
-		List<HeroRankingDto> rankings1 = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5));
-		List<HeroRankingDto> rankings2 = Arrays.asList(new HeroRankingDto(67890L, 2, null));
-		List<HeroRankingDto> rankings3 = Arrays.asList(new HeroRankingDto(11111L, 3, 100.0));
-		when(heroRankingMapper.dtoToEntity(rankings1)).thenReturn(Collections.emptyList());
-		when(heroRankingMapper.dtoToEntity(rankings2)).thenReturn(Collections.emptyList());
-		when(heroRankingMapper.dtoToEntity(rankings3)).thenReturn(Collections.emptyList());
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2, rankings3));
+		List<OpenDotaHeroRankingDto> rankings1 = Arrays.asList(new OpenDotaHeroRankingDto(12345L, 1, 95.5));
+		List<OpenDotaHeroRankingDto> rankings2 = Arrays.asList(new OpenDotaHeroRankingDto(67890L, 2, null));
+		List<OpenDotaHeroRankingDto> rankings3 = Arrays.asList(new OpenDotaHeroRankingDto(11111L, 3, 100.0));
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings1)).thenReturn(Collections.emptyList());
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings2)).thenReturn(Collections.emptyList());
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings3)).thenReturn(Collections.emptyList());
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Arrays.asList(rankings1, rankings2, rankings3));
 		writer.write(chunk);
 		verify(heroRankingRepository, times(3)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithZeroValues_ShouldHandleCorrectly() throws Exception {
-		List<HeroRankingDto> rankings = Arrays.asList(new HeroRankingDto(0L, 0, 0.0));
-		when(heroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
+		List<OpenDotaHeroRankingDto> rankings = Arrays.asList(new OpenDotaHeroRankingDto(0L, 0, 0.0));
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
 		writer.write(chunk);
 		verify(heroRankingRepository, times(1)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithMaxValues_ShouldHandleCorrectly() throws Exception {
-		List<HeroRankingDto> rankings = List
-			.of(new HeroRankingDto(Long.MAX_VALUE, Integer.MAX_VALUE, Double.MAX_VALUE));
-		when(heroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
+		List<OpenDotaHeroRankingDto> rankings = List
+			.of(new OpenDotaHeroRankingDto(Long.MAX_VALUE, Integer.MAX_VALUE, Double.MAX_VALUE));
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
 		writer.write(chunk);
 		verify(heroRankingRepository, times(1)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_ChunkWithNegativeValues_ShouldHandleCorrectly() throws Exception {
-		List<HeroRankingDto> rankings = Arrays.asList(new HeroRankingDto(-12345L, -1, -50.0));
-		when(heroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
+		List<OpenDotaHeroRankingDto> rankings = Arrays.asList(new OpenDotaHeroRankingDto(-12345L, -1, -50.0));
+		when(openDotaHeroRankingMapper.dtoToEntity(rankings)).thenReturn(Collections.emptyList());
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(rankings));
 		writer.write(chunk);
 		verify(heroRankingRepository, times(1)).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_EmptyRankingsList_ShouldHandleCorrectly() throws Exception {
-		List<HeroRankingDto> emptyRankings = Collections.emptyList();
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(emptyRankings));
+		List<OpenDotaHeroRankingDto> emptyRankings = Collections.emptyList();
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(emptyRankings));
 		writer.write(chunk);
 		verify(heroRankingRepository, never()).saveAll(any(List.class));
 	}
 
 	@Test
 	void testWrite_MultipleRankingsInSingleList_ShouldSaveAll() throws Exception {
-		List<HeroRankingDto> multipleRankings = Arrays.asList(new HeroRankingDto(12345L, 1, 95.5),
-				new HeroRankingDto(67890L, 1, 88.0), new HeroRankingDto(11111L, 1, 92.0));
+		List<OpenDotaHeroRankingDto> multipleRankings = Arrays.asList(new OpenDotaHeroRankingDto(12345L, 1, 95.5),
+				new OpenDotaHeroRankingDto(67890L, 1, 88.0), new OpenDotaHeroRankingDto(11111L, 1, 92.0));
 		List<HeroRanking> entities = Arrays.asList(createHeroRanking(1, 12345L, 95.5),
 				createHeroRanking(1, 67890L, 88.0), createHeroRanking(1, 11111L, 92.0));
-		when(heroRankingMapper.dtoToEntity(multipleRankings)).thenReturn(entities);
-		Chunk<List<HeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(multipleRankings));
+		when(openDotaHeroRankingMapper.dtoToEntity(multipleRankings)).thenReturn(entities);
+		Chunk<List<OpenDotaHeroRankingDto>> chunk = new Chunk<>(Collections.singletonList(multipleRankings));
 		writer.write(chunk);
 		verify(heroRankingRepository, times(1)).saveAll(entities);
 	}

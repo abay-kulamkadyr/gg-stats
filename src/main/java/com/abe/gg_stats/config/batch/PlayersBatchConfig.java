@@ -1,11 +1,12 @@
-package com.abe.gg_stats.config;
+package com.abe.gg_stats.config.batch;
 
+import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
 import com.abe.gg_stats.batch.listener.PlayersJobExecutionListener;
 import com.abe.gg_stats.batch.listener.PlayersStepExecutionListener;
 import com.abe.gg_stats.batch.player.PlayerReader;
 import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.batch.player.PlayerWriter;
-import com.abe.gg_stats.dto.PlayerDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaPlayerDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -37,16 +38,19 @@ public class PlayersBatchConfig {
 	private int skipLimit;
 
 	@Bean("playerUpdateJob")
-	public Job playerUpdateJob(Step playerStep, PlayersJobExecutionListener playersJobExecutionListener) {
-		return new JobBuilder("playerUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
+	public Job playerUpdateJob(Step playerStep) {
+		return new JobBuilder("playerUpdateJob", jobRepository) //
+			.incrementer(new RunIdIncrementer())
 			.start(playerStep)
-			.listener(playersJobExecutionListener)
+			.listener(new PlayersJobExecutionListener())
 			.build();
 	}
 
 	@Bean("playerStep")
 	public Step playerStep(PlayerReader playerReader, PlayerProcessor playerProcessor, PlayerWriter playerWriter) {
-		return new StepBuilder("playerStep", jobRepository).<JsonNode, PlayerDto>chunk(chunkSize, transactionManager)
+		var itemListener = new BaseItemExecutionListener<Long, OpenDotaPlayerDto>();
+		return new StepBuilder("playerStep", jobRepository)
+			.<Long, OpenDotaPlayerDto>chunk(chunkSize, transactionManager)
 			.reader(playerReader)
 			.processor(playerProcessor)
 			.writer(playerWriter)
@@ -56,6 +60,7 @@ public class PlayersBatchConfig {
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
 			.listener(new PlayersStepExecutionListener())
+			.listener(itemListener)
 			.build();
 	}
 

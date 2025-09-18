@@ -1,42 +1,28 @@
 package com.abe.gg_stats.batch.notable_player;
 
 import com.abe.gg_stats.batch.BaseWriter;
-import com.abe.gg_stats.dto.NotablePlayerDto;
-import com.abe.gg_stats.dto.mapper.NotablePlayerMapper;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaNotablePlayerDto;
+import com.abe.gg_stats.dto.request.opendota.mapper.OpenDotaNotablePlayerMapper;
 import com.abe.gg_stats.entity.NotablePlayer;
-import com.abe.gg_stats.entity.Team;
 import com.abe.gg_stats.repository.NotablePlayerRepository;
-import com.abe.gg_stats.repository.TeamRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class NotablePlayerWriter extends BaseWriter<NotablePlayerDto> {
+public class NotablePlayerWriter extends BaseWriter<OpenDotaNotablePlayerDto, NotablePlayer> {
 
-	private final NotablePlayerRepository notablePlayerRepository;
+	private final OpenDotaNotablePlayerMapper openDotaNotablePlayerMapper;
 
-	private final TeamRepository teamRepository;
-
-	private final NotablePlayerMapper notablePlayerMapper;
-
-	public NotablePlayerWriter(NotablePlayerRepository notablePlayerRepository, TeamRepository teamRepository,
-			NotablePlayerMapper notablePlayerMapper) {
-		this.notablePlayerRepository = notablePlayerRepository;
-		this.teamRepository = teamRepository;
-		this.notablePlayerMapper = notablePlayerMapper;
+	@Autowired
+	public NotablePlayerWriter(NotablePlayerRepository notablePlayerRepository,
+			OpenDotaNotablePlayerMapper openDotaNotablePlayerMapper) {
+		super(notablePlayerRepository);
+		this.openDotaNotablePlayerMapper = openDotaNotablePlayerMapper;
 	}
 
 	@Override
-	protected void writeItem(NotablePlayerDto dto) {
-		NotablePlayer entity = notablePlayerMapper.dtoToEntity(dto);
-		if (dto.teamId() != null && dto.teamId() > 0) {
-			teamRepository.findById(dto.teamId()).ifPresent(entity::setTeam);
-		}
-		notablePlayerRepository.save(entity);
-	}
-
-	@Override
-	protected String getItemTypeDescription() {
-		return "notable player";
+	public NotablePlayer dtoToEntity(OpenDotaNotablePlayerDto openDotaNotablePlayerDto) {
+		return openDotaNotablePlayerMapper.dtoToEntity(openDotaNotablePlayerDto);
 	}
 
 }

@@ -36,8 +36,17 @@
       opacity: 0;
     }
 
+    /* Teams page cards */
+    .team-box {
+      animation: slideInFromBottom 1.2s forwards;
+      opacity: 0;
+    }
+
     @for $i from 1 through 50 {
         .image-box:nth-child(#{$i}) {
+          animation-delay: #{$i/6}s;
+        }
+        .team-box:nth-child(#{$i}) {
           animation-delay: #{$i/6}s;
         }
     }

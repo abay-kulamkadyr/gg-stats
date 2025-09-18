@@ -7,14 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingProcessor;
 import com.abe.gg_stats.config.JacksonConfig;
-import com.abe.gg_stats.dto.HeroRankingDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroRankingDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
@@ -49,17 +47,17 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNotNull(result);
 		assertEquals(2, result.size());
 
-		HeroRankingDto firstRanking = result.getFirst();
+		OpenDotaHeroRankingDto firstRanking = result.getFirst();
 		assertEquals(1, firstRanking.heroId());
 		assertEquals(12345L, firstRanking.accountId());
 		assertEquals(95.5, firstRanking.score());
 
-		HeroRankingDto secondRanking = result.get(1);
+		OpenDotaHeroRankingDto secondRanking = result.get(1);
 		assertEquals(1, secondRanking.heroId());
 		assertEquals(67890L, secondRanking.accountId());
 		assertEquals(88.0, secondRanking.score());
@@ -79,12 +77,12 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNotNull(result);
 		assertEquals(1, result.size());
 
-		HeroRankingDto ranking = result.get(0);
+		OpenDotaHeroRankingDto ranking = result.get(0);
 		assertEquals(2, ranking.heroId());
 		assertEquals(12345L, ranking.accountId());
 		assertNull(ranking.score());
@@ -100,7 +98,7 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNotNull(result);
 		assertTrue(result.isEmpty());
@@ -120,7 +118,7 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNull(result);
 	}
@@ -134,7 +132,7 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNull(result);
 	}
@@ -154,7 +152,7 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNull(result);
 	}
@@ -169,7 +167,7 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(invalidJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNull(result);
 	}
@@ -189,12 +187,12 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNotNull(result);
 		assertEquals(1, result.size());
 
-		HeroRankingDto ranking = result.get(0);
+		OpenDotaHeroRankingDto ranking = result.get(0);
 		assertEquals(2147483647, ranking.heroId());
 		assertEquals(9223372036854775807L, ranking.accountId());
 		assertEquals(100.0, ranking.score());
@@ -215,7 +213,7 @@ class HeroRankingProcessorTest {
 				""";
 		JsonNode item = objectMapper.readTree(validJson);
 
-		List<HeroRankingDto> result = processor.process(item);
+		List<OpenDotaHeroRankingDto> result = processor.process(item);
 
 		assertNotNull(result);
 		assertEquals(1, result.size());

@@ -1,11 +1,12 @@
-package com.abe.gg_stats.config;
+package com.abe.gg_stats.config.batch;
 
+import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
 import com.abe.gg_stats.batch.listener.TeamsJobExecutionListener;
 import com.abe.gg_stats.batch.listener.TeamsStepExecutionListener;
 import com.abe.gg_stats.batch.team.TeamProcessor;
 import com.abe.gg_stats.batch.team.TeamWriter;
 import com.abe.gg_stats.batch.team.TeamsReader;
-import com.abe.gg_stats.dto.TeamDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaTeamDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -37,16 +38,19 @@ public class TeamsBatchConfig {
 	private int skipLimit;
 
 	@Bean("teamsUpdateJob")
-	public Job teamsUpdateJob(Step teamsStep, TeamsJobExecutionListener teamsJobExecutionListener) {
-		return new JobBuilder("teamsUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
+	public Job teamsUpdateJob(Step teamsStep) {
+		return new JobBuilder("teamsUpdateJob", jobRepository) //
+			.incrementer(new RunIdIncrementer())
 			.start(teamsStep)
-			.listener(teamsJobExecutionListener)
+			.listener(new TeamsJobExecutionListener())
 			.build();
 	}
 
 	@Bean("teamsStep")
-	public Step teamsStep(TeamsReader teamsReader, TeamProcessor teamProcessor, TeamWriter teamWriter) {
-		return new StepBuilder("teamsStep", jobRepository).<JsonNode, TeamDto>chunk(chunkSize, transactionManager)
+	Step teamsStep(TeamsReader teamsReader, TeamProcessor teamProcessor, TeamWriter teamWriter) {
+		var itemListener = new BaseItemExecutionListener<JsonNode, OpenDotaTeamDto>();
+		return new StepBuilder("teamsStep", jobRepository) //
+			.<JsonNode, OpenDotaTeamDto>chunk(chunkSize, transactionManager)
 			.reader(teamsReader)
 			.processor(teamProcessor)
 			.writer(teamWriter)
@@ -56,6 +60,7 @@ public class TeamsBatchConfig {
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
 			.listener(new TeamsStepExecutionListener())
+			.listener(itemListener)
 			.build();
 	}
 

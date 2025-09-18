@@ -4,7 +4,9 @@
     
     <!-- Define JSON encoder -->
     <springProfile name="production | prod">
+        <!-- Define JSON encoder -->
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <!-- Define JSON encoder -->
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <includeContext>true</includeContext>
                 <includeMdc>true</includeMdc>
@@ -66,14 +68,14 @@
     <springProfile name="!production &amp; !prod">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{jobId:-}] [%X{stepName:-}] [%X{batchType:-}] [%X{apiEndpoint:-}] [%X{operationType:-}] [%X{operationName:-}] %logger{36} - %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] [%X{spanId:-}] [%X{jobId:-}] [%X{stepName:-}] %logger{36} - %msg%n</pattern>
             </encoder>
         </appender>
         
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-            <file>${logging.file.name:-./gg-stats.log}</file>
+            <file>${logging.file.name:-./logs/gg-stats.log}</file>
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{correlationId:-}] [%X{jobId:-}] [%X{stepName:-}] [%X{batchType:-}] [%X{apiEndpoint:-}] [%X{operationType:-}] [%X{operationName:-}] %logger{36} - %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] [%X{spanId:-}] [%X{jobId:-}] [%X{stepName:-}] %logger{36} - %msg%n</pattern>
             </encoder>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
                 <fileNamePattern>${logging.file.name:-./gg-stats}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>

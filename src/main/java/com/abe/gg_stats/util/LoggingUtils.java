@@ -13,6 +13,8 @@ import org.springframework.util.StopWatch;
  * - Structured logging with MDC context - Performance metrics collection - Security-aware
  * parameter sanitization - Thread-safe operation counters
  */
+
+@Deprecated
 @Slf4j
 public final class LoggingUtils {
 

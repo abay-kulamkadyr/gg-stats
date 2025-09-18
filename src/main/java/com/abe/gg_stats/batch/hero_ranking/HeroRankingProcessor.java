@@ -1,78 +1,65 @@
 package com.abe.gg_stats.batch.hero_ranking;
 
-import com.abe.gg_stats.batch.BaseProcessor;
-import com.abe.gg_stats.dto.HeroRankingDto;
-import com.abe.gg_stats.util.LoggingConstants;
-import com.abe.gg_stats.util.LoggingUtils;
-import com.abe.gg_stats.util.MDCLoggingContext;
+import com.abe.gg_stats.config.batch.BatchExpirationConfig;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroRankingDto;
+import com.abe.gg_stats.repository.HeroRankingRepository;
+import com.abe.gg_stats.service.OpenDotaApiService;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HeroRankingProcessor extends BaseProcessor<List<HeroRankingDto>> {
+public class HeroRankingProcessor implements ItemProcessor<Integer, List<OpenDotaHeroRankingDto>> {
 
-	@Override
-	protected boolean isValidInput(JsonNode item) {
-		// Set up validation context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "herorankings");
+	private final OpenDotaApiService openDotaApiService;
 
-		// Check for required root fields
-		final String LOG_PARSING_ERROR = "HeroRanking Json Validation Error";
-		if (!item.has("hero_id") || item.get("hero_id").isNull()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, "correlationId=" + correlationId,
-					"Hero ranking data missing or null 'hero_id' field in the root object.");
-			return false;
-		}
+	private final HeroRankingRepository heroRankingRepository;
 
-		if (!item.has("rankings") || !item.get("rankings").isArray()) {
-			LoggingUtils.logWarning(LOG_PARSING_ERROR, "correlationId=" + correlationId,
-					"Hero ranking data missing or 'rankings' field is not an array.");
-			return false;
-		}
+	private final BatchExpirationConfig batchExpirationConfig;
 
-		return true;
+	@Autowired
+	public HeroRankingProcessor(OpenDotaApiService openDotaApiService, HeroRankingRepository heroRankingRepository,
+			BatchExpirationConfig batchExpirationConfig) {
+		this.openDotaApiService = openDotaApiService;
+		this.heroRankingRepository = heroRankingRepository;
+		this.batchExpirationConfig = batchExpirationConfig;
 	}
 
 	@Override
-	protected List<HeroRankingDto> processItem(JsonNode item) {
-		// Set up processing context
-		String correlationId = MDCLoggingContext.getOrCreateCorrelationId();
-		MDCLoggingContext.updateContext("operationType", LoggingConstants.OPERATION_TYPE_BATCH);
-		MDCLoggingContext.updateContext("batchType", "herorankings");
+	public List<OpenDotaHeroRankingDto> process(@NonNull Integer heroId) throws Exception {
+		Optional<Instant> latestUpdate = heroRankingRepository.findLastUpdateByHeroId(heroId);
 
-		// Get the heroId from the root of the JSON
-		Integer heroId = item.get("hero_id").asInt();
-		JsonNode rankingsNode = item.get("rankings");
+		// Check if a refresh is needed based on the expiration config
+		if (latestUpdate.isPresent() && !isRefreshNeeded(latestUpdate.get())) {
+			return null;
+		}
 
-		// Process each individual ranking object within the "rankings" array
-		return StreamSupport.stream(rankingsNode.spliterator(), false).map(rankingNode -> {
-			try {
-				// Extract individual fields for each ranking
-				Long accountId = Optional.ofNullable(rankingNode.get("account_id")).map(JsonNode::asLong).orElse(null);
-				Double score = Optional.ofNullable(rankingNode.get("score")).map(JsonNode::asDouble).orElse(null);
+		Optional<JsonNode> apiData = openDotaApiService.getHeroRanking(heroId);
 
-				return new HeroRankingDto(accountId, heroId, score);
-			}
-			catch (Exception e) {
-				LoggingUtils.logOperationFailure("HeroRankingProcessor",
-						"Error processing a hero ranking item for hero " + heroId, e, "correlationId=" + correlationId,
-						"heroId=" + heroId);
-				return null;
-			}
-		})
-			.filter(java.util.Objects::nonNull) // Remove any null items from the stream
+		// If API data is present, convert it to a DTO list
+		return apiData.map(this::mapJsonToDtoList).orElse(null);
+	}
+
+	private boolean isRefreshNeeded(Instant lastUpdate) {
+		Instant expirationTime = lastUpdate.plus(batchExpirationConfig.getDurationByConfigName("herorankings"));
+		return Instant.now().isAfter(expirationTime);
+	}
+
+	private List<OpenDotaHeroRankingDto> mapJsonToDtoList(JsonNode rootNode) {
+		Integer heroId = rootNode.get("hero_id").asInt();
+		JsonNode rankingsNode = rootNode.get("rankings");
+
+		return StreamSupport.stream(rankingsNode.spliterator(), false)
+			.map(rankingNode -> new OpenDotaHeroRankingDto(rankingNode.get("account_id").asLong(), heroId,
+					rankingNode.get("score").asDouble()))
 			.collect(Collectors.toList());
-	}
-
-	@Override
-	protected String getItemTypeDescription() {
-		return "hero ranking list";
 	}
 
 }

@@ -1,4 +1,4 @@
-package com.abe.gg_stats.config;
+package com.abe.gg_stats.config.batch;
 
 import com.abe.gg_stats.util.LoggingUtils;
 import jakarta.annotation.PostConstruct;

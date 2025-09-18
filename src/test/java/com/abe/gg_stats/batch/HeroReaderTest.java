@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.abe.gg_stats.batch.hero.HeroesReader;
-import com.abe.gg_stats.config.BatchExpirationConfig;
+import com.abe.gg_stats.config.batch.BatchExpirationConfig;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.service.OpenDotaApiService;
 import com.fasterxml.jackson.databind.JsonNode;

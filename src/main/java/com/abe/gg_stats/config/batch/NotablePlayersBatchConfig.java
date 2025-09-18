@@ -1,11 +1,12 @@
-package com.abe.gg_stats.config;
+package com.abe.gg_stats.config.batch;
 
+import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
 import com.abe.gg_stats.batch.notable_player.NotablePlayerProcessor;
 import com.abe.gg_stats.batch.notable_player.NotablePlayerWriter;
 import com.abe.gg_stats.batch.notable_player.NotablePlayersReader;
 import com.abe.gg_stats.batch.listener.NotablePlayersJobExecutionListener;
 import com.abe.gg_stats.batch.listener.NotablePlayersStepExecutionListener;
-import com.abe.gg_stats.dto.NotablePlayerDto;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaNotablePlayerDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -37,20 +38,20 @@ public class NotablePlayersBatchConfig {
 	private int skipLimit;
 
 	@Bean("proPlayersUpdateJob")
-	public Job proPlayersUpdateJob(Step proPlayersStep,
-			NotablePlayersJobExecutionListener notablePlayersJobExecutionListener) {
+	public Job proPlayersUpdateJob(Step proPlayersStep) {
 		return new JobBuilder("proPlayersUpdateJob", jobRepository)//
 			.incrementer(new RunIdIncrementer())
 			.start(proPlayersStep)
-			.listener(notablePlayersJobExecutionListener)
+			.listener(new NotablePlayersJobExecutionListener())
 			.build();
 	}
 
 	@Bean("proPlayersStep")
 	public Step proPlayersStep(NotablePlayersReader proPlayersReader, NotablePlayerProcessor notablePlayerProcessor,
 			NotablePlayerWriter notablePlayerWriter) {
+		var itemListener = new BaseItemExecutionListener<JsonNode, OpenDotaNotablePlayerDto>();
 		return new StepBuilder("proPlayersStep", jobRepository)
-			.<JsonNode, NotablePlayerDto>chunk(chunkSize, transactionManager)
+			.<JsonNode, OpenDotaNotablePlayerDto>chunk(chunkSize, transactionManager)
 			.reader(proPlayersReader)
 			.processor(notablePlayerProcessor)
 			.writer(notablePlayerWriter)
@@ -60,6 +61,7 @@ public class NotablePlayersBatchConfig {
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
 			.listener(new NotablePlayersStepExecutionListener())
+			.listener(itemListener)
 			.build();
 	}
 

@@ -1,12 +1,13 @@
-package com.abe.gg_stats.config;
+package com.abe.gg_stats.config.batch;
 
 import com.abe.gg_stats.batch.hero.HeroProcessor;
 import com.abe.gg_stats.batch.hero.HeroWriter;
 import com.abe.gg_stats.batch.hero.HeroesReader;
+import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
 import com.abe.gg_stats.batch.listener.HeroesJobExecutionListener;
 import com.abe.gg_stats.batch.listener.HeroesStepExecutionListener;
+import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroDto;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.abe.gg_stats.dto.HeroDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -37,16 +38,20 @@ public class HeroesBatchConfig {
 	private int skipLimit;
 
 	@Bean("heroesUpdateJob")
-	public Job heroesUpdateJob(Step heroesStep, HeroesJobExecutionListener heroesJobExecutionListener) {
-		return new JobBuilder("heroesUpdateJob", jobRepository).incrementer(new RunIdIncrementer())
+	public Job heroesUpdateJob(Step heroesStep) {
+		return new JobBuilder("heroesUpdateJob", jobRepository) //
+			.incrementer(new RunIdIncrementer())
 			.start(heroesStep)
-			.listener(heroesJobExecutionListener)
+			.preventRestart()
+			.listener(new HeroesJobExecutionListener())
 			.build();
 	}
 
 	@Bean("heroesStep")
 	public Step heroesStep(HeroesReader heroesReader, HeroProcessor heroProcessor, HeroWriter heroWriter) {
-		return new StepBuilder("heroesStep", jobRepository).<JsonNode, HeroDto>chunk(chunkSize, transactionManager)
+		var itemListener = new BaseItemExecutionListener<JsonNode, OpenDotaHeroDto>();
+		return new StepBuilder("heroesStep", jobRepository)
+			.<JsonNode, OpenDotaHeroDto>chunk(chunkSize, transactionManager)
 			.reader(heroesReader)
 			.processor(heroProcessor)
 			.writer(heroWriter)
@@ -56,6 +61,7 @@ public class HeroesBatchConfig {
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
 			.listener(new HeroesStepExecutionListener())
+			.listener(itemListener)
 			.build();
 	}
 

@@ -1,4 +1,4 @@
-package com.abe.gg_stats.config;
+package com.abe.gg_stats.config.batch;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;

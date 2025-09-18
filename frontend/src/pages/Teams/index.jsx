@@ -13,7 +13,7 @@ export default function Teams() {
       try {
         setLoading(true)
         // Request one page from backend; backend can page DB if large
-        const res = await fetch(`${API_BASE}/pro/teams/paged?page=0&size=24`)
+        const res = await fetch(`${API_BASE}/pro/teams/paged?page=0&size=52`)
         if (!res.ok) throw new Error('Failed to load teams')
         const ct = res.headers.get('content-type') || ''
         if (!ct.includes('application/json')) throw new Error('Teams response is not JSON')
@@ -39,23 +39,28 @@ export default function Teams() {
         {teams.map((t) => (
           <div key={t.teamId} className="team-box">
             <div className="logo-wrap">
-              {t.logoUrl ? (
-                <img
-                  src={`${API_BASE}/img?url=${encodeURIComponent(t.logoUrl)}`}
-                  alt={t.name}
-                  onError={(e)=>{
-                    const direct = t.logoUrl;
-                    if (e.currentTarget.dataset.fallback !== '1') {
-                      e.currentTarget.dataset.fallback = '1';
-                      e.currentTarget.src = direct;
-                    } else {
-                      e.currentTarget.style.display='none';
-                    }
-                  }}
-                />
-              ) : (
-                <div className="placeholder">{t.tag || t.name?.slice(0,2) || 'T'}</div>
-              )}
+              {(() => {
+                const teamId = t.teamId ?? t.team_id ?? t.id;
+                const directCdn = teamId ? `https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/${teamId}.png` : null;
+                const logo = t.logoUrl || directCdn;
+                if (!logo) {
+                  return <div className="placeholder">{t.tag || t.name?.slice(0,2) || 'T'}</div>;
+                }
+                return (
+                  <img
+                    src={`${API_BASE}/img?url=${encodeURIComponent(logo)}`}
+                    alt={t.name}
+                    onError={(e)=>{
+                      if (directCdn && e.currentTarget.dataset.fallback !== '1') {
+                        e.currentTarget.dataset.fallback = '1';
+                        e.currentTarget.src = directCdn; // try direct CDN if proxy fails
+                      } else {
+                        e.currentTarget.style.display='none';
+                      }
+                    }}
+                  />
+                );
+              })()}
             </div>
             <div className="content">
               <p className="title">{t.name}</p>
