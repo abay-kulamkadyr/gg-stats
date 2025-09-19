@@ -27,6 +27,10 @@ public class HistoricalProMatchesReader implements ItemStreamReader<JsonNode> {
 
 	private Long currentCursor;
 
+	private int pagesFetched;
+
+	private final int MAX_PAGES = 20;
+
 	@Autowired
 	public HistoricalProMatchesReader(OpenDotaApiService openDotaApiService, MatchIngestionDao dao) {
 		this.openDotaApiService = openDotaApiService;
@@ -49,8 +53,12 @@ public class HistoricalProMatchesReader implements ItemStreamReader<JsonNode> {
 
 	@Override
 	public JsonNode read() {
+		if (pagesFetched >= MAX_PAGES) {
+			return null;
+		}
 		if (matchIterator == null || !matchIterator.hasNext()) {
 			fetchNextPage();
+			pagesFetched++;
 		}
 		return matchIterator != null && matchIterator.hasNext() ? matchIterator.next() : null;
 	}

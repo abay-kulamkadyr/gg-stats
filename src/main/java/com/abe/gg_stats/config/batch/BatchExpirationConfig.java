@@ -9,10 +9,6 @@ import lombok.AllArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuration class that maps the BatchExpirationProperties to a Map for easy lookup
- * and handles the logging of the loaded configuration.
- */
 @Configuration
 @EnableConfigurationProperties(BatchExpirationProperties.class)
 @AllArgsConstructor
@@ -22,9 +18,6 @@ public class BatchExpirationConfig {
 
 	private final BatchExpirationProperties properties;
 
-	/**
-	 * Initializes the expiration map and logs the loaded durations.
-	 */
 	@PostConstruct
 	public void initialize() {
 		LoggingUtils.logOperationStart("Initializing BatchExpirationConfig with properties");

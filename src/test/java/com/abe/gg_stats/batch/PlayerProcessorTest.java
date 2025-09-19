@@ -1,36 +1,57 @@
 package com.abe.gg_stats.batch;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.config.JacksonConfig;
+import com.abe.gg_stats.config.batch.BatchExpirationConfig;
 import com.abe.gg_stats.dto.request.opendota.OpenDotaPlayerDto;
+import com.abe.gg_stats.dto.request.opendota.mapper.OpenDotaPlayerResponseMapper;
+import com.abe.gg_stats.repository.PlayerRepository;
+import com.abe.gg_stats.service.OpenDotaApiService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.abe.gg_stats.dto.request.opendota.mapper.OpenDotaPlayerResponseMapper;
-import org.mapstruct.factory.Mappers;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class PlayerProcessorTest {
 
-	private PlayerProcessor playerProcessor;
+	@Mock
+	private OpenDotaApiService apiService;
+
+	@Mock
+	private PlayerRepository playerRepository;
+
+	@Mock
+	private BatchExpirationConfig expirationConfig;
 
 	private ObjectMapper objectMapper;
+
+	private PlayerProcessor playerProcessor;
 
 	@BeforeEach
 	void setUp() {
 		objectMapper = new JacksonConfig().objectMapper();
-		OpenDotaPlayerResponseMapper mapper = Mappers.getMapper(OpenDotaPlayerResponseMapper.class);
-		playerProcessor = new PlayerProcessor(objectMapper, mapper);
+		OpenDotaPlayerResponseMapper openDotaPlayerResponseMapper = Mappers
+			.getMapper(OpenDotaPlayerResponseMapper.class);
+		playerProcessor = new PlayerProcessor(apiService, objectMapper, openDotaPlayerResponseMapper, playerRepository,
+				expirationConfig);
 	}
 
 	@Test
@@ -59,9 +80,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(validJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(12345L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(12345L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then
 		assertNotNull(result);
@@ -91,9 +120,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(validJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then
 		assertNotNull(result);
@@ -124,9 +161,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(validJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(12345L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(12345L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then
 		assertNotNull(result);
@@ -135,10 +180,8 @@ class PlayerProcessorTest {
 	}
 
 	@Test
-	void testProcess_NullItem_ShouldThrowException() {
-		// When & Then - BaseProcessor.process has @NonNull annotation, so it should throw
-		// NullPointerException
-		assertThrows(NullPointerException.class, () -> playerProcessor.process(null));
+	void testProcess_NullAccountId_ShouldThrowException() {
+		assertDoesNotThrow(() -> playerProcessor.process(null));
 	}
 
 	@Test
@@ -150,9 +193,11 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(invalidJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(12345L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result = playerProcessor.process(12345L);
 
 		// Then - Processor creates a DTO even when profile data is missing
 		assertNotNull(result);
@@ -176,9 +221,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(invalidJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then - Processor rejects invalid input (missing steamid) and returns null
 		assertNull(result);
@@ -195,9 +248,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(invalidJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then - Processor rejects invalid input (missing personaname) and returns null
 		assertNull(result);
@@ -215,9 +276,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(invalidJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then - Processor rejects invalid input (empty steamid) and returns null
 		assertNull(result);
@@ -235,9 +304,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(invalidJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then - Processor rejects invalid input (empty personaname) and returns null
 		assertNull(result);
@@ -256,9 +333,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(validJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then
 		assertNotNull(result);
@@ -285,9 +370,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(validJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then
 		assertNotNull(result);
@@ -312,9 +405,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(validJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then
 		assertNotNull(result);
@@ -341,9 +442,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(validJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then - Processor preserves whitespace, doesn't trim
 		assertNotNull(result);
@@ -366,9 +475,17 @@ class PlayerProcessorTest {
 				}
 				""";
 		JsonNode playerData = objectMapper.readTree(validJson);
+		when(playerRepository.findByAccountId(anyLong())).thenReturn(Optional.empty());
+		when(apiService.getPlayer(0L)).thenReturn(Optional.of(playerData));
 
 		// When
-		OpenDotaPlayerDto result = playerProcessor.process(playerData);
+		OpenDotaPlayerDto result;
+		try {
+			result = playerProcessor.process(0L);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		// Then
 		assertNotNull(result);

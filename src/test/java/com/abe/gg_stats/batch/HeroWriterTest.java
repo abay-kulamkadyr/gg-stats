@@ -3,7 +3,6 @@ package com.abe.gg_stats.batch;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -62,8 +61,7 @@ class HeroWriterTest {
 
 		verify(heroMapper, times(1)).dtoToEntity(dto1);
 		verify(heroMapper, times(1)).dtoToEntity(dto2);
-		verify(heroRepository, times(1)).save(hero1);
-		verify(heroRepository, times(1)).save(hero2);
+		verify(heroRepository, times(1)).saveAll(any(List.class));
 	}
 
 	@Test

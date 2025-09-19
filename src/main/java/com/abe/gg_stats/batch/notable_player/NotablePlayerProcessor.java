@@ -19,7 +19,7 @@ public class NotablePlayerProcessor extends BaseProcessor<OpenDotaNotablePlayerD
 	}
 
 	@Override
-	protected boolean isValidInput(JsonNode item) {
+	public boolean isValidInput(JsonNode item) {
 		if (item == null) {
 			return false;
 		}

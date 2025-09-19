@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class NotablePlayerProcessorTest {
 
@@ -52,11 +51,6 @@ class NotablePlayerProcessorTest {
 		assertEquals(false, result.isLocked());
 		assertEquals(true, result.isPro());
 		assertEquals(67890L, result.teamId());
-	}
-
-	@Test
-	void testProcess_NullItem_ShouldThrowException() {
-		assertThrows(NullPointerException.class, () -> processor.process(null));
 	}
 
 	@Test

@@ -1,16 +1,18 @@
 package com.abe.gg_stats.entity;
 
+import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Converter;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
@@ -23,7 +25,6 @@ public class Hero {
 	@Id
 	private Integer id;
 
-	@NonNull
 	@NotBlank(message = "Hero name cannot be blank.")
 	@Column(name = "name", nullable = false, unique = true)
 	private String name;
@@ -40,8 +41,7 @@ public class Hero {
 	@Column(name = "attack_type")
 	private String attackType;
 
-	@NotNull
-	@Column(name = "roles", columnDefinition = "TEXT[]")
+	@Column(name = "roles", columnDefinition = "text[]", nullable = false)
 	private List<String> roles;
 
 	@CreationTimestamp

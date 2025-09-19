@@ -18,19 +18,17 @@ public class JacksonConfig {
 		mapper.registerModule(new JavaTimeModule());
 		mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-		// Add custom problem handler
+
 		mapper.addHandler(new DeserializationProblemHandler() {
 			@Override
 			public Object handleWeirdStringValue(DeserializationContext ctxt, Class<?> targetType,
 					String valueToConvert, String failureMsg) {
-				// e.g., String "abc" for a Long field → return null
 				return null;
 			}
 
 			@Override
 			public Object handleWeirdNumberValue(DeserializationContext ctxt, Class<?> targetType,
 					Number valueToConvert, String failureMsg) {
-				// e.g., Number too big/small → return null
 				return null;
 			}
 		});
