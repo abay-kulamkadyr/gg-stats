@@ -1,11 +1,11 @@
 package com.abe.gg_stats.config.batch;
 
 import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseJobExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseStepExecutionListener;
 import com.abe.gg_stats.batch.notable_player.NotablePlayerProcessor;
 import com.abe.gg_stats.batch.notable_player.NotablePlayerWriter;
 import com.abe.gg_stats.batch.notable_player.NotablePlayersReader;
-import com.abe.gg_stats.batch.listener.NotablePlayersJobExecutionListener;
-import com.abe.gg_stats.batch.listener.NotablePlayersStepExecutionListener;
 import com.abe.gg_stats.dto.request.opendota.OpenDotaNotablePlayerDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,7 @@ public class NotablePlayersBatchConfig {
 		return new JobBuilder("proPlayersUpdateJob", jobRepository)//
 			.incrementer(new RunIdIncrementer())
 			.start(proPlayersStep)
-			.listener(new NotablePlayersJobExecutionListener())
+			.listener(new BaseJobExecutionListener())
 			.build();
 	}
 
@@ -60,7 +60,7 @@ public class NotablePlayersBatchConfig {
 			.retryLimit(retryLimit)
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
-			.listener(new NotablePlayersStepExecutionListener())
+			.listener(new BaseStepExecutionListener())
 			.listener(itemListener)
 			.build();
 	}

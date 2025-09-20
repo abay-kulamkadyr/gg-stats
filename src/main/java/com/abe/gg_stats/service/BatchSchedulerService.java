@@ -1,5 +1,6 @@
 package com.abe.gg_stats.service;
 
+import com.abe.gg_stats.service.rate_limit.OpenDotaRateLimitingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -24,7 +25,7 @@ public class BatchSchedulerService {
 
 	private final Job playerUpdateJob;
 
-	private final RateLimitingService rateLimitingService;
+	private final OpenDotaRateLimitingService openDotaRateLimitingService;
 
 	private final AggregationService aggregationService;
 
@@ -40,7 +41,7 @@ public class BatchSchedulerService {
 			@Qualifier("playerUpdateJob") Job playerUpdateJob,
 			@Qualifier("newMatchesIngestionJob") Job newMatchesIngestionJob,
 			@Qualifier("historicalMatchesIngestionJob") Job historicalMatchesIngestionJob,
-			RateLimitingService rateLimitingService, AggregationService aggregationService) {
+			OpenDotaRateLimitingService openDotaRateLimitingService, AggregationService aggregationService) {
 		this.jobLauncher = jobLauncher;
 		this.heroesUpdateJob = heroesUpdateJob;
 		this.notablePlayersUpdateJob = notablePlayersUpdateJob;
@@ -50,7 +51,7 @@ public class BatchSchedulerService {
 		this.newMatchesIngestionJob = newMatchesIngestionJob;
 		this.historicalMatchesIngestionJob = historicalMatchesIngestionJob;
 		this.aggregationService = aggregationService;
-		this.rateLimitingService = rateLimitingService;
+		this.openDotaRateLimitingService = openDotaRateLimitingService;
 	}
 
 	/**
@@ -211,7 +212,7 @@ public class BatchSchedulerService {
 	 * Check if we have enough API requests remaining to run a job
 	 */
 	private boolean canRunJob() {
-		int remainingRequests = rateLimitingService.getStatus().remainingDailyRequests();
+		int remainingRequests = openDotaRateLimitingService.getStatus().remainingDailyRequests();
 
 		int apiTokenThreshold = 50;
 		if (remainingRequests < apiTokenThreshold) {

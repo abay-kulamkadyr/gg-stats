@@ -1,15 +1,18 @@
 package com.abe.gg_stats.controller;
 
-import com.abe.gg_stats.service.RateLimitingQueryService;
-import com.abe.gg_stats.service.RateLimitingService;
+import com.abe.gg_stats.service.rate_limit.RateLimitingQueryService;
+import com.abe.gg_stats.service.rate_limit.OpenDotaRateLimitingService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@Controller
+@ResponseBody
 @RequestMapping("/api/monitoring/rate-limits")
-public class RateLimitController {
+class RateLimitController {
 
 	private final RateLimitingQueryService rateLimitingQueryService;
 
@@ -18,7 +21,7 @@ public class RateLimitController {
 	}
 
 	@GetMapping
-	public ResponseEntity<RateLimitingService.RateLimitStatus> getRateLimitStatus() {
+	public ResponseEntity<OpenDotaRateLimitingService.RateLimitStatus> getRateLimitStatus() {
 		return rateLimitingQueryService.getStatus();
 	}
 

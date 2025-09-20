@@ -1,8 +1,8 @@
 package com.abe.gg_stats.config.batch;
 
 import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
-import com.abe.gg_stats.batch.listener.TeamsJobExecutionListener;
-import com.abe.gg_stats.batch.listener.TeamsStepExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseJobExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseStepExecutionListener;
 import com.abe.gg_stats.batch.team.TeamProcessor;
 import com.abe.gg_stats.batch.team.TeamWriter;
 import com.abe.gg_stats.batch.team.TeamsReader;
@@ -42,7 +42,7 @@ public class TeamsBatchConfig {
 		return new JobBuilder("teamsUpdateJob", jobRepository) //
 			.incrementer(new RunIdIncrementer())
 			.start(teamsStep)
-			.listener(new TeamsJobExecutionListener())
+			.listener(new BaseJobExecutionListener())
 			.build();
 	}
 
@@ -59,7 +59,7 @@ public class TeamsBatchConfig {
 			.retryLimit(retryLimit)
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
-			.listener(new TeamsStepExecutionListener())
+			.listener(new BaseStepExecutionListener())
 			.listener(itemListener)
 			.build();
 	}

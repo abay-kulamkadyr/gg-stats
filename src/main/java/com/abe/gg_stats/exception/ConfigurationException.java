@@ -3,9 +3,6 @@ package com.abe.gg_stats.exception;
 import java.time.Instant;
 import lombok.Getter;
 
-/**
- * Custom exception for configuration errors
- */
 @Getter
 public class ConfigurationException extends RuntimeException {
 

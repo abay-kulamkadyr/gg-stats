@@ -2,7 +2,10 @@ package com.abe.gg_stats.dto.response;
 
 import java.time.Instant;
 import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
 public class ActionResponse {
 
 	private final boolean success;
@@ -34,22 +37,6 @@ public class ActionResponse {
 
 	public static ActionResponse error(String message, Map<String, Object> details) {
 		return new ActionResponse(false, message, details);
-	}
-
-	public boolean isSuccess() {
-		return success;
-	}
-
-	public String getMessage() {
-		return message;
-	}
-
-	public Map<String, Object> getDetails() {
-		return details;
-	}
-
-	public Instant getTimestamp() {
-		return timestamp;
 	}
 
 }

@@ -1,12 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    
-    <!-- Define JSON encoder -->
+
     <springProfile name="production | prod">
-        <!-- Define JSON encoder -->
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-            <!-- Define JSON encoder -->
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
                 <includeContext>true</includeContext>
                 <includeMdc>true</includeMdc>
@@ -19,18 +15,12 @@
                     <thread>thread</thread>
                     <logger>logger</logger>
                 </fieldNames>
-                <!-- Explicitly include MDC fields -->
-                <includeMdcKeyName>correlationId</includeMdcKeyName>
-                <includeMdcKeyName>jobId</includeMdcKeyName>
-                <includeMdcKeyName>stepName</includeMdcKeyName>
-                <includeMdcKeyName>batchType</includeMdcKeyName>
-                <includeMdcKeyName>apiEndpoint</includeMdcKeyName>
-                <includeMdcKeyName>operationType</includeMdcKeyName>
-                <includeMdcKeyName>operationName</includeMdcKeyName>
+                <!-- Only keep service-related MDC fields -->
                 <includeMdcKeyName>serviceName</includeMdcKeyName>
+                <includeMdcKeyName>operationName</includeMdcKeyName>
             </encoder>
         </appender>
-        
+
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${logging.file.name:-./logs/gg-stats.log}</file>
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -45,15 +35,9 @@
                     <thread>thread</thread>
                     <logger>logger</logger>
                 </fieldNames>
-                <!-- Explicitly include MDC fields -->
-                <includeMdcKeyName>correlationId</includeMdcKeyName>
-                <includeMdcKeyName>jobId</includeMdcKeyName>
-                <includeMdcKeyName>stepName</includeMdcKeyName>
-                <includeMdcKeyName>batchType</includeMdcKeyName>
-                <includeMdcKeyName>apiEndpoint</includeMdcKeyName>
-                <includeMdcKeyName>operationType</includeMdcKeyName>
-                <includeMdcKeyName>operationName</includeMdcKeyName>
+                <!-- Only keep service-related MDC fields -->
                 <includeMdcKeyName>serviceName</includeMdcKeyName>
+                <includeMdcKeyName>operationName</includeMdcKeyName>
             </encoder>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
                 <fileNamePattern>${logging.file.name:-./logs/gg-stats}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
@@ -63,19 +47,18 @@
             </rollingPolicy>
         </appender>
     </springProfile>
-    
-    <!-- Standard logging for development -->
+
     <springProfile name="!production &amp; !prod">
         <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] [%X{spanId:-}] [%X{jobId:-}] [%X{stepName:-}] %logger{36} - %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{serviceName:-}] [%X{operationName:-}] %logger{36} - %msg%n</pattern>
             </encoder>
         </appender>
-        
+
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>${logging.file.name:-./logs/gg-stats.log}</file>
             <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-}] [%X{spanId:-}] [%X{jobId:-}] [%X{stepName:-}] %logger{36} - %msg%n</pattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{serviceName:-}] [%X{operationName:-}] %logger{36} - %msg%n</pattern>
             </encoder>
             <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
                 <fileNamePattern>${logging.file.name:-./gg-stats}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
@@ -85,40 +68,23 @@
             </rollingPolicy>
         </appender>
     </springProfile>
-    
-    <!-- Async appenders for better performance -->
+
+    <!-- Async appenders -->
     <appender name="ASYNC_STDOUT" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="STDOUT"/>
-        <queueSize>512</queueSize>
-        <discardingThreshold>0</discardingThreshold>
     </appender>
-    
+
     <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="FILE"/>
-        <queueSize>512</queueSize>
-        <discardingThreshold>0</discardingThreshold>
     </appender>
-    
-    <!-- Logger configurations -->
-    <logger name="com.abe.gg_stats" level="${logging.level.com.abe.gg_stats:-DEBUG}" additivity="false">
+
+    <!-- Application logs -->
+    <logger name="com.abe.gg_stats" level="DEBUG" additivity="false">
         <appender-ref ref="ASYNC_STDOUT"/>
         <appender-ref ref="ASYNC_FILE"/>
     </logger>
-    
-    <!-- Spring Boot batch logging -->
-    <logger name="org.springframework.batch" level="${logging.level.org.springframework.batch:-INFO}"/>
-    
-    <!-- Database logging -->
-    <logger name="org.springframework.jdbc" level="${logging.level.org.springframework.jdbc:-WARN}"/>
-    <logger name="org.hibernate.SQL" level="${logging.level.org.hibernate.SQL:-WARN}"/>
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="${logging.level.org.hibernate.type.descriptor.sql.BasicBinder:-WARN}"/>
-    
-    <!-- HTTP client logging for debugging -->
-    <logger name="org.springframework.web.client.RestTemplate" level="DEBUG"/>
-    <logger name="org.apache.http" level="INFO"/>
-    
-    <!-- Root logger -->
-    <root level="${logging.level.root:-INFO}">
+
+    <root level="INFO">
         <appender-ref ref="ASYNC_STDOUT"/>
         <appender-ref ref="ASYNC_FILE"/>
     </root>

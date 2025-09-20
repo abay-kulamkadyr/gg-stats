@@ -13,9 +13,14 @@ export default function Teams() {
       try {
         setLoading(true)
         // Request one page from backend; backend can page DB if large
-        const res = await fetch(`${API_BASE}/pro/teams/paged?page=0&size=52`)
+        const res = await fetch(`${API_BASE}/teams?page=0&size=52`)
+        console.log("Response status:", res.status)
+        console.log("Response URL:", res.url)
+        console.log("Response headers:", [...res.headers.entries()])
+        console.log("API_BASE:", API_BASE)
         if (!res.ok) throw new Error('Failed to load teams')
         const ct = res.headers.get('content-type') || ''
+        console.log("Content type = " + ct)
         if (!ct.includes('application/json')) throw new Error('Teams response is not JSON')
         const json = await res.json()
         const content = Array.isArray(json) ? json : (json.content || [])

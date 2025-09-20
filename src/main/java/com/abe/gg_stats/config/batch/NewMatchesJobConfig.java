@@ -2,17 +2,13 @@ package com.abe.gg_stats.config.batch;
 
 import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
 import com.abe.gg_stats.batch.listener.BaseJobExecutionListener;
-import com.abe.gg_stats.batch.listener.MatchesItemListeners;
-import com.abe.gg_stats.batch.listener.MatchesStepExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseStepExecutionListener;
 import com.abe.gg_stats.batch.match.MatchDetailWriter;
 import com.abe.gg_stats.batch.match.NewProMatchesReader;
 import com.abe.gg_stats.batch.match.ProMatchesToDetailProcessor;
 import com.abe.gg_stats.exception.CircuitBreakerException;
 import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.batch.core.ItemReadListener;
-import org.springframework.batch.core.ItemWriteListener;
 import org.springframework.batch.core.Job;
-import org.springframework.batch.core.SkipListener;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
@@ -68,7 +64,7 @@ public class NewMatchesJobConfig {
 			.skip(HttpClientErrorException.class)
 			.skip(CircuitBreakerException.class)
 			.skipLimit(50)
-			.listener(new MatchesStepExecutionListener())
+			.listener(new BaseStepExecutionListener())
 			.listener(itemListener)
 			.build();
 	}

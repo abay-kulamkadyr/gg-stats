@@ -1,56 +1,50 @@
 package com.abe.gg_stats.controller;
 
 import com.abe.gg_stats.dto.response.ActionResponse;
-import com.abe.gg_stats.service.CircuitBreakerAdminService;
-import com.abe.gg_stats.service.CircuitBreakerQueryService;
-import com.abe.gg_stats.service.CircuitBreakerService;
-import io.micrometer.core.annotation.Timed;
+import com.abe.gg_stats.service.circuit_breaker.CircuitBreakerQueryService;
+import com.abe.gg_stats.service.circuit_breaker.CircuitBreakerService;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-@RestController
+@Controller
+@ResponseBody
 @RequestMapping("/api/monitoring/circuit-breakers")
-public class CircuitBreakerController {
+class CircuitBreakerController {
 
 	private final CircuitBreakerQueryService circuitBreakerQueryService;
 
-	private final CircuitBreakerAdminService circuitBreakerAdminService;
-
-	public CircuitBreakerController(CircuitBreakerQueryService circuitBreakerQueryService,
-			CircuitBreakerAdminService circuitBreakerAdminService) {
+	@Autowired
+	CircuitBreakerController(CircuitBreakerQueryService circuitBreakerQueryService) {
 		this.circuitBreakerQueryService = circuitBreakerQueryService;
-		this.circuitBreakerAdminService = circuitBreakerAdminService;
 	}
 
 	@GetMapping()
-	@Timed(description = "Circuit breaker status check")
-	public ResponseEntity<Map<String, CircuitBreakerService.CircuitBreakerStatus>> getCircuitBreakerStatuses() {
+	ResponseEntity<Map<String, CircuitBreakerService.CircuitBreakerStatus>> getCircuitBreakerStatuses() {
 		return circuitBreakerQueryService.getAllStatuses();
 	}
 
 	@PostMapping("/{serviceName}/open")
-	@Timed(description = "Force open circuit breaker")
-	public ResponseEntity<ActionResponse> openCircuitBreaker(@PathVariable String serviceName,
+	ResponseEntity<ActionResponse> openCircuitBreaker(@PathVariable String serviceName,
 			@RequestParam(defaultValue = "Manual override") String reason) {
-		return circuitBreakerAdminService.openCircuitBreaker(serviceName, reason);
+		return circuitBreakerQueryService.openCircuitBreaker(serviceName, reason);
 	}
 
 	@PostMapping("/{serviceName}/close")
-	@Timed(description = "Force close circuit breaker")
-	public ResponseEntity<ActionResponse> closeCircuitBreaker(@PathVariable String serviceName) {
-		return circuitBreakerAdminService.closeCircuitBreaker(serviceName);
+	ResponseEntity<ActionResponse> closeCircuitBreaker(@PathVariable String serviceName) {
+		return circuitBreakerQueryService.closeCircuitBreaker(serviceName);
 	}
 
 	@PostMapping("/{serviceName}/reset")
-	@Timed(description = "Reset circuit breaker metrics")
-	public ResponseEntity<ActionResponse> resetCircuitBreakerMetrics(@PathVariable String serviceName) {
-		return circuitBreakerAdminService.resetCircuitBreakerMetrics(serviceName);
+	ResponseEntity<ActionResponse> resetCircuitBreakerMetrics(@PathVariable String serviceName) {
+		return circuitBreakerQueryService.resetCircuitBreakerMetrics(serviceName);
 	}
 
 }

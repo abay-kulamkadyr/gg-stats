@@ -1,22 +1,23 @@
 package com.abe.gg_stats.service;
 
 import com.abe.gg_stats.repository.jdbc.AggregationDao;
-import com.abe.gg_stats.util.LoggingConstants;
-import com.abe.gg_stats.util.LoggingUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class AggregationService {
 
 	private final OpenDotaApiService api;
 
 	private final AggregationDao dao;
 
+	@Autowired
+	public AggregationService(OpenDotaApiService api, AggregationDao dao) {
+		this.api = api;
+		this.dao = dao;
+	}
+
 	public void refreshPatchesAndAggregations() {
-		LoggingUtils.logOperationStart("aggregations", "type=weekly_patch");
 		api.getPatches().ifPresent(json -> {
 			dao.upsertPatches(json.toString());
 		});
@@ -24,7 +25,6 @@ public class AggregationService {
 		dao.aggregateWeeklyHeroTrends();
 		dao.aggregateWeeklyHeroPairs();
 		dao.refreshHeroItemPopularityView();
-		LoggingUtils.logOperationSuccess("aggregations", "type=weekly_patch");
 	}
 
 }

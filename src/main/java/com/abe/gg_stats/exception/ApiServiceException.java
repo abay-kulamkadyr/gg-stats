@@ -1,11 +1,9 @@
 package com.abe.gg_stats.exception;
 
-import java.time.Instant;
 import lombok.Getter;
 
-/**
- * Custom exception for API service errors
- */
+import java.time.Instant;
+
 @Getter
 public class ApiServiceException extends RuntimeException {
 
@@ -44,27 +42,6 @@ public class ApiServiceException extends RuntimeException {
 		this.statusCode = -1;
 		this.errorType = "UNKNOWN";
 		this.timestamp = Instant.now();
-	}
-
-	// Getters
-	public String getServiceName() {
-		return serviceName;
-	}
-
-	public String getEndpoint() {
-		return endpoint;
-	}
-
-	public int getStatusCode() {
-		return statusCode;
-	}
-
-	public String getErrorType() {
-		return errorType;
-	}
-
-	public Instant getTimestamp() {
-		return timestamp;
 	}
 
 }

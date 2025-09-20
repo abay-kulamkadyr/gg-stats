@@ -31,7 +31,7 @@ export default function HeroItems() {
     async function load() {
       try {
         setIsLoading(true);
-        const res = await fetch(`${API_BASE}/pro/heroes/${heroId}/popular-items?limit=12`);
+        const res = await fetch(`${API_BASE}/heroes/${heroId}/popular-items?limit=12&playersLimit=10`);
         if (!res.ok) throw new Error('Failed to load items');
         const contentType = res.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) throw new Error('Items response is not JSON');

@@ -40,3 +40,4 @@ CREATE INDEX IF NOT EXISTS idx_pro_hip_mv_purchases ON pro_hero_item_popularity_
 
 
 
+

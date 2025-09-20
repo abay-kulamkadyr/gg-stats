@@ -6,10 +6,21 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/pro': {
+      '/teams': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+
+      '/heroes': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+
+      '/highlights': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+
       '/img': {
         target: 'http://localhost:8080',
         changeOrigin: true,

@@ -4,8 +4,8 @@ import com.abe.gg_stats.batch.hero.HeroProcessor;
 import com.abe.gg_stats.batch.hero.HeroWriter;
 import com.abe.gg_stats.batch.hero.HeroesReader;
 import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
-import com.abe.gg_stats.batch.listener.HeroesJobExecutionListener;
-import com.abe.gg_stats.batch.listener.HeroesStepExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseJobExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseStepExecutionListener;
 import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,7 @@ public class HeroesBatchConfig {
 			.incrementer(new RunIdIncrementer())
 			.start(heroesStep)
 			.preventRestart()
-			.listener(new HeroesJobExecutionListener())
+			.listener(new BaseJobExecutionListener())
 			.build();
 	}
 
@@ -60,7 +60,7 @@ public class HeroesBatchConfig {
 			.retryLimit(retryLimit)
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
-			.listener(new HeroesStepExecutionListener())
+			.listener(new BaseStepExecutionListener())
 			.listener(itemListener)
 			.build();
 	}

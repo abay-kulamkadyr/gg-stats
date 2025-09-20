@@ -2,7 +2,7 @@ package com.abe.gg_stats.config.batch;
 
 import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
 import com.abe.gg_stats.batch.listener.BaseJobExecutionListener;
-import com.abe.gg_stats.batch.listener.MatchesStepExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseStepExecutionListener;
 import com.abe.gg_stats.batch.match.HistoricalProMatchesReader;
 import com.abe.gg_stats.batch.match.MatchDetailWriter;
 import com.abe.gg_stats.batch.match.ProMatchesToDetailProcessor;
@@ -61,7 +61,7 @@ public class HistoricalMatchesJobConfig {
 			.backOffPolicy(backoff)
 			.skip(Exception.class)
 			.skipLimit(15)
-			.listener(new MatchesStepExecutionListener())
+			.listener(new BaseStepExecutionListener())
 			.listener(itemListener)
 			.build();
 	}

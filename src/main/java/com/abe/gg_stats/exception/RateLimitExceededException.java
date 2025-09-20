@@ -1,15 +1,12 @@
 package com.abe.gg_stats.exception;
 
-import java.time.Instant;
 import lombok.Getter;
 
-/**
- * Custom exception for rate limiting scenarios
- */
+import java.time.Instant;
+
 @Getter
 public class RateLimitExceededException extends RuntimeException {
 
-	// Getters
 	private final String endpoint;
 
 	private final int remainingRequests;

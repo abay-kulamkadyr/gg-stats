@@ -1,17 +1,13 @@
 package com.abe.gg_stats.exception;
 
-import java.time.Instant;
-import java.util.Map;
 import lombok.Getter;
 
-/**
- * Custom exception for circuit breaker scenarios
- */
+import java.time.Instant;
+import java.util.Map;
 
 @Getter
 public class CircuitBreakerException extends RuntimeException {
 
-	// Getters
 	private final String serviceName;
 
 	private final String state;

@@ -4,10 +4,9 @@ import com.abe.gg_stats.batch.hero_ranking.HeroRankingProcessor;
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingReader;
 import com.abe.gg_stats.batch.hero_ranking.HeroRankingWriter;
 import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
-import com.abe.gg_stats.batch.listener.HeroRankingJobExecutionListener;
-import com.abe.gg_stats.batch.listener.HeroRankingsStepExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseJobExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseStepExecutionListener;
 import com.abe.gg_stats.dto.request.opendota.OpenDotaHeroRankingDto;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
@@ -43,7 +42,7 @@ public class HeroRankingsBatchConfig {
 		return new JobBuilder("heroRankingUpdateJob", jobRepository)//
 			.incrementer(new RunIdIncrementer())
 			.start(heroRankingStep)
-			.listener(new HeroRankingJobExecutionListener())
+			.listener(new BaseJobExecutionListener())
 			.build();
 	}
 
@@ -61,7 +60,7 @@ public class HeroRankingsBatchConfig {
 			.retryLimit(retryLimit)
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
-			.listener(new HeroRankingsStepExecutionListener())
+			.listener(new BaseStepExecutionListener())
 			.listener(itemListener)
 			.build();
 	}

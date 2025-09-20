@@ -1,13 +1,12 @@
 package com.abe.gg_stats.config.batch;
 
 import com.abe.gg_stats.batch.listener.BaseItemExecutionListener;
-import com.abe.gg_stats.batch.listener.PlayersJobExecutionListener;
-import com.abe.gg_stats.batch.listener.PlayersStepExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseJobExecutionListener;
+import com.abe.gg_stats.batch.listener.BaseStepExecutionListener;
 import com.abe.gg_stats.batch.player.PlayerReader;
 import com.abe.gg_stats.batch.player.PlayerProcessor;
 import com.abe.gg_stats.batch.player.PlayerWriter;
 import com.abe.gg_stats.dto.request.opendota.OpenDotaPlayerDto;
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -42,7 +41,7 @@ public class PlayersBatchConfig {
 		return new JobBuilder("playerUpdateJob", jobRepository) //
 			.incrementer(new RunIdIncrementer())
 			.start(playerStep)
-			.listener(new PlayersJobExecutionListener())
+			.listener(new BaseJobExecutionListener())
 			.build();
 	}
 
@@ -59,7 +58,7 @@ public class PlayersBatchConfig {
 			.retryLimit(retryLimit)
 			.skip(Exception.class)
 			.skipLimit(skipLimit)
-			.listener(new PlayersStepExecutionListener())
+			.listener(new BaseStepExecutionListener())
 			.listener(itemListener)
 			.build();
 	}

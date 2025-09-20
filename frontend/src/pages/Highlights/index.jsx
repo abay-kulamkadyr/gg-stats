@@ -16,10 +16,10 @@ export default function Highlights() {
       try {
         setLoading(true)
         const [heroesRes, emergingRes, topSynRes, popularRes] = await Promise.all([
-          fetch(`${API_BASE}/pro/heroes`),
-          fetch(`${API_BASE}/pro/highlights/pairs?view=emerging-synergy&weekOffset=0&limit=2`),
-          fetch(`${API_BASE}/pro/highlights/pairs?view=synergy&weekOffset=0&limit=2`),
-          fetch(`${API_BASE}/pro/highlights/pairs?view=trending-popularity&weekOffset=0&limit=2`),
+          fetch(`${API_BASE}/heroes`),
+          fetch(`${API_BASE}/highlights/pairs?view=emerging-synergy&weekOffset=0&limit=6`),
+          fetch(`${API_BASE}/highlights/pairs?view=synergy&weekOffset=0&limit=6`),
+          fetch(`${API_BASE}/highlights/pairs?view=trending-popularity&weekOffset=0&limit=6`),
         ])
         if (!heroesRes.ok) throw new Error('Failed to load heroes')
         if (!emergingRes.ok) throw new Error('Failed to load emerging pairs')

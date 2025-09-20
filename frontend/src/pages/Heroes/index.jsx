@@ -23,13 +23,13 @@ const Heroes = () => {
   useEffect(() => {
     async function loadHeroes() {
       try {
-        const res = await fetch(`${API_BASE}/pro/heroes`);
+        const res = await fetch(`${API_BASE}/heroes`);
         if (!res.ok) throw new Error("Failed to load heroes");
 
         const contentType = res.headers.get("content-type") || "";
+        console.log("contentType=" + contentType)
         if (!contentType.includes("application/json"))
           throw new Error("Heroes response is not JSON");
-
         const data = await res.json();
         setHeroes(data);
         setFilteredHeroes(data); // initialize with full list
