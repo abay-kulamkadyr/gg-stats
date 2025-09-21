@@ -17,9 +17,9 @@ export default function Highlights() {
         setLoading(true)
         const [heroesRes, emergingRes, topSynRes, popularRes] = await Promise.all([
           fetch(`${API_BASE}/heroes`),
-          fetch(`${API_BASE}/highlights/pairs?view=emerging-synergy&weekOffset=0&limit=6`),
-          fetch(`${API_BASE}/highlights/pairs?view=synergy&weekOffset=0&limit=6`),
-          fetch(`${API_BASE}/highlights/pairs?view=trending-popularity&weekOffset=0&limit=6`),
+          fetch(`${API_BASE}/highlights/pairs?view=emerging-synergy&weekOffset=0&limit=18`),
+          fetch(`${API_BASE}/highlights/pairs?view=synergy&weekOffset=0&limit=18`),
+          fetch(`${API_BASE}/highlights/pairs?view=trending-popularity&weekOffset=0&limit=18`),
         ])
         if (!heroesRes.ok) throw new Error('Failed to load heroes')
         if (!emergingRes.ok) throw new Error('Failed to load emerging pairs')
@@ -29,22 +29,26 @@ export default function Highlights() {
         const contentTypeE = emergingRes.headers.get('content-type') || ''
         const contentTypeTS = topSynRes.headers.get('content-type') || ''
         const contentTypeP = popularRes.headers.get('content-type') || ''
-        if (!contentTypeH.includes('application/json')) throw new Error('Heroes response is not JSON')
-        if (!contentTypeE.includes('application/json')) throw new Error('Emerging response is not JSON')
-        if (!contentTypeTS.includes('application/json')) throw new Error('Top synergy response is not JSON')
-        if (!contentTypeP.includes('application/json')) throw new Error('Popular response is not JSON')
+        if (!contentTypeH.includes('application/json'))
+          throw new Error('Heroes response is not JSON')
+        if (!contentTypeE.includes('application/json'))
+          throw new Error('Emerging response is not JSON')
+        if (!contentTypeTS.includes('application/json'))
+          throw new Error('Top synergy response is not JSON')
+        if (!contentTypeP.includes('application/json'))
+          throw new Error('Popular response is not JSON')
         const heroes = await heroesRes.json()
         const emergingJson = await emergingRes.json()
         const topSynJson = await topSynRes.json()
         const popularJson = await popularRes.json()
         if (import.meta.env.DEV) {
           // Log shapes to debug field names
-          console.log('highlights:heroes', heroes.slice(0,2))
+          console.log('highlights:heroes', heroes.slice(0, 2))
           console.log('highlights:emerging', emergingJson)
           console.log('highlights:popular', popularJson)
         }
         const map = {}
-        heroes.forEach(h => {
+        heroes.forEach((h) => {
           const id = h.heroId ?? h.hero_id
           if (id != null) {
             map[id] = h
@@ -83,12 +87,28 @@ export default function Highlights() {
     const heroBImgUrl = p.heroBImgUrl || p.hero_b_img_url || p.hero_bimg_url
     const heroACdnName = p.heroACdnName || p.hero_a_cdn_name || p.hero_acdn_name
     const heroBCdnName = p.heroBCdnName || p.hero_b_cdn_name || p.hero_bcdn_name
-    const heroAName = (a?.localizedName || a?.localized_name) || p.heroALocalizedName || p.hero_a_localized_name || stripName(p.heroAName || p.hero_aname) || heroIdA
-    const heroBName = (b?.localizedName || b?.localized_name) || p.heroBLocalizedName || p.hero_b_localized_name || stripName(p.heroBName || p.hero_bname) || heroIdB
+    const heroAName =
+      a?.localizedName ||
+      a?.localized_name ||
+      p.heroALocalizedName ||
+      p.hero_a_localized_name ||
+      stripName(p.heroAName || p.hero_aname) ||
+      heroIdA
+    const heroBName =
+      b?.localizedName ||
+      b?.localized_name ||
+      p.heroBLocalizedName ||
+      p.hero_b_localized_name ||
+      stripName(p.heroBName || p.hero_bname) ||
+      heroIdB
     const cdnA = heroACdnName || cdnName(a)
     const cdnB = heroBCdnName || cdnName(b)
-    const srcA = heroAImgUrl || (cdnA ? `https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/${cdnA}.png` : null)
-    const srcB = heroBImgUrl || (cdnB ? `https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/${cdnB}.png` : null)
+    const srcA =
+      heroAImgUrl ||
+      (cdnA ? `https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/${cdnA}.png` : null)
+    const srcB =
+      heroBImgUrl ||
+      (cdnB ? `https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/${cdnB}.png` : null)
     const onImgError = (e, cdn) => {
       if (!cdn) return
       const cf = `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${cdn}.png`
@@ -101,17 +121,29 @@ export default function Highlights() {
         <div className="pair-images">
           {srcA && (
             <div className="half-box">
-              <img className="heroes-image" src={srcA} alt={heroAName} onError={(e)=>onImgError(e, cdnA)} />
+              <img
+                className="heroes-image"
+                src={srcA}
+                alt={heroAName}
+                onError={(e) => onImgError(e, cdnA)}
+              />
             </div>
           )}
           {srcB && (
             <div className="half-box">
-              <img className="heroes-image" src={srcB} alt={heroBName} onError={(e)=>onImgError(e, cdnB)} />
+              <img
+                className="heroes-image"
+                src={srcB}
+                alt={heroBName}
+                onError={(e) => onImgError(e, cdnB)}
+              />
             </div>
           )}
         </div>
         <div className="content">
-          <p className="title">{heroAName} + {heroBName}</p>
+          <p className="title">
+            {heroAName} + {heroBName}
+          </p>
         </div>
       </>
     )
@@ -134,7 +166,9 @@ export default function Highlights() {
           )
         })}
       </div>
-      <h1 className="page-title" style={{ marginTop: 40 }}>Top Synergy</h1>
+      <h1 className="page-title" style={{ marginTop: 40 }}>
+        Top Synergy
+      </h1>
       <div className="images-container">
         {topSynergy.map((p, i) => {
           const a = p.heroIdA ?? p.hero_id_a
@@ -146,7 +180,9 @@ export default function Highlights() {
           )
         })}
       </div>
-      <h1 className="page-title" style={{ marginTop: 40 }}>Trending Popularity</h1>
+      <h1 className="page-title" style={{ marginTop: 40 }}>
+        Trending Popularity
+      </h1>
       <div className="images-container">
         {popular.map((p, i) => {
           const a = p.heroIdA ?? p.hero_id_a
@@ -161,5 +197,3 @@ export default function Highlights() {
     </div>
   )
 }
-
-

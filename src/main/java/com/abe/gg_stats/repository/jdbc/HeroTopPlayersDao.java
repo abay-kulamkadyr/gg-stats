@@ -14,7 +14,7 @@ public class HeroTopPlayersDao {
 
 	public List<TopPlayersForHeroDto> topPlayersForHero(int heroId, int limit) {
 		String sql = "SELECT hr.account_id, hr.score, p.personname, p.avatarfull FROM hero_ranking hr JOIN player p ON p.account_id = hr.account_id WHERE hr.hero_id=? ORDER BY hr.score DESC NULLS LAST LIMIT ?";
-		return jdbcTemplate.query(sql, (rs, _) -> new TopPlayersForHeroDto(rs.getLong("account_id"),
+		return jdbcTemplate.query(sql, (rs, c) -> new TopPlayersForHeroDto(rs.getLong("account_id"),
 				rs.getDouble("score"), rs.getString("personname"), rs.getString("avatarfull")), heroId, limit);
 	}
 

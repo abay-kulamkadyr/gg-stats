@@ -2,6 +2,7 @@ package com.abe.gg_stats.controller;
 
 import com.abe.gg_stats.service.rate_limit.RateLimitingQueryService;
 import com.abe.gg_stats.service.rate_limit.OpenDotaRateLimitingService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,12 +17,13 @@ class RateLimitController {
 
 	private final RateLimitingQueryService rateLimitingQueryService;
 
-	public RateLimitController(RateLimitingQueryService rateLimitingQueryService) {
+	@Autowired
+	RateLimitController(RateLimitingQueryService rateLimitingQueryService) {
 		this.rateLimitingQueryService = rateLimitingQueryService;
 	}
 
 	@GetMapping
-	public ResponseEntity<OpenDotaRateLimitingService.RateLimitStatus> getRateLimitStatus() {
+	ResponseEntity<OpenDotaRateLimitingService.RateLimitStatus> getRateLimitStatus() {
 		return rateLimitingQueryService.getStatus();
 	}
 

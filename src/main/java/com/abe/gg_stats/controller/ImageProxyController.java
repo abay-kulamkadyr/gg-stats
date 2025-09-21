@@ -14,17 +14,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @ResponseBody
 @RequestMapping("/img")
 @Slf4j
-public class ImageProxyController {
+class ImageProxyController {
 
 	private final ImageProxyService imageProxyService;
 
 	@Autowired
-	public ImageProxyController(ImageProxyService imageProxyService) {
+	ImageProxyController(ImageProxyService imageProxyService) {
 		this.imageProxyService = imageProxyService;
 	}
 
 	@GetMapping
-	public ResponseEntity<byte[]> proxy(@RequestParam("url") String url) {
+	ResponseEntity<byte[]> proxy(@RequestParam("url") String url) {
 		log.trace("Proxy request, url={}", url);
 		return imageProxyService.proxyImage(url).responseEntity();
 	}

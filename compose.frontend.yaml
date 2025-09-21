@@ -1,0 +1,8 @@
+services:
+  frontend:
+    image: gg-stats-frontend:local
+    build:
+      context: ./frontend
+    ports:
+      - "8081:80"
+    restart: unless-stopped

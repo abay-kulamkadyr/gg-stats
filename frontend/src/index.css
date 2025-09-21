@@ -4,9 +4,11 @@ html {
 
 body {
   margin: 0;
-  font-family: 300 11px/1.4 'Red Hat Display', 'sans-serif';
+  font-family:
+    300 11px/1.4 'Red Hat Display',
+    'sans-serif';
   color: #fff;
-  background: #0d1117 ;
+  background: #0d1117;
   display: block;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -20,4 +22,3 @@ body::-webkit-scrollbar-thumb {
   background: #fff;
   border-radius: 5px;
 }
-

@@ -1,26 +1,24 @@
 .page {
-    width: 100%;
-    min-height: 100vh;
-    position: relative;
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
 }
 
-
-
 .container {
-    width: 100%;
-    will-change: contents;
-    height: auto;
-    min-height: 566px;
-    position: absolute;
-    opacity: 0;
-    top: 140px;
-    margin: 0 auto;
-    padding-left: 100px;
-    padding-right: 50px;
-    z-index: 1;
-    transform-style: preserve-3d;
-    animation: fadeIn 1s forwards;
-    animation-delay: 1s;
+  width: 100%;
+  will-change: contents;
+  height: auto;
+  min-height: 566px;
+  position: absolute;
+  opacity: 0;
+  top: 140px;
+  margin: 0 auto;
+  padding-left: 100px;
+  padding-right: 50px;
+  z-index: 1;
+  transform-style: preserve-3d;
+  animation: fadeIn 1s forwards;
+  animation-delay: 1s;
 }
 
 .container.search-page,
@@ -43,12 +41,12 @@
     }
 
     @for $i from 1 through 50 {
-        .image-box:nth-child(#{$i}) {
-          animation-delay: #{$i/6}s;
-        }
-        .team-box:nth-child(#{$i}) {
-          animation-delay: #{$i/6}s;
-        }
+      .image-box:nth-child(#{$i}) {
+        animation-delay: #{$i/6}s;
+      }
+      .team-box:nth-child(#{$i}) {
+        animation-delay: #{$i/6}s;
+      }
     }
   }
 
@@ -59,7 +57,9 @@
       opacity: 0;
     }
     @for $i from 1 through 100 {
-      .item-card:nth-child(#{$i}) { animation-delay: #{$i/12}s; }
+      .item-card:nth-child(#{$i}) {
+        animation-delay: #{$i/12}s;
+      }
     }
   }
 
@@ -69,7 +69,9 @@
       opacity: 0;
     }
     @for $i from 1 through 50 {
-      .player-card:nth-child(#{$i}) { animation-delay: #{$i/10}s; }
+      .player-card:nth-child(#{$i}) {
+        animation-delay: #{$i/10}s;
+      }
     }
   }
 
@@ -100,51 +102,54 @@
     width: 1000px;
   }
 
-    h1.page-title {
-      font-size: 53px;
-      color: #fff;
-      font-weight: 600;
-      margin: 20px 0 20px 0;
-      position: relative;
+  h1.page-title {
+    font-size: 53px;
+    color: #fff;
+    font-weight: 600;
+    margin: 20px 0 20px 0;
+    position: relative;
 
-      &:before, &:after { display: none; }
+    &:before,
+    &:after {
+      display: none;
     }
+  }
 
-    p {
-      font-size: 16px;
-      color: #fff;
-      font-family: sans-serif;
-      font-weight: 500;
-      max-width: fit-content;
-      animation: pulse 1s;
-      &:nth-of-type(1) {
-        animation-delay: 1.1s;
-      }
-      &:nth-of-type(2) {
-        animation-delay: 1.2s;
-      }
-      &:nth-of-type(3) {
-        animation-delay: 1.3s;
-      }
+  p {
+    font-size: 16px;
+    color: #fff;
+    font-family: sans-serif;
+    font-weight: 500;
+    max-width: fit-content;
+    animation: pulse 1s;
+    &:nth-of-type(1) {
+      animation-delay: 1.1s;
     }
+    &:nth-of-type(2) {
+      animation-delay: 1.2s;
+    }
+    &:nth-of-type(3) {
+      animation-delay: 1.3s;
+    }
+  }
 
-    h2 {
-      font-size: 20px;
-      color: #ffd700;
-      font-family: sans-serif;
-      font-weight: 600;
-      max-width: fit-content;
-      animation: pulse 1s;
-      &:nth-of-type(1) {
-        animation-delay: 1.1s;
-      }
-      &:nth-of-type(2) {
-        animation-delay: 1.2s;
-      }
-      &:nth-of-type(3) {
-        animation-delay: 1.3s;
-      }
+  h2 {
+    font-size: 20px;
+    color: #ffd700;
+    font-family: sans-serif;
+    font-weight: 600;
+    max-width: fit-content;
+    animation: pulse 1s;
+    &:nth-of-type(1) {
+      animation-delay: 1.1s;
     }
+    &:nth-of-type(2) {
+      animation-delay: 1.2s;
+    }
+    &:nth-of-type(3) {
+      animation-delay: 1.3s;
+    }
+  }
 
   .text-zone {
     position: absolute;
@@ -161,7 +166,7 @@
     top: 50%;
     transform: translateY(-50%);
     max-height: 90%;
-    .vertical-timeline-element-title{
+    .vertical-timeline-element-title {
       left: 10%;
     }
   }
@@ -185,20 +190,19 @@
 }
 
 .container.search-page {
-  .text-zone{
-    .timeline-container{
+  .text-zone {
+    .timeline-container {
       animation: slideInFromBottom 5s forwards;
     }
   }
 }
 
-@media screen and (max-width: 1000px){
-
-  .page{
+@media screen and (max-width: 1000px) {
+  .page {
     position: relative;
     min-height: 100vh;
   }
-  .container{
+  .container {
     position: initial;
     height: auto;
     min-height: auto;
@@ -207,8 +211,8 @@
     &.teams-page,
     &.position-page,
     &.search-page,
-    &.nation-page{
-      .text-zone{
+    &.nation-page {
+      .text-zone {
         position: initial;
         transform: none;
         width: 100%;
@@ -219,4 +223,3 @@
     }
   }
 }
-

@@ -92,7 +92,8 @@ CREATE TABLE IF NOT EXISTS api_rate_limit (
     requests_count INT DEFAULT 0,
     window_start TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     daily_requests INT DEFAULT 0,
-    daily_window_start DATE DEFAULT CURRENT_DATE
+    daily_window_start DATE DEFAULT CURRENT_DATE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -107,4 +108,29 @@ CREATE TABLE IF NOT EXISTS team (
     logo_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tables required for HighlightsDao
+CREATE TABLE IF NOT EXISTS pro_hero_trends (
+    bucket_type VARCHAR(50) NOT NULL,
+    bucket_value VARCHAR(50) NOT NULL,
+    computed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    hero_id INT NOT NULL,
+    matches BIGINT,
+    picks BIGINT,
+    pick_rate DOUBLE PRECISION,
+    delta_vs_prev DOUBLE PRECISION
+);
+
+CREATE TABLE IF NOT EXISTS pro_hero_pair_stats (
+    bucket_type VARCHAR(50) NOT NULL,
+    bucket_value VARCHAR(50) NOT NULL,
+    hero_id_a INT NOT NULL,
+    hero_id_b INT NOT NULL,
+    games_together BIGINT,
+    support DOUBLE PRECISION,
+    confidence DOUBLE PRECISION,
+    lift DOUBLE PRECISION,
+    delta_support DOUBLE PRECISION,
+    delta_lift DOUBLE PRECISION
 );

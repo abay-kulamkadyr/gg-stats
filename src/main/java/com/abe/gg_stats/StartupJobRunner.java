@@ -27,7 +27,7 @@ public class StartupJobRunner implements ApplicationRunner {
 			// executor.submit(batchSchedulerService::triggerHeroRankingUpdate);
 			// executor.submit(batchSchedulerService::triggerPlayerUpdate);
 			// executor.submit(batchSchedulerService::triggerHistoricalMatchesIngestion);
-			// executor.submit(batchSchedulerService::triggerNewMatchesIngestion);
+			executor.submit(batchSchedulerService::triggerNewMatchesIngestion);
 		}
 	}
 

@@ -124,7 +124,7 @@ public class ConfigurationValidationService {
 	private void validateApiConfiguration(List<String> errors, List<String> warnings) {
 		// Validate base URL
 		try {
-			URL _ = new java.net.URI(openDotaBaseUrl).toURL();
+			URL url = new java.net.URI(openDotaBaseUrl).toURL();
 			if (!openDotaBaseUrl.startsWith("https://")) {
 				warnings.add("API base URL should use HTTPS for security");
 			}

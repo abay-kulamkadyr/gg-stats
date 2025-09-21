@@ -27,7 +27,8 @@ public class HighlightsDao {
 	}
 
 	public String bucketValueByOffset(String bucketType, int offset) {
-		String sql = "SELECT bucket_value FROM pro_hero_trends WHERE bucket_type=? GROUP BY bucket_value ORDER BY MAX(computed_at) DESC OFFSET ? LIMIT 1";
+		// Use LIMIT ... OFFSET ordering for better H2 compatibility in tests
+		String sql = "SELECT bucket_value FROM pro_hero_trends WHERE bucket_type=? GROUP BY bucket_value ORDER BY MAX(computed_at) DESC LIMIT 1 OFFSET ?";
 		List<String> rows = jdbcTemplate.query(sql, (rs, i) -> rs.getString("bucket_value"), bucketType, offset);
 		return rows.isEmpty() ? null : rows.getFirst();
 	}

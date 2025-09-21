@@ -40,12 +40,12 @@ class HeroesController {
 	}
 
 	@GetMapping
-	public List<HeroDto> heroes() {
+	List<HeroDto> heroes() {
 		return heroRepository.findAll().stream().map(heroMapper::toHeroDto).collect(Collectors.toList());
 	}
 
 	@GetMapping("/{heroId}/popular-items")
-	public Map<String, Object> popularItems(@PathVariable("heroId") int heroId,
+	Map<String, Object> popularItems(@PathVariable("heroId") int heroId,
 			@RequestParam(value = "limit", required = false, defaultValue = "12") int limit,
 			@RequestParam(value = "playersLimit", required = false, defaultValue = "10") int playersLimit) {
 		Map<String, Object> resp = new HashMap<>();

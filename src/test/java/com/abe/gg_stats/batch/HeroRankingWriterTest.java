@@ -141,7 +141,7 @@ class HeroRankingWriterTest {
 		}
 
 		// Mock mapper to return non-null for all calls
-		when(openDotaHeroRankingMapper.dtoToEntity(anyIterable())).thenAnswer(_ -> Collections.emptyList());
+		when(openDotaHeroRankingMapper.dtoToEntity(anyIterable())).thenAnswer(invocation -> Collections.emptyList());
 		writer.write(chunk);
 		verify(heroRankingRepository, times(1)).saveAll(anyList());
 	}
