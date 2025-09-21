@@ -10,7 +10,7 @@ The frontend is built with React 19.
 
 ---
 
-## 🚀 Tech Stack
+## Tech Stack
 
 * **Backend**: Spring Boot 3.5 (Web, Data JPA, Batch, Actuator)
 * **Database**: PostgreSQL, Flyway migrations
@@ -27,7 +27,7 @@ The frontend is built with React 19.
 
 ---
 
-## 📋 Prerequisites
+## Prerequisites
 
 * Java 24 (see `pom.xml` → `<java.version>24</java.version>`)
 * Maven 3.9+
@@ -36,7 +36,7 @@ The frontend is built with React 19.
 
 ---
 
-## ⚙️ Running the Backend Locally
+## Running the Backend Locally
 
 The application uses **Spring Boot Docker Compose support** (`spring-boot-docker-compose`).
 Starting the app can automatically spin up the PostgreSQL container defined in `compose.yaml`.
@@ -51,7 +51,7 @@ Starting the app can automatically spin up the PostgreSQL container defined in `
 
 ---
 
-## 🛠️ Building & Running the App
+## Building & Running the App
 
 ### 1. Build Frontend image
 
@@ -76,7 +76,7 @@ Frontend will be available at:
 
 ---
 
-## 📡 API Documentation (Summary)
+## API Documentation (Summary)
 
 **Controllers under** `src/main/java/com/abe/gg_stats/controller/`:
 
@@ -138,7 +138,7 @@ Frontend will be available at:
 
 ---
 
-## 📊 Actuator & Metrics
+## Actuator & Metrics
 
 Exposed endpoints: `health`, `metrics`.
 
@@ -187,14 +187,14 @@ POST https://localhost:8080/api/aggregations/refresh
 
 ---
 
-## ✅ Test Coverage
+## Test Coverage
 
 * **JaCoCo** configured in `pom.xml`.
 * Reports generated during tests.
 
 ---
 
-## 🔑 Notes
+## Notes
 
 * `compose.db.yaml` → runs only Postgres. If DB is empty, populates from `/init/dump.sql`.
 * `compose.app.yaml` → runs app container (combine with DB).
@@ -202,13 +202,13 @@ POST https://localhost:8080/api/aggregations/refresh
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 * [OpenDota](https://www.opendota.com/) – data provider
 * [Erik-Cupsa/PLWebsite](https://github.com/Erik-Cupsa/PLWebsite) – frontend starter
 
 ---
 
-## 📄 License
+## License
 
 See [LICENSE](LICENSE).
