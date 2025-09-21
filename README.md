@@ -56,7 +56,7 @@ Starting the app can automatically spin up the PostgreSQL container defined in `
 
 ### 0. Download database dump from Git lfs
 ```
-git lfs init
+git lfs install
 git lfs pull
 ```
 
