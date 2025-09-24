@@ -33,6 +33,7 @@ The frontend is built with React 19.
 * Maven 3.9+
 * Node.js 20+ and npm (for frontend)
 * Docker 24+ and Docker Compose plugin
+* Git lfs for downloading the prepopulated database dump(./local/dump.sql)
 
 ---
 
@@ -52,6 +53,12 @@ Starting the app can automatically spin up the PostgreSQL container defined in `
 ---
 
 ## Building & Running the App
+
+### 0. Download database dump from Git lfs
+```
+git lfs install
+git lfs pull
+```
 
 ### 1. Build Frontend image
 
