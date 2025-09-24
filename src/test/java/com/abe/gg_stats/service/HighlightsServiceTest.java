@@ -3,6 +3,7 @@ package com.abe.gg_stats.service;
 import com.abe.gg_stats.dto.response.HeroPairsDto;
 import com.abe.gg_stats.dto.response.HighlightsDto;
 import com.abe.gg_stats.dto.response.HighlightsHeroDto;
+import com.abe.gg_stats.exception.HighlightsNotFoundException;
 import com.abe.gg_stats.repository.jdbc.HighlightsDao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,13 +26,14 @@ class HighlightsServiceTest {
 	}
 
 	@Test
-	void returnsNullWhenNoBucketValueAvailable() {
+	void throwsWhenNoBucketValueAvailable() {
 		// value is null and dao returns null for latest and offset
 		when(dao.latestBucketValue("patch")).thenReturn(null);
 		when(dao.bucketValueByOffset("patch", 1)).thenReturn(null);
 
-		HighlightsDto dto = service.getHighlights("patch", null, 5, "lift", 1);
-		assertNull(dto);
+		assertThrows(HighlightsNotFoundException.class, () -> {
+			service.getHighlights("patch", null, 5, "lift", 1);
+		});
 
 		verify(dao).bucketValueByOffset("patch", 1);
 		verifyNoMoreInteractions(dao);

@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -23,8 +24,8 @@ public class ImageProxyService {
 
 	private static final long MAX_BYTES = 5L * 1024L * 1024L; // 5 MB
 
-	private static final Set<String> ALLOWLIST_HOST_SUFFIXES = Set.of("steamcdn-a.akamaihd.net", "cdn.steamstatic.com",
-			"cdn.cloudflare.steamstatic.com");
+	@Value("${app.allowlist.host-suffixes}")
+	private Set<String> allowlistHostSuffixes;
 
 	private final RestTemplate restTemplate;
 
@@ -43,7 +44,7 @@ public class ImageProxyService {
 
 		// --- Allowlist check ---
 		String hostLc = host.toLowerCase();
-		if (ALLOWLIST_HOST_SUFFIXES.stream().noneMatch(hostLc::endsWith)) {
+		if (allowlistHostSuffixes.stream().noneMatch(hostLc::endsWith)) {
 			throw new ImageProxyException("Host not in allowlist.", HttpStatus.FORBIDDEN);
 		}
 

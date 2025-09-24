@@ -1,19 +1,16 @@
 package com.abe.gg_stats.controller;
 
-import com.abe.gg_stats.dto.response.ErrorResponse;
 import com.abe.gg_stats.dto.response.HighlightsDto;
 import com.abe.gg_stats.dto.response.HighlightsDuoDto;
 import com.abe.gg_stats.service.HighlightsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
-@ResponseBody
+@RestController
 @RequestMapping("/highlights")
 class HighlightsController {
 
@@ -31,11 +28,6 @@ class HighlightsController {
 			@RequestParam(required = false, defaultValue = "0") int weekOffset) {
 
 		HighlightsDto highlights = highlightsService.getHighlights(bucket, value, limit, sort, weekOffset);
-		if (highlights == null) {
-			return ResponseEntity.badRequest()
-				.body(new ErrorResponse("No highlights available yet for bucket: patch_week",
-						String.format("weekOffset=%d, limit=%d", weekOffset, limit)));
-		}
 		return ResponseEntity.ok(highlights);
 	}
 
@@ -45,12 +37,6 @@ class HighlightsController {
 			@RequestParam(required = false, defaultValue = "10") int limit) {
 
 		HighlightsDuoDto pairHighlights = highlightsService.getPairHighlights(view, weekOffset, limit);
-
-		if (pairHighlights == null) {
-			return ResponseEntity.badRequest()
-				.body(new ErrorResponse("No highlights available yet for bucket: patch_week",
-						String.format("view=%s, weekOffset=%d, limit=%d", view, weekOffset, limit)));
-		}
 		return ResponseEntity.ok(pairHighlights);
 	}
 

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.abe.gg_stats.dto.response.HighlightsDuoDto;
 import com.abe.gg_stats.dto.response.HighlightsHeroPairsDto;
+import com.abe.gg_stats.exception.PairsHighlightsNotFoundException;
 import com.abe.gg_stats.service.HighlightsService;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -30,14 +31,15 @@ class HighlightsControllerPairsTest {
 
 	@Test
 	void testPairHighlights_ReturnsBadRequestWhenServiceReturnsNull() throws Exception {
-		when(highlightsService.getPairHighlights(eq("synergy"), anyInt(), anyInt())).thenReturn(null);
+		when(highlightsService.getPairHighlights(eq("synergy"), anyInt(), anyInt()))
+			.thenThrow(new PairsHighlightsNotFoundException("", 0, 0));
 
 		mockMvc
 			.perform(get("/highlights/pairs").param("view", "synergy")
 				.param("weekOffset", "0")
 				.param("limit", "5")
 				.accept(MediaType.APPLICATION_JSON))
-			.andExpect(status().isBadRequest());
+			.andExpect(status().isNotFound());
 	}
 
 	@Test

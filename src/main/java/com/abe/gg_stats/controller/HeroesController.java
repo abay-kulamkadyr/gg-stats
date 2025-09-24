@@ -1,7 +1,7 @@
 package com.abe.gg_stats.controller;
 
-import com.abe.gg_stats.dto.response.HeroDto;
 import com.abe.gg_stats.dto.request.mapper.HeroMapper;
+import com.abe.gg_stats.dto.response.HeroDto;
 import com.abe.gg_stats.repository.HeroRepository;
 import com.abe.gg_stats.repository.jdbc.HeroItemsDao;
 import com.abe.gg_stats.repository.jdbc.HeroTopPlayersDao;
@@ -10,15 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
-@ResponseBody
+@RestController
 @RequestMapping("/heroes")
 class HeroesController {
 

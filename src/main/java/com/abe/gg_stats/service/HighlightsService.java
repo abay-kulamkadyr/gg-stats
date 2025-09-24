@@ -5,6 +5,8 @@ import com.abe.gg_stats.dto.response.HighlightsDto;
 import com.abe.gg_stats.dto.response.HighlightsDuoDto;
 import com.abe.gg_stats.dto.response.HighlightsHeroDto;
 import com.abe.gg_stats.dto.response.HighlightsHeroPairsDto;
+import com.abe.gg_stats.exception.HighlightsNotFoundException;
+import com.abe.gg_stats.exception.PairsHighlightsNotFoundException;
 import com.abe.gg_stats.repository.jdbc.HighlightsDao;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,12 +27,15 @@ public class HighlightsService {
 		if (finalValue == null || finalValue.isBlank()) {
 			finalValue = weekOffset == 0 ? dao.latestBucketValue(bucket) : dao.bucketValueByOffset(bucket, weekOffset);
 			if (finalValue == null) {
-				return null;
+				throw new HighlightsNotFoundException(bucket, value, limit, sort, weekOffset);
 			}
 		}
 		long matches = dao.matchesForBucket(bucket, finalValue);
 		List<HighlightsHeroDto> heroes = dao.topHeroes(bucket, finalValue, limit);
 		List<HeroPairsDto> pairs = dao.topPairs(bucket, finalValue, limit, sort);
+		if (pairs == null || heroes == null) {
+			throw new HighlightsNotFoundException(bucket, value, limit, sort, weekOffset);
+		}
 		return new HighlightsDto(matches, heroes, pairs);
 	}
 
@@ -39,10 +44,7 @@ public class HighlightsService {
 		String bucketValue = weekOffset == 0 ? dao.latestBucketValue(bucket)
 				: dao.bucketValueByOffset(bucket, weekOffset);
 		if (bucketValue == null) {
-			// TODO
-			// Return a specific object or throw an exception to be handled in the
-			// controller
-			return null;
+			throw new PairsHighlightsNotFoundException(view, weekOffset, limit);
 		}
 
 		String sort;
@@ -55,6 +57,9 @@ public class HighlightsService {
 
 		long matches = dao.matchesForBucket(bucket, bucketValue);
 		List<HighlightsHeroPairsDto> pairs = dao.topPairsWithHeroes(bucket, bucketValue, limit, sort);
+		if (pairs == null) {
+			throw new PairsHighlightsNotFoundException(view, weekOffset, limit);
+		}
 		return new HighlightsDuoDto(bucketValue, view, matches, pairs);
 	}
 

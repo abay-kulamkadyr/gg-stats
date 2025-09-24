@@ -1,47 +1,53 @@
 package com.abe.gg_stats.exception;
 
-import static net.logstash.logback.argument.StructuredArguments.kv;
-
-import com.abe.gg_stats.dto.response.ImageProxyDto;
+import com.abe.gg_stats.dto.response.ApiErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
-@ControllerAdvice
+@RestControllerAdvice
 @Slf4j
 public class GlobalExceptionWebHandler {
 
+	private String getRequestPath(HttpServletRequest request) {
+		return request.getRequestURI();
+	}
+
 	@ExceptionHandler(ImageProxyException.class)
-	public ResponseEntity<ImageProxyDto> handleImageProxyException(ImageProxyException ex) {
-		log.warn("Image proxy exception, status={}, message={}", ex.getStatus(), ex.getMessage(), ex);
-		ResponseEntity<byte[]> errorResponse = ResponseEntity.status(ex.getStatus()).body(new byte[0]);
-		return ResponseEntity.status(ex.getStatus()).body(new ImageProxyDto(errorResponse));
+	public ResponseEntity<ApiErrorResponse> handleImageProxyException(ImageProxyException ex,
+			HttpServletRequest request) {
+		log.warn("Image proxy exception: status={}, message={}", ex.getStatus(), ex.getMessage(), ex);
+		return ResponseEntity.status(ex.getStatus())
+			.body(ApiErrorResponse.of(ex.getStatus(), ex.getMessage(), getRequestPath(request)));
 	}
 
-	@ExceptionHandler(HttpClientErrorException.class)
-	public ResponseEntity<ImageProxyDto> handleHttpClientError(HttpClientErrorException ex) {
-		log.warn("HTTP client error, status={}, message={}", ex.getStatusCode(), ex.getMessage(), ex);
-		ResponseEntity<byte[]> errorResponse = ResponseEntity.status(ex.getStatusCode()).body(new byte[0]);
-		return ResponseEntity.status(ex.getStatusCode()).body(new ImageProxyDto(errorResponse));
+	@ExceptionHandler({ HttpClientErrorException.class, ResourceAccessException.class, ApiServiceException.class })
+	public ResponseEntity<ApiErrorResponse> handleExternalApiErrors(Exception ex, HttpServletRequest request) {
+		HttpStatus status = (ex instanceof HttpClientErrorException httpEx) ? (HttpStatus) httpEx.getStatusCode()
+				: HttpStatus.BAD_GATEWAY;
+
+		log.warn("External API error: {}", ex.getMessage(), ex);
+		return ResponseEntity.status(status)
+			.body(ApiErrorResponse.of(status, ex.getMessage(), getRequestPath(request)));
 	}
 
-	@ExceptionHandler(ResourceAccessException.class)
-	public ResponseEntity<ImageProxyDto> handleResourceAccess(ResourceAccessException ex) {
-		log.warn("Resource access error: {}", ex.getMessage(), ex);
-		ResponseEntity<byte[]> errorResponse = ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new byte[0]);
-		return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ImageProxyDto(errorResponse));
+	@ExceptionHandler({ HighlightsNotFoundException.class, PairsHighlightsNotFoundException.class })
+	public ResponseEntity<ApiErrorResponse> handleNotFound(RuntimeException ex, HttpServletRequest request) {
+		log.warn("Not found: {}", ex.getMessage(), ex);
+		return ResponseEntity.status(HttpStatus.NOT_FOUND)
+			.body(ApiErrorResponse.of(HttpStatus.NOT_FOUND, ex.getMessage(), getRequestPath(request)));
 	}
 
 	@ExceptionHandler(Exception.class)
-	public ResponseEntity<ImageProxyDto> handleGenericException(Exception ex) {
-		log.error("Unexpected error: {}", ex.toString(), ex);
-		ResponseEntity<byte[]> errorResponse = ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-			.body(new byte[0]);
-		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ImageProxyDto(errorResponse));
+	public ResponseEntity<ApiErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
+		log.error("Unexpected error", ex);
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+			.body(ApiErrorResponse.of(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error", getRequestPath(request)));
 	}
 
 }

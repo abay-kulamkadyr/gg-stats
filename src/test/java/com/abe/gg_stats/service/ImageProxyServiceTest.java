@@ -6,7 +6,9 @@ import static org.mockito.Mockito.*;
 
 import com.abe.gg_stats.dto.response.ImageProxyDto;
 import com.abe.gg_stats.exception.ImageProxyException;
+import java.lang.reflect.Field;
 import java.net.URI;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -23,9 +25,13 @@ class ImageProxyServiceTest {
 	private ImageProxyService service;
 
 	@BeforeEach
-	void setUp() {
+	void setUp() throws NoSuchFieldException, IllegalAccessException {
 		restTemplate = mock(RestTemplate.class);
 		service = new ImageProxyService(restTemplate);
+		// manually inject allowlist into private field
+		Field field = ImageProxyService.class.getDeclaredField("allowlistHostSuffixes");
+		field.setAccessible(true);
+		field.set(service, Set.of("steamcdn-a.akamaihd.net", "cdn.steamstatic.com", "cdn.cloudflare.steamstatic.com"));
 	}
 
 	@Test

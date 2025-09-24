@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.abe.gg_stats.dto.response.HighlightsDto;
+import com.abe.gg_stats.exception.HighlightsNotFoundException;
 import com.abe.gg_stats.service.HighlightsService;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
@@ -33,9 +34,10 @@ class HighlightsControllerTest {
 
 	@Test
 	void testHighlights_ReturnsBadRequestWhenServiceReturnsNull() throws Exception {
-		when(highlightsService.getHighlights(anyString(), any(), anyInt(), anyString(), anyInt())).thenReturn(null);
+		when(highlightsService.getHighlights(anyString(), any(), anyInt(), anyString(), anyInt()))
+			.thenThrow(new HighlightsNotFoundException("", "", 0, "", 0));
 
-		mockMvc.perform(get("/highlights").accept(MediaType.APPLICATION_JSON)).andExpect(status().isBadRequest());
+		mockMvc.perform(get("/highlights").accept(MediaType.APPLICATION_JSON)).andExpect(status().isNotFound());
 	}
 
 	@Test
