@@ -1,14 +1,12 @@
 package com.abe.gg_stats.repository.jdbc;
 
 import com.abe.gg_stats.dto.response.HeroPairsDto;
-import com.abe.gg_stats.dto.response.HighlightsDto;
 import com.abe.gg_stats.dto.response.HighlightsHeroDto;
 import com.abe.gg_stats.dto.response.HighlightsHeroPairsDto;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import lombok.RequiredArgsConstructor;
 
 @Repository
 public class HighlightsDao {
@@ -21,20 +19,39 @@ public class HighlightsDao {
 	}
 
 	public String latestBucketValue(String bucketType) {
-		String sql = "SELECT bucket_value FROM pro_hero_trends WHERE bucket_type=? ORDER BY computed_at DESC LIMIT 1";
+		String sql = """
+				SELECT bucket_value
+				FROM pro_hero_trends
+				WHERE bucket_type=?
+				ORDER BY computed_at DESC
+				LIMIT 1
+				""";
 		List<String> rows = jdbcTemplate.query(sql, (rs, i) -> rs.getString("bucket_value"), bucketType);
 		return rows.isEmpty() ? null : rows.getFirst();
 	}
 
 	public String bucketValueByOffset(String bucketType, int offset) {
 		// Use LIMIT ... OFFSET ordering for better H2 compatibility in tests
-		String sql = "SELECT bucket_value FROM pro_hero_trends WHERE bucket_type=? GROUP BY bucket_value ORDER BY MAX(computed_at) DESC LIMIT 1 OFFSET ?";
+		String sql = """
+				SELECT bucket_value
+				FROM pro_hero_trends
+				WHERE bucket_type=?
+				GROUP BY bucket_value
+				ORDER BY MAX(computed_at) DESC
+				LIMIT 1 OFFSET ?
+				""";
 		List<String> rows = jdbcTemplate.query(sql, (rs, i) -> rs.getString("bucket_value"), bucketType, offset);
 		return rows.isEmpty() ? null : rows.getFirst();
 	}
 
 	public List<HighlightsHeroDto> topHeroes(String bucketType, String bucketValue, int limit) {
-		String sql = "SELECT hero_id, matches, picks, pick_rate, delta_vs_prev FROM pro_hero_trends WHERE bucket_type=? AND bucket_value=? ORDER BY pick_rate DESC, picks DESC LIMIT ?";
+		String sql = """
+				SELECT hero_id, matches, picks, pick_rate, delta_vs_prev
+				FROM pro_hero_trends
+				WHERE bucket_type=? AND bucket_value=?
+				ORDER BY pick_rate DESC, picks DESC
+				LIMIT ?
+				""";
 		return jdbcTemplate.query(sql,
 				(rs, i) -> new HighlightsHeroDto(rs.getInt("hero_id"), rs.getLong("matches"), rs.getLong("picks"),
 						rs.getDouble("pick_rate"),
@@ -43,7 +60,11 @@ public class HighlightsDao {
 	}
 
 	public long matchesForBucket(String bucketType, String bucketValue) {
-		String sql = "SELECT MAX(matches) FROM pro_hero_trends WHERE bucket_type=? AND bucket_value=?";
+		String sql = """
+				SELECT MAX(matches)
+				FROM pro_hero_trends
+				WHERE bucket_type=? AND bucket_value=?
+				""";
 		Long v = jdbcTemplate.queryForObject(sql, Long.class, bucketType, bucketValue);
 		return v == null ? 0L : v;
 	}
@@ -59,9 +80,15 @@ public class HighlightsDao {
 			case "games" -> "games_together DESC";
 			default -> "lift DESC, support DESC";
 		};
-		String sql = "SELECT hero_id_a, hero_id_b, games_together, support, confidence, lift, delta_support, delta_lift "
-				+ "FROM pro_hero_pair_stats WHERE bucket_type=? AND bucket_value=? " + "ORDER BY " + orderBy
-				+ " LIMIT ?";
+		String sql = String.format("""
+				SELECT hero_id_a, hero_id_b, games_together, support, confidence, lift, delta_support, delta_lift
+				FROM pro_hero_pair_stats
+				WHERE bucket_type=? AND bucket_value=?
+				ORDER BY %s
+				LIMIT ?
+				""", orderBy); // Used String.format for dynamic ORDER BY clause inside
+								// the Text Block
+
 		return jdbcTemplate.query(sql, (rs, i) -> new HeroPairsDto(rs.getInt("hero_id_a"), rs.getInt("hero_id_b"),
 				rs.getLong("games_together"), rs.getDouble("support"), rs.getDouble("confidence"), rs.getDouble("lift"),
 				rs.getObject("delta_support") == null ? null : rs.getDouble("delta_support"),
@@ -73,16 +100,25 @@ public class HighlightsDao {
 			String sort) {
 		String orderBy = getOrderCriteria(sort);
 
-		String sql = "SELECT p.hero_id_a, p.hero_id_b, p.games_together, p.support, p.confidence, p.lift, p.delta_support, p.delta_lift, "
-				+ "ha.localized_name AS hero_a_localized_name, hb.localized_name AS hero_b_localized_name, "
-				+ "ha.name AS hero_a_name, hb.name AS hero_b_name, "
-				+ "LOWER(REPLACE(ha.name, 'npc_dota_hero_', '')) AS hero_a_cdn_name, "
-				+ "LOWER(REPLACE(hb.name, 'npc_dota_hero_', '')) AS hero_b_cdn_name, "
-				+ "'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/' || LOWER(REPLACE(ha.name, 'npc_dota_hero_', '')) || '.png' AS hero_a_img_url, "
-				+ "'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/' || LOWER(REPLACE(hb.name, 'npc_dota_hero_', '')) || '.png' AS hero_b_img_url "
-				+ "FROM pro_hero_pair_stats p " + "JOIN hero ha ON ha.id = p.hero_id_a "
-				+ "JOIN hero hb ON hb.id = p.hero_id_b " + "WHERE p.bucket_type=? AND p.bucket_value=? " + "ORDER BY "
-				+ orderBy + " LIMIT ?";
+		// Used String.format for dynamic ORDER BY clause inside the Text Block
+		String sql = String.format(
+				"""
+						 SELECT\s
+						     p.hero_id_a, p.hero_id_b, p.games_together, p.support, p.confidence, p.lift, p.delta_support, p.delta_lift,
+						     ha.localized_name AS hero_a_localized_name, hb.localized_name AS hero_b_localized_name,
+						     ha.name AS hero_a_name, hb.name AS hero_b_name,
+						     LOWER(REPLACE(ha.name, 'npc_dota_hero_', '')) AS hero_a_cdn_name,
+						     LOWER(REPLACE(hb.name, 'npc_dota_hero_', '')) AS hero_b_cdn_name,
+						     'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/' || LOWER(REPLACE(ha.name, 'npc_dota_hero_', '')) || '.png' AS hero_a_img_url,
+						     'https://cdn.steamstatic.com/apps/dota2/images/dota_react/heroes/' || LOWER(REPLACE(hb.name, 'npc_dota_hero_', '')) || '.png' AS hero_b_img_url
+						 FROM pro_hero_pair_stats p
+						 JOIN hero ha ON ha.id = p.hero_id_a
+						 JOIN hero hb ON hb.id = p.hero_id_b
+						 WHERE p.bucket_type=? AND p.bucket_value=?
+						 ORDER BY %s
+						 LIMIT ?
+						\s""",
+				orderBy);
 
 		return jdbcTemplate
 			.query(sql, (rs, i) -> new HighlightsHeroPairsDto(rs.getInt("hero_id_a"), rs.getInt("hero_id_b"),
